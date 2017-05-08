@@ -1,0 +1,53 @@
+OpenEmbedded/Yocto BSP Layer for Host Mobility products based on COMs from Toradex 
+=====================================================================
+
+This layer provides support for:
+
+- MX-4 T20
+- MX-4 CT/GTT/VCC
+- MX-4 MIL
+- MX-4 V61/C61
+
+For more information on available Host Moblity products please visit:
+
+http://hostmobility.com/index.php?pageId=557
+
+This layer is largely based on different Toradex meta layers.
+
+Dependencies
+============
+
+This layer depends on:
+
+  URI: git://git.openembedded.org/bitbake
+  branch: 1.32
+  revision: HEAD
+
+  URI: git://git.openembedded.org/openembedded-core
+  layers: meta
+  branch: master
+  revision: HEAD
+
+  URI: git://git.toradex.com/meta-toradex-tegra
+  layers: meta
+  branch: master
+  revision: HEAD
+
+  URI: git://git.toradex.com/meta-toradex-nxp
+  branch: master
+  revision: HEAD
+
+Maintainer
+=======
+
+This layer is maintained by Host Mobility AB.
+
+License
+=======
+
+All metadata is MIT licensed unless otherwise stated. Source code and
+binaries included in tree for individual recipes is under the LICENSE
+stated in each recipe (.bb file) unless otherwise stated.
+
+This README document is Copyright (C) 2017 Host Mobility AB.
+

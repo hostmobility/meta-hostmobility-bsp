@@ -1,0 +1,11 @@
+[Unit]
+Description=Run autostart/shutdown scripts
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart = /opt/hm/./autostart.sh
+ExecStop = /opt/hm/./shutdown.sh
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,13 @@
+[Unit]
+Description=Mount config
+Requires= autostart.service
+Before = autostart.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/opt/hm/mount_config.sh | logger
+ExecStop=/bin/umount /media/config
+
+[Install]
+WantedBy=multi-user.target

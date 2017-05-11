@@ -20,6 +20,8 @@ SRC_URI = " \
     file://fw_env.config \
 "
 
+SRC_URI_append_tegra3 = " file://fw_unlock_mmc.sh"
+
 PV = "v2015.04-hm+git${SRCPV}"
 
 S = "${WORKDIR}/git"
@@ -42,12 +44,9 @@ do_install () {
     install -m 644 ${WORKDIR}/fw_env.config ${D}${sysconfdir}/
 }
 
-pkg_postinst_${PN}_tegra2 () {
-    # can't do this offline
-    if [ "x$D" != "x" ]; then
-        exit 1
-    fi
-    grep u-boot-env /proc/mtd | awk '{print "/dev/" substr($1,0,4) " 0x00000000 0x00010000 0x" $3 " 1" >> "/etc/fw_env.config" }'
+do_install_append_tegra3() {
+    install -d ${D}${sysconfdir}/profile.d/
+    install -m 0644 ${WORKDIR}/fw_unlock_mmc.sh ${D}${sysconfdir}/profile.d/fw_unlock_mmc.sh
 }
 
 PACKAGE_ARCH = "${MACHINE_ARCH}"

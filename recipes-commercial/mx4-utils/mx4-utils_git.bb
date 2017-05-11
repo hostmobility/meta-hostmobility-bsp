@@ -54,9 +54,9 @@ do_install_append_mx4-mil() {
     install -m 744 ${B}/mil/*.sh ${D}/opt/hm/
 }
 
-PACKAGES = "mx4-utils-info mx4-utils-scripts mx4-utils-autostart mx4-utils-mount-config"
+PACKAGES += "${PN}-scripts ${PN}-autostart ${PN}-mount-config"
 
-FILES_mx4-utils-info = "\
+FILES_${PN} = "\
     ${sysconfdir}/first_boot_after_update.txt \
     ${sysconfdir}/platform-system-type \
     ${sysconfdir}/platform-board-type \
@@ -66,8 +66,8 @@ FILES_mx4-utils-info = "\
     ${sysconfdir}/platform-build-tag \
 "
 
-RDEPENDS_mx4-utils-scripts = "bash"
-FILES_mx4-utils-scripts = "\
+RDEPENDS_${PN}-scripts = "bash"
+FILES_${PN}-scripts = "\
     /opt/hm/go_to_sleep.sh \
     /opt/hm/load_module.sh \
     /opt/hm/modem_status.sh \
@@ -81,17 +81,20 @@ FILES_mx4-utils-scripts = "\
     /opt/hm/version_script.sh \
 "
 
-FILES_mx4-utils-scripts_mx4-mil += "\
+FILES_${PN}-scripts_mx4-mil += "\
     /opt/hm/analog_calibration.sh \
     /opt/hm/date2pic.sh \
     /opt/hm/pic2rtc.sh \
 "
 
-RDEPENDS_mx4-utils-autostart = "bash"
-FILES_mx4-utils-autostart = "/opt/hm/autostart.sh ${systemd_unitdir}/system/autostart.service"
-SYSTEMD_SERVICE_mx4-utils-autostart = "autostart.service"
+inherit systemd
 
-RDEPENDS_mx4-utils-mount-config = "bash"
-FILES_mx4-utils-mount-config = "/opt/hm/mount_config.sh ${systemd_unitdir}/system/mount-config.service"
-SYSTEMD_SERVICE_mx4-utils-mount-config = "mount-config.service"
+SYSTEMD_PACKAGES = "${PN}-autostart ${PN}-mount-config"
 
+RDEPENDS_${PN}-autostart = "bash"
+FILES_${PN}-autostart = "/opt/hm/autostart.sh ${systemd_unitdir}/system/autostart.service"
+SYSTEMD_SERVICE_mx4-${PN}-autostart = "autostart.service"
+
+RDEPENDS_${PN}-mount-config = "bash"
+FILES_${PN}-mount-config = "/opt/hm/mount_config.sh ${systemd_unitdir}/system/mount-config.service"
+SYSTEMD_SERVICE_${PN}-mount-config = "mount-config.service"

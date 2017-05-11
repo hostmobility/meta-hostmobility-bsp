@@ -13,7 +13,7 @@ RDEPENDS_${PN} += "\
     pic-programmer \
     pic-firmware \
     \
-    mx4-utils-info \
+    mx4-utils \
     mx4-utils-autostart \
     mx4-utils-scripts \
     mx4-utils-mount-config \

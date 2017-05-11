@@ -17,3 +17,5 @@ SRC_URI[sha256sum] = "ece0c9ccbfb5d2771b115f750361184bb80b2ae5fe82d97d38be2bfee3
 
 S = "${WORKDIR}/git"
 
+KERNEL_MODULE_AUTOLOAD += "mx4_pic"
+

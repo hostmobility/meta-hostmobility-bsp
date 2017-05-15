@@ -12,6 +12,7 @@ MACHINE_EXTRA_RDEPENDS_append = " \
 
 MACHINE_EXTRA_RDEPENDS_append_tegra3 = " \
     e2fsprogs-resize2fs \
+    fs-init \
 "
 
 MACHINE_eXTRA_RDEPENDS_append_vf = " \

@@ -12,7 +12,7 @@ LIC_FILES_CHKSUM = "file://Licenses/README;md5=c7383a594871c03da76b3707929d2919"
 
 PROVIDES += "u-boot"
 
-SRC_URI = "git://git@github.com/hostmobility/u-boot-toradex.git;protocol=ssh;branch=${SRCBRANCH}"
+SRC_URI = "git://github.com/hostmobility/u-boot-toradex.git;protocol=https;branch=${SRCBRANCH}"
 
 S = "${WORKDIR}/git"
 

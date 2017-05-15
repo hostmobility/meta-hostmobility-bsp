@@ -16,7 +16,7 @@ FILESPATHPKG =. "git:"
 SRCREV = "68d62aa5688ca944cbcdde163ca5c54b9379dce6"
 SRCBRANCH = "2015.04-hm"
 SRC_URI = " \
-    git://git@github.com/hostmobility/u-boot-toradex.git;protocol=ssh;branch=${SRCBRANCH} \
+    git://github.com/hostmobility/u-boot-toradex.git;protocol=https;branch=${SRCBRANCH} \
     file://fw_env.config \
 "
 

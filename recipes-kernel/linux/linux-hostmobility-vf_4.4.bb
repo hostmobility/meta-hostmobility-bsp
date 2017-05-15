@@ -3,7 +3,7 @@ require recipes-kernel/linux/linux-dtb.inc
 
 SUMMARY = "Linux kernel for MX-4 products using Toradex Colibri VFxx COMs"
 
-SRC_URI = "git://git@github.com/hostmobility/linux-toradex.git;protocol=ssh;branch=${SRCBRANCH} \
+SRC_URI = "git://github.com/hostmobility/linux-toradex.git;protocol=https;branch=${SRCBRANCH} \
            file://defconfig"
 
 KERNEL_MODULE_AUTOLOAD += "${@bb.utils.contains('COMBINED_FEATURES', 'usbgadget', ' libcomposite', '',d)}"

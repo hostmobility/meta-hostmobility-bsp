@@ -26,11 +26,7 @@ do_install() {
     system_type=`get_mx4_type_from_machine ${MACHINE}`
     echo ${system_type} > ${D}/${sysconfdir}/platform-system-type
 
-    # Placeholders until we figure out what we want to put here.
-    echo "unknown" > ${D}/${sysconfdir}/platform-version
-    echo "unknown" > ${D}/${sysconfdir}/platform-branch-name
-    echo "unknown" > ${D}/${sysconfdir}/platform-bsp-version
-    echo "unknown" > ${D}/${sysconfdir}/platform-build-tag
+    echo ${BUILD_TAG} > ${D}/${sysconfdir}/platform-build-tag
 
     install -m 744 ${B}/mx4/*.sh ${D}/opt/hm/
 

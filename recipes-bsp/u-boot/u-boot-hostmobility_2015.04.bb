@@ -1,6 +1,8 @@
 include u-boot-hostmobility.inc
 
-PV = "v2015.04-hm+git${SRCPV}"
+PV = "v${SRCBRANCH}+git${SRCPV}"
+
+LOCALVERSION = " ${SRCBRANCH}"
 
 SRCREV = "735925d807abc3cd64b89038e7aff1245d41b7e4"
 SRCBRANCH = "2015.04-hm"

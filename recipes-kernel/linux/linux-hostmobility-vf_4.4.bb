@@ -8,7 +8,7 @@ SRC_URI = "git://github.com/hostmobility/linux-toradex.git;protocol=https;branch
 
 KERNEL_MODULE_AUTOLOAD += "${@bb.utils.contains('COMBINED_FEATURES', 'usbgadget', ' libcomposite', '',d)}"
 
-LOCALVERSION = "-HEAD"
+LOCALVERSION = "-${SRCBRANCH}"
 SRCBRANCH = "hm_vf_4.4"
 SRCREV = "33fac6437474670595aaeca085e4fcbf87a8f665"
 DEPENDS += "lzop-native bc-native u-boot-mkimage-native"

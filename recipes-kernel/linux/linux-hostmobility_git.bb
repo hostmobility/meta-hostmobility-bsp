@@ -7,6 +7,7 @@ PV = "${LINUX_VERSION}+gitr${SRCREV}"
 
 S = "${WORKDIR}/git"
 
+LOCALVERSION = "-${SRCBRANCH}"
 SRC_URI = "git://github.com/hostmobility/linux-toradex.git;protocol=https;branch=${SRCBRANCH}"
 SRCBRANCH = "hm_tegra-next"
 SRCREV = "b33d642c2e0b355e82adcbb28d0c3e2923ed90ad"

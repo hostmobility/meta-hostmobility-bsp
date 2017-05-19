@@ -7,6 +7,8 @@ MACHINE_EXTRA_RDEPENDS_append = " \
                           'packagegroup-hostmobility-commercial', '', d)} \
     ${@bb.utils.contains('MACHINE_FEATURES', 'wifi', \
                           'linux-firmware-ralink linux-firmware-ath9k', '', d)} \
+    ${@bb.utils.contains('MACHINE_FEATURES', 'flash', \
+                          'mtd-utils mtd-utils-ubifs mtd-utils-misc mtd-utils-jffs2', '', d)} \
 "
 
 MACHINE_EXTRA_RDEPENDS_append_tegra3 = " \

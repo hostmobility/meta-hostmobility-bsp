@@ -37,6 +37,9 @@ PREFERRED_PROVIDER_virtual/egl = "tdx-nv-binaries"
 PREFERRED_PROVIDER_virtual/libgles1 = "tdx-nv-binaries"
 PREFERRED_PROVIDER_virtual/libgles2 = "tdx-nv-binaries"
 
+# Kernel is out-of-date. More recent versions do not work
+PREFERRED_VERSION_iproute2 ?= "3.15.0"
+
 # Install NV binaries which contains tegra X-Server drivers when X11 is chosen
 MACHINE_EXTRA_RRECOMMENDS_append_tegra = " ${@bb.utils.contains('DISTRO_FEATURES', 'x11', 'tdx-nv-binaries', '', d)}"
 

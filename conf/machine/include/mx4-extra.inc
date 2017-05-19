@@ -1,5 +1,3 @@
-# Class to include some extra packages from Host Mobility layers
-
 MACHINE_EXTRA_RDEPENDS_append = " \
     kernel-modules \
     kernel-module-pic \
@@ -16,6 +14,6 @@ MACHINE_EXTRA_RDEPENDS_append_tegra3 = " \
     fs-init \
 "
 
-MACHINE_eXTRA_RDEPENDS_append_vf = " \
+MACHINE_EXTRA_RDEPENDS_append_vf = " \
     usb-suspend-resume \
 "

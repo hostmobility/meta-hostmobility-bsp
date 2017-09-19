@@ -8,7 +8,6 @@ inherit fsl-u-boot-localversion
 
 SUMMARY = "U-Boot bootloader with support for MX-4 products from Host Mobility AB"
 LICENSE = "GPLv2+"
-LIC_FILES_CHKSUM = "file://Licenses/README;md5=c7383a594871c03da76b3707929d2919"
 
 PROVIDES += "u-boot"
 

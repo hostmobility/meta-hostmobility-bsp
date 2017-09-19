@@ -11,6 +11,8 @@ LICENSE = "GPLv2+"
 
 PROVIDES += "u-boot"
 
+LOCALVERSION = " ${SRCBRANCH}"
+
 SRC_URI = "git://github.com/hostmobility/u-boot-toradex.git;protocol=https;branch=${SRCBRANCH}"
 
 S = "${WORKDIR}/git"

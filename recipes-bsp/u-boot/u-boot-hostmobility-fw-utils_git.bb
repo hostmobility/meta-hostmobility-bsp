@@ -6,11 +6,7 @@ PROVIDES = "u-boot-fw-utils"
 RPROVIDES_${PN} = "u-boot-fw-utils"
 DEPENDS = "mtd-utils"
 
-COMPATIBLE_MACHINE = "(mx4-v61|mx4-c61|mx4-t30|mx4-mil)"
-DEFAULT_PREFERENCE_mx4-v61 = "1"
-DEFAULT_PREFERENCE_mx4-c61 = "1"
-DEFAULT_PREFERENCE_mx4-t30 = "1"
-DEFAULT_PREFERENCE_mx4-mil = "1"
+DEFAULT_PREFERENCE = "1"
 
 FILESPATHPKG =. "git:"
 

@@ -9,6 +9,8 @@ inherit fsl-u-boot-localversion
 SUMMARY = "U-Boot bootloader with support for MX-4 products from Host Mobility AB"
 LICENSE = "GPLv2+"
 
+DEPENDS += " dtc-native"
+
 PROVIDES += "u-boot"
 
 LOCALVERSION = " ${SRCBRANCH}"

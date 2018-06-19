@@ -8,8 +8,8 @@ DEPENDS = "mtd-utils"
 
 FILESPATHPKG =. "git:"
 
-SRCREV = "68d62aa5688ca944cbcdde163ca5c54b9379dce6"
-SRCBRANCH = "2015.04-hm"
+SRCREV = "a4c89a31125f1fa11f3809ed908fc720b30af8a5"
+SRCBRANCH = "2016.11-hm"
 SRC_URI = " \
     git://github.com/hostmobility/u-boot-toradex.git;protocol=https;branch=${SRCBRANCH} \
     file://fw_env.config \
@@ -17,7 +17,7 @@ SRC_URI = " \
 
 SRC_URI_append_tegra3 = " file://fw_unlock_mmc.sh"
 
-PV = "v2015.04-hm+git${SRCPV}"
+PV = "v2016.11-hm+git${SRCPV}"
 
 S = "${WORKDIR}/git"
 

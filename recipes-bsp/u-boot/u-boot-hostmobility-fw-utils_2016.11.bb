@@ -6,6 +6,8 @@ PROVIDES = "u-boot-fw-utils"
 RPROVIDES_${PN} = "u-boot-fw-utils"
 DEPENDS = "mtd-utils"
 
+include conf/tdx_version.conf
+
 DEFAULT_PREFERENCE = "1"
 
 FILESPATHPKG =. "git:"
@@ -14,16 +16,18 @@ SRCREV = "a4c89a31125f1fa11f3809ed908fc720b30af8a5"
 SRCBRANCH = "2016.11-hm"
 SRC_URI = " \
     git://github.com/hostmobility/u-boot-toradex.git;protocol=https;branch=${SRCBRANCH} \
+	file://default-gcc.patch \
     file://fw_env.config \
 "
 
 SRC_URI_append_tegra3 = " file://fw_unlock_mmc.sh"
 
 PV = "v2016.11-hm+git${SRCPV}"
+LOCALVERSION ?= "-${TDX_VER_ITEM}"
 
 S = "${WORKDIR}/git"
 
-INSANE_SKIP_${PN} = "already-stripped ldflags"
+INSANE_SKIP_${PN} = "already-stripped"
 EXTRA_OEMAKE_class-target = 'CROSS_COMPILE=${TARGET_PREFIX} CC="${CC} ${CFLAGS} ${LDFLAGS}" HOSTCC="${BUILD_CC} ${BUILD_CFLAGS} ${BUILD_LDFLAGS}" V=1'
 EXTRA_OEMAKE_class-cross = 'ARCH=${TARGET_ARCH} CC="${CC} ${CFLAGS} ${LDFLAGS}" V=1'
 

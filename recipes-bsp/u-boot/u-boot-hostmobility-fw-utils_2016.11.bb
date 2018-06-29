@@ -43,6 +43,10 @@ do_install () {
     install -m 755 ${S}/tools/env/fw_printenv ${D}${base_sbindir}/fw_printenv
     ln -s fw_printenv ${D}${base_sbindir}/fw_setenv
     install -m 644 ${WORKDIR}/fw_env.config ${D}${sysconfdir}/
+    
+    mkdir -p ${D}${base_prefix}/opt/hm/fw_env
+    ln -s fw_printenv ${D}${base_prefix}/opt/hm/fw_env/fw_printenv
+    ln -s fw_printenv ${D}${base_prefix}/opt/hm/fw_env/fw_setenv
 }
 
 do_install_append_tegra3() {

@@ -43,6 +43,7 @@ do_install () {
     install -m 755 ${S}/tools/env/fw_printenv ${D}${base_sbindir}/fw_printenv
     ln -s fw_printenv ${D}${base_sbindir}/fw_setenv
     
+    install -d ${D}/opt/hm/fw_env
     install -m 755 ${S}/tools/env/fw_printenv ${D}/opt/hm/fw_env/fw_printenv
     ln -s fw_printenv ${D}/opt/hm/fw_env/fw_setenv
 

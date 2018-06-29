@@ -39,13 +39,11 @@ do_compile () {
 }
 
 do_install () {
-    mkdir -p ${D}/opt/hm/fw_env
-    
     install -d ${D}${base_sbindir} ${D}${sysconfdir}
     install -m 755 ${S}/tools/env/fw_printenv ${D}${base_sbindir}/fw_printenv
     ln -s fw_printenv ${D}${base_sbindir}/fw_setenv
     
-    ln -s fw_printenv ${D}/opt/hm/fw_env/fw_printenv
+    install -m 755 ${S}/tools/env/fw_printenv ${D}/opt/hm/fw_env/fw_printenv
     ln -s fw_printenv ${D}/opt/hm/fw_env/fw_setenv
 
     install -m 644 ${WORKDIR}/fw_env.config ${D}${sysconfdir}/

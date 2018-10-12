@@ -21,7 +21,7 @@ do_install() {
 
     install -m 744 ${B}/build/release/libj1708.so ${D}${libdir}/libj1708.so.${PV}
 
-    ln -sf ${D}${libdir}/libj1708.so.${PV} ${D}${libdir}/libj1708.so
+    ln -sf ${libdir}/libj1708.so.${PV} ${D}${libdir}/libj1708.so
 
     #Install headers
     install -m 744 ${B}/core/api.h ${D}${includedir}/j1708/api.h

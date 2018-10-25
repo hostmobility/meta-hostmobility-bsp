@@ -31,6 +31,11 @@ INSANE_SKIP_${PN} = "already-stripped"
 EXTRA_OEMAKE_class-target = 'CROSS_COMPILE=${TARGET_PREFIX} CC="${CC} ${CFLAGS} ${LDFLAGS}" HOSTCC="${BUILD_CC} ${BUILD_CFLAGS} ${BUILD_LDFLAGS}" V=1'
 EXTRA_OEMAKE_class-cross = 'ARCH=${TARGET_ARCH} CC="${CC} ${CFLAGS} ${LDFLAGS}" V=1'
 
+FILES_${PN} += " \
+    /opt/hm/fw_env/fw_printenv \
+    /opt/hm/fw_env/fw_setenv \
+"
+
 inherit pkgconfig uboot-config
 
 do_compile () {
@@ -42,6 +47,11 @@ do_install () {
     install -d ${D}${base_sbindir} ${D}${sysconfdir}
     install -m 755 ${S}/tools/env/fw_printenv ${D}${base_sbindir}/fw_printenv
     ln -s fw_printenv ${D}${base_sbindir}/fw_setenv
+    
+    install -d ${D}/opt/hm/fw_env
+    install -m 755 ${S}/tools/env/fw_printenv ${D}/opt/hm/fw_env/fw_printenv
+    ln -s fw_printenv ${D}/opt/hm/fw_env/fw_setenv
+
     install -m 644 ${WORKDIR}/fw_env.config ${D}${sysconfdir}/
 }
 

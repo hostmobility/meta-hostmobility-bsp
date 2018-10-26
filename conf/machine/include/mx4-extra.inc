@@ -9,6 +9,8 @@ MACHINE_EXTRA_RDEPENDS_append = " \
                           'linux-firmware-ralink linux-firmware-ath9k', '', d)} \
     ${@bb.utils.contains('MACHINE_FEATURES', 'flash', \
                           'mtd-utils mtd-utils-ubifs mtd-utils-misc mtd-utils-jffs2', '', d)} \
+    ${@bb.utils.contains('MACHINE_FEATURES', 'alsa', \
+                          'alsa-utils', '', d)} \
 "
 
 MACHINE_EXTRA_RDEPENDS_append_tegra3 = " \

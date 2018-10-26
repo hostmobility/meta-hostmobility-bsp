@@ -10,10 +10,10 @@ RDEPENDS_${PN} = "bash"
 S = "${WORKDIR}/test"
 
 do_install() {
-    install -d ${D}/opt/hm/test
+    install -d ${D}/home/root/test
 
-    cp -rv ${B}/* ${D}/opt/hm/test
+    cp -rv ${B}/* ${D}/home/root/test
 }
 
-FILES_${PN} = "/opt/hm/test/*"
+FILES_${PN} = "/home/root/test/*"
 

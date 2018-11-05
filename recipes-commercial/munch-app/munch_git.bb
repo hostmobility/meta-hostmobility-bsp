@@ -15,7 +15,7 @@ do_compile () {
 
 do_install() {
     install -d ${D}/usr/local/bin
-    install -m 744 ${B}/munch ${D}/usr/local/bin
+    install -m 744 ${B}/munch-mem-test ${D}/usr/local/bin
 }
 
 FILES_${PN} += "/usr/local/bin/*"

@@ -22,6 +22,10 @@ RDEPENDS_${PN} += "\
     \
     can-xcvr \
     \
+    gps-parser \
+    \
+    munch \
+    \
     ${@bb.utils.contains('MACHINE_FEATURES', 'j1708', 'j1708-lib', '', d)} \
     ${@bb.utils.contains('MACHINE_FEATURES', 'kline', 'kline-lib', '', d)} \
     ${@bb.utils.contains('MACHINE_FEATURES', 'lin', 'lin-config', '', d)} \

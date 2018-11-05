@@ -1,7 +1,7 @@
 LICENSE = "CLOSED"
 LICENSE_FLAGS = "closed"
 
-SRCREV = "2d16e3880e9ce03d5c128fae861da9e1478f62a9"
+SRCREV = "140adbfdce5c4df3802790ff66f0062da360b371"
 
 SRC_URI = "git://git@github.com/hostmobility/mx4-commercial.git;protocol=ssh;subpath=${SUBPATH}"
 

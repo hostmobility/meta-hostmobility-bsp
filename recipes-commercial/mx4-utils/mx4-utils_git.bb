@@ -75,6 +75,7 @@ FILES_${PN}-scripts = "\
     /opt/hm/shutdown.sh \
     /opt/hm/unload_module.sh \
     /opt/hm/version_script.sh \
+    /opt/hm/frmcu_update.sh \
 "
 
 FILES_${PN}-scripts_mx4-mil += "\

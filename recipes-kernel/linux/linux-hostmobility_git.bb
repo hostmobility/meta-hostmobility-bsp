@@ -27,6 +27,9 @@ do_configure_prepend () {
 
     cd ${S}
     export KBUILD_OUTPUT=${B}
+
+    install -m 0644 ${THISDIR}/linux-hostmobility/${KERNEL_DEFCONFIG} ${S}/arch/${ARCH}/configs/${KERNEL_DEFCONFIG} || die "No default configuration for ${MACHINE} / ${KERNEL_DEFCONFIG} available."
+
     oe_runmake ${KERNEL_DEFCONFIG}
 
     #maybe change some configuration

@@ -90,7 +90,7 @@ SYSTEMD_PACKAGES = "${PN}-autostart ${PN}-mount-config"
 
 RDEPENDS_${PN}-autostart = "bash"
 FILES_${PN}-autostart = "/opt/hm/autostart.sh ${systemd_unitdir}/system/autostart.service"
-SYSTEMD_SERVICE_mx4-${PN}-autostart = "autostart.service"
+SYSTEMD_SERVICE_${PN}-autostart = "autostart.service"
 
 RDEPENDS_${PN}-mount-config = "bash"
 FILES_${PN}-mount-config = "/opt/hm/mount_config.sh ${systemd_unitdir}/system/mount-config.service"

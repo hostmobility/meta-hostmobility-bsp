@@ -2,9 +2,14 @@
 
 MACHINEOVERRIDES =. "tegra:tegra3:"
 
-UBOOT_ENTRYPOINT = "0x82008000"
-UBOOT_LOADADDRESS = "${UBOOT_ENTRYPOINT}"
-
 # meta-angstrom/conf/distro/include/arm-defaults.inc
 DEFAULTTUNE = "armv7athf-neon"
 require conf/machine/include/tune-cortexa9.inc
+
+PREFERRED_PROVIDER_u-boot ?= "u-boot-hostmobility-mainline"
+PREFERRED_PROVIDER_virtual/bootloader ?= "u-boot-hostmobility_2016.11"
+PREFERRED_PROVIDER_u-boot-fw-utils ?= "u-boot-hostmobility-fw-utils_2016.11"
+
+IMAGE_FSTYPES = "tar.xz"
+
+"

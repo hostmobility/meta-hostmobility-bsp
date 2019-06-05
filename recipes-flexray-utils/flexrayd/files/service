@@ -1,0 +1,14 @@
+[Unit]
+Description=FlexRay UDP Daemon
+After=multi-user.target
+ 
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+ExecStart=/usr/bin/flexrayd 
+#WatchdogSec=30
+ 
+[Install]
+Alias=flexrayd.service
+WantedBy=multi-user.target

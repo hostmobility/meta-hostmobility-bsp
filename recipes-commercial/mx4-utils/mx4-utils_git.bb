@@ -27,6 +27,9 @@ do_install() {
     echo ${system_type} > ${D}/${sysconfdir}/platform-system-type
 
     echo ${BUILD_TAG} > ${D}/${sysconfdir}/platform-build-tag
+    echo 2.0.x > ${D}/${sysconfdir}/platform-bsp-version
+    echo ${PLATFORM_VERSION} > ${D}/${sysconfdir}/platform-version
+    echo "unknown(${MACHINE})" > ${D}/${sysconfdir}/platform-branch-name
 
     install -m 744 ${B}/mx4/*.sh ${D}/opt/hm/
 

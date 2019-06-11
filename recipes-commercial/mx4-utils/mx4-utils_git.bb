@@ -26,11 +26,11 @@ do_install() {
     system_type=`get_mx4_type_from_machine ${MACHINE}`
     echo ${system_type} > ${D}/${sysconfdir}/platform-system-type
 
-    echo ${BUILD_TAG} > ${D}/${sysconfdir}/platform-build-tag
+    echo ${BUILD_TAG} > ${D}/${sysconfdir}/platform-build-tag 
     echo 2.0.x > ${D}/${sysconfdir}/platform-bsp-version
     echo ${PLATFORM_VERSION} > ${D}/${sysconfdir}/platform-version
+    echo "${PLATFORM_VERSION_DETAILS}" > ${D}/${sysconfdir}/platform-version-details
     echo "unknown(${MACHINE})" > ${D}/${sysconfdir}/platform-branch-name
-
     install -m 744 ${B}/mx4/*.sh ${D}/opt/hm/
 
     install -m 0644 ${WORKDIR}/autostart.service ${D}${systemd_unitdir}/system/autostart.service
@@ -62,6 +62,7 @@ FILES_${PN} = "\
     ${sysconfdir}/platform-version \
     ${sysconfdir}/platform-branch-name \
     ${sysconfdir}/platform-bsp-version \
+    ${sysconfdir}/platform-version-details \
     ${sysconfdir}/platform-build-tag \
 "
 

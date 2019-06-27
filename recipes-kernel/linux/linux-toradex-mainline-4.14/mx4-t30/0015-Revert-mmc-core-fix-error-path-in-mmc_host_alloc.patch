@@ -1,0 +1,31 @@
+From 12e25f531b9d910ed72ad5b6dd5e5b36a3f664aa Mon Sep 17 00:00:00 2001
+Message-Id: <12e25f531b9d910ed72ad5b6dd5e5b36a3f664aa.1531317141.git.marcel.ziswiler@toradex.com>
+In-Reply-To: <6654e1bd342708a683daf47e7558455f709a3e7e.1531317141.git.marcel.ziswiler@toradex.com>
+References: <6654e1bd342708a683daf47e7558455f709a3e7e.1531317141.git.marcel.ziswiler@toradex.com>
+From: Marcel Ziswiler <marcel.ziswiler@toradex.com>
+Date: Thu, 19 Apr 2018 13:49:00 +0200
+Subject: [PATCH 15/33] Revert "mmc: core: fix error path in mmc_host_alloc"
+
+This reverts commit 1ed2171944888cf6787990a0f6387b717ba72e24.
+
+Signed-off-by: Marcel Ziswiler <marcel.ziswiler@toradex.com>
+---
+ drivers/mmc/core/host.c | 2 --
+ 1 file changed, 2 deletions(-)
+
+diff --git a/drivers/mmc/core/host.c b/drivers/mmc/core/host.c
+index ad88deb2e8f3..3740fb0052a4 100644
+--- a/drivers/mmc/core/host.c
++++ b/drivers/mmc/core/host.c
+@@ -376,8 +376,6 @@ struct mmc_host *mmc_alloc_host(int extra, struct device *dev)
+ 
+ 	if (mmc_gpio_alloc(host)) {
+ 		put_device(&host->class_dev);
+-		ida_simple_remove(&mmc_host_ida, host->index);
+-		kfree(host);
+ 		return NULL;
+ 	}
+ 
+-- 
+2.14.4
+

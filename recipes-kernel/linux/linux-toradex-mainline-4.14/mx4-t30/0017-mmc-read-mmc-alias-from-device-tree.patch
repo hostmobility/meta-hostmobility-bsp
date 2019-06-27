@@ -1,0 +1,69 @@
+From 4db90f3efa119cfcfc55df16b1ee1f4d5d0a7528 Mon Sep 17 00:00:00 2001
+Message-Id: <4db90f3efa119cfcfc55df16b1ee1f4d5d0a7528.1531317141.git.marcel.ziswiler@toradex.com>
+In-Reply-To: <6654e1bd342708a683daf47e7558455f709a3e7e.1531317141.git.marcel.ziswiler@toradex.com>
+References: <6654e1bd342708a683daf47e7558455f709a3e7e.1531317141.git.marcel.ziswiler@toradex.com>
+From: Stefan Agner <stefan@agner.ch>
+Date: Fri, 29 Apr 2016 10:32:17 -0700
+Subject: [PATCH 17/33] mmc: read mmc alias from device tree
+
+To get the SD/MMC host device ID, read the alias from the device
+tree.
+
+This is useful in case a SoC has multipe SD/MMC host controllers while
+the second controller should logically be the first device (e.g. if
+the second controller is connected to an internal eMMC). Combined
+with block device numbering using MMC/SD host device ID, this
+results in predictable name assignment of the internal eMMC block
+device.
+
+Signed-off-by: Stefan Agner <stefan@agner.ch>
+Signed-off-by: Dmitry Torokhov <dtor@chromium.org>
+[dianders: rebase + roll in http://crosreview.com/259916]
+Signed-off-by: Douglas Anderson <dianders@chromium.org>
+---
+ drivers/mmc/core/host.c | 17 ++++++++++++++++-
+ 1 file changed, 16 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/mmc/core/host.c b/drivers/mmc/core/host.c
+index 841b9ce01a8e..e4fdd5c0ec0b 100644
+--- a/drivers/mmc/core/host.c
++++ b/drivers/mmc/core/host.c
+@@ -353,11 +353,26 @@ struct mmc_host *mmc_alloc_host(int extra, struct device *dev)
+ {
+ 	int err;
+ 	struct mmc_host *host;
++	int id;
+ 
+ 	host = kzalloc(sizeof(struct mmc_host) + extra, GFP_KERNEL);
+ 	if (!host)
+ 		return NULL;
+ 
++	/* If OF aliases exist, start dynamic assignment after highest */
++	id = of_alias_get_highest_id("mmc");
++	id = (id < 0) ? 0 : id + 1;
++
++	/* If this devices has OF node, maybe it has an alias */
++	if (dev->of_node) {
++		int of_id = of_alias_get_id(dev->of_node, "mmc");
++
++		if (of_id < 0)
++			dev_warn(dev, "/aliases ID not available\n");
++		else
++			id = of_id;
++	}
++
+ 	/* scanning will be enabled when we're ready */
+ 	host->rescan_disable = 1;
+ 
+@@ -368,7 +383,7 @@ struct mmc_host *mmc_alloc_host(int extra, struct device *dev)
+ 	}
+ 
+ 	spin_lock(&mmc_host_lock);
+-	err = ida_get_new(&mmc_host_ida, &host->index);
++	err = ida_get_new_above(&mmc_host_ida, id, &host->index);
+ 	spin_unlock(&mmc_host_lock);
+ 
+ 	if (err == -EAGAIN) {
+-- 
+2.14.4
+

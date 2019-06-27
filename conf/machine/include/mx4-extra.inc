@@ -6,7 +6,7 @@ MACHINE_EXTRA_RDEPENDS_append = " \
     ${@bb.utils.contains('LICENSE_FLAGS_WHITELIST', 'closed', \
                           'packagegroup-hostmobility-commercial', '', d)} \
     ${@bb.utils.contains('MACHINE_FEATURES', 'wifi', \
-                          'linux-firmware-ath9k hostapd', '', d)} \
+                          'linux-firmware-ath9k linux-firmware-wl18xx hostapd', '', d)} \
     ${@bb.utils.contains('MACHINE_FEATURES', 'flash', \
                           'mtd-utils mtd-utils-ubifs mtd-utils-misc mtd-utils-jffs2', '', d)} \
     ${@bb.utils.contains('MACHINE_FEATURES', 'alsa', \

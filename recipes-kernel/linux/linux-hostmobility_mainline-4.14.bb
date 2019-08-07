@@ -2,14 +2,14 @@ SUMMARY = "Linux Kernel for Host Mobility products based on Toradex Tegra COMs"
 SECTION = "kernel"
 LICENSE = "GPLv2"
 
-LIC_FILES_CHKSUM = "file://COPYING;md5=d7810fab7487fb0aad327b76f1be7cd7"
+LIC_FILES_CHKSUM = "file://COPYING;md5=bbea815ee2795b2f4230826c0c6b8814"
 
 FILESEXTRAPATHS_prepend := "${THISDIR}/linux-toradex-mainline-4.14:"
 
 inherit kernel siteinfo
 include conf/tdx_version.conf
 
-LINUX_VERSION ?= "4.14.109"
+LINUX_VERSION ?= "4.19.63"
 
 LOCALVERSION = "-${PR}"
 PR = "${TDX_VER_ITEM}"
@@ -22,10 +22,11 @@ GENERIC_PATCHES = " \
 MACHINE_PATCHES = " \
     file://0001-Add-device-tree-files-for-t30.patch \
     file://0002-Add-defconfig-file-for-t30.patch \
-    file://0015-Revert-mmc-core-fix-error-path-in-mmc_host_alloc.patch \
-    file://0016-Revert-mmc-core-simplify-ida-handling.patch \
-    file://0017-mmc-read-mmc-alias-from-device-tree.patch \
-    file://0002-From-fork-linux-hm_tegra_4.14_t30fr.patch \
+    file://0003-Add-mx4_pic-and-can-xcvr-to-spidev.patch \
+    file://0004-Add-support-for-thermal-throttling.patch \
+    file://0005-Add-support-for-flexray-device-driver.patch \
+    file://0006-Add-flexray-driver-support.patch \
+    file://0008-mmc-read-mmc-alias-from-device-tree.patch \
 "
 
 
@@ -34,15 +35,15 @@ SRC_URI = " \
     ${GENERIC_PATCHES} \
     ${MACHINE_PATCHES} \
 "
-SRC_URI[md5sum] = "3bb329f28c4de4b9a87c60b222a5b0d8"
-SRC_URI[sha256sum] = "3764f165f779568745f1468d8f7e1db65d94eae9cd8d1350f4fe003a0fd88ee0"
+SRC_URI[md5sum] = "5f72b9a1e40192aecf867ff2cdcc15ba"
+SRC_URI[sha256sum] = "75988760b931864b46292dcfad1dd54b3f4da10168041f48ca6d7f6dd4e5d25d"
 
 # For CI use one could use the following instead (plus patches still of course)
-LINUX_VERSION_use-head-next ?= "4.14"
+LINUX_VERSION_use-head-next ?= "4.19"
 SRCREV_use-head-next = "${AUTOREV}"
 PV_use-head-next = "${LINUX_VERSION}+git${SRCPV}"
 S_use-head-next = "${WORKDIR}/git"
-SRCBRANCH_use-head-next = "linux-4.14.y"
+SRCBRANCH_use-head-next = "linux-4.19.y"
 SRC_URI_use-head-next = " \
     git://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git;protocol=git;branch=${SRCBRANCH} \
     ${GENERIC_PATCHES} \

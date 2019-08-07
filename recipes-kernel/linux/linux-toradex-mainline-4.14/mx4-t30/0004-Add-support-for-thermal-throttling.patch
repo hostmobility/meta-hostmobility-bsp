@@ -1,0 +1,773 @@
+From df426ac9da60e3e09b5d85dd4c1381be123dfb53 Mon Sep 17 00:00:00 2001
+From: rikardo <rikard.olander@hostmobility.com>
+Date: Fri, 2 Aug 2019 15:11:23 +0200
+Subject: [PATCH] Add support for thermal throttling
+
+support both tegra20 and tegra30 from 4.18 patch
+---
+ arch/arm/boot/dts/tegra20.dtsi       |  77 ++++++-
+ arch/arm/boot/dts/tegra30.dtsi       |  69 +++++-
+ arch/arm/mach-tegra/tegra.c          |   4 +
+ drivers/cpufreq/Kconfig.arm          |  10 +-
+ drivers/cpufreq/cpufreq-dt-platdev.c |   4 +-
+ drivers/cpufreq/tegra20-cpufreq.c    | 415 +++++++++++++++++++++++++----------
+ 6 files changed, 444 insertions(+), 135 deletions(-)
+
+diff --git a/arch/arm/boot/dts/tegra20.dtsi b/arch/arm/boot/dts/tegra20.dtsi
+index 15b73bd..0f0fffb 100644
+--- a/arch/arm/boot/dts/tegra20.dtsi
++++ b/arch/arm/boot/dts/tegra20.dtsi
+@@ -844,22 +844,79 @@
+ 		status = "disabled";
+ 	};
+ 
++	cpu0_opp_table: opp_table0 {
++		compatible = "operating-points-v2";
++		opp-shared;
++
++		opp@216000000 {
++			clock-latency-ns = <2000>;
++			opp-hz = /bits/ 64 <216000000>;
++			opp-suspend;
++		};
++
++		opp@312000000 {
++			clock-latency-ns = <125000>;
++			opp-hz = /bits/ 64 <312000000>;
++		};
++
++		opp@456000000 {
++			clock-latency-ns = <125000>;
++			opp-hz = /bits/ 64 <456000000>;
++		};
++
++		opp@608000000 {
++			clock-latency-ns = <125000>;
++			opp-hz = /bits/ 64 <608000000>;
++		};
++
++		opp@760000000 {
++			clock-latency-ns = <125000>;
++			opp-hz = /bits/ 64 <760000000>;
++		};
++
++		opp@816000000 {
++			clock-latency-ns = <125000>;
++			opp-hz = /bits/ 64 <816000000>;
++		};
++
++		opp@912000000 {
++			clock-latency-ns = <125000>;
++			opp-hz = /bits/ 64 <912000000>;
++		};
++
++		opp@1000000000 {
++			clock-latency-ns = <125000>;
++			opp-hz = /bits/ 64 <1000000000>;
++		};
++	};
+ 	cpus {
+ 		#address-cells = <1>;
+ 		#size-cells = <0>;
+ 
+ 		cpu@0 {
+ 			device_type = "cpu";
+-			compatible = "arm,cortex-a9";
+-			reg = <0>;
+-		};
+-
+-		cpu@1 {
+-			device_type = "cpu";
+-			compatible = "arm,cortex-a9";
+-			reg = <1>;
+-		};
+-	};
++ 			compatible = "arm,cortex-a9";
++ 			reg = <0>;
++			clocks = <&tegra_car TEGRA20_CLK_PLL_X>,
++				 <&tegra_car TEGRA20_CLK_PLL_P>,
++				 <&tegra_car TEGRA20_CLK_CCLK>;
++			clock-names = "pll_x", "backup", "cpu";
++			operating-points-v2 = <&cpu0_opp_table>;
++			#cooling-cells = <2>;
++ 		};
++ 
++ 		cpu@1 {
++ 			device_type = "cpu";
++ 			compatible = "arm,cortex-a9";
++ 			reg = <1>;
++			clocks = <&tegra_car TEGRA20_CLK_PLL_X>,
++				 <&tegra_car TEGRA20_CLK_PLL_P>,
++				 <&tegra_car TEGRA20_CLK_CCLK>;
++			clock-names = "pll_x", "backup", "cpu";
++			operating-points-v2 = <&cpu0_opp_table>;
++			#cooling-cells = <2>;
++ 		};
++ 	};
+ 
+ 	pmu {
+ 		compatible = "arm,cortex-a9-pmu";
+diff --git a/arch/arm/boot/dts/tegra30.dtsi b/arch/arm/boot/dts/tegra30.dtsi
+index a6781f6..1083d66 100644
+--- a/arch/arm/boot/dts/tegra30.dtsi
++++ b/arch/arm/boot/dts/tegra30.dtsi
+@@ -978,6 +978,47 @@
+ 		status = "disabled";
+ 	};
+ 
++	cpu0_opp_table: opp_table0 {
++		compatible = "operating-points-v2";
++		opp-shared;
++
++		opp@408000000 {
++			clock-latency-ns = <2000>;
++			opp-hz = /bits/ 64 <408000000>;
++			opp-suspend;
++		};
++
++		opp@456000000 {
++			clock-latency-ns = <50000>;
++			opp-hz = /bits/ 64 <456000000>;
++		};
++
++		opp@608000000 {
++			clock-latency-ns = <50000>;
++			opp-hz = /bits/ 64 <608000000>;
++		};
++
++		opp@760000000 {
++			clock-latency-ns = <50000>;
++			opp-hz = /bits/ 64 <760000000>;
++		};
++
++		opp@816000000 {
++			clock-latency-ns = <50000>;
++			opp-hz = /bits/ 64 <816000000>;
++		};
++
++		opp@912000000 {
++			clock-latency-ns = <50000>;
++			opp-hz = /bits/ 64 <912000000>;
++		};
++
++		opp@1000000000 {
++			clock-latency-ns = <50000>;
++			opp-hz = /bits/ 64 <1000000000>;
++		};
++	};
++
+ 	cpus {
+ 		#address-cells = <1>;
+ 		#size-cells = <0>;
+@@ -986,26 +1027,50 @@
+ 			device_type = "cpu";
+ 			compatible = "arm,cortex-a9";
+ 			reg = <0>;
++			clocks = <&tegra_car TEGRA30_CLK_PLL_X>,
++				 <&tegra_car TEGRA30_CLK_PLL_P>,
++				 <&tegra_car TEGRA30_CLK_CCLK_G>;
++			clock-names = "pll_x", "backup", "cpu";
++			operating-points-v2 = <&cpu0_opp_table>;
++			#cooling-cells = <2>;
+ 		};
+ 
+ 		cpu@1 {
+ 			device_type = "cpu";
+ 			compatible = "arm,cortex-a9";
+ 			reg = <1>;
++			clocks = <&tegra_car TEGRA30_CLK_PLL_X>,
++				 <&tegra_car TEGRA30_CLK_PLL_P>,
++				 <&tegra_car TEGRA30_CLK_CCLK_G>;
++			clock-names = "pll_x", "backup", "cpu";
++			operating-points-v2 = <&cpu0_opp_table>;
++			#cooling-cells = <2>;
+ 		};
+ 
+ 		cpu@2 {
+ 			device_type = "cpu";
+ 			compatible = "arm,cortex-a9";
+ 			reg = <2>;
++			clocks = <&tegra_car TEGRA30_CLK_PLL_X>,
++				 <&tegra_car TEGRA30_CLK_PLL_P>,
++				 <&tegra_car TEGRA30_CLK_CCLK_G>;
++			clock-names = "pll_x", "backup", "cpu";
++			operating-points-v2 = <&cpu0_opp_table>;
++			#cooling-cells = <2>;
+ 		};
+ 
+ 		cpu@3 {
+ 			device_type = "cpu";
+ 			compatible = "arm,cortex-a9";
+ 			reg = <3>;
+-		};
+-	};
++			clocks = <&tegra_car TEGRA30_CLK_PLL_X>,
++				 <&tegra_car TEGRA30_CLK_PLL_P>,
++				 <&tegra_car TEGRA30_CLK_CCLK_G>;
++			clock-names = "pll_x", "backup", "cpu";
++			operating-points-v2 = <&cpu0_opp_table>;
++			#cooling-cells = <2>;
++ 		};
++ 	};
+ 
+ 	pmu {
+ 		compatible = "arm,cortex-a9-pmu";
+diff --git a/arch/arm/mach-tegra/tegra.c b/arch/arm/mach-tegra/tegra.c
+index f9587be..e82e839 100644
+--- a/arch/arm/mach-tegra/tegra.c
++++ b/arch/arm/mach-tegra/tegra.c
+@@ -101,6 +101,10 @@ static void __init tegra_dt_init_late(void)
+ 	if (IS_ENABLED(CONFIG_ARCH_TEGRA_2x_SOC) &&
+ 	    of_machine_is_compatible("nvidia,tegra20"))
+ 		platform_device_register_simple("tegra20-cpufreq", -1, NULL, 0);
++
++	if (IS_ENABLED(CONFIG_ARCH_TEGRA_3x_SOC) &&
++	    of_machine_is_compatible("nvidia,tegra30"))
++		platform_device_register_simple("tegra20-cpufreq", -1, NULL, 0);
+ }
+ 
+ static const char * const tegra_dt_board_compat[] = {
+diff --git a/drivers/cpufreq/Kconfig.arm b/drivers/cpufreq/Kconfig.arm
+index 0cd8eb7..674b430 100644
+--- a/drivers/cpufreq/Kconfig.arm
++++ b/drivers/cpufreq/Kconfig.arm
+@@ -260,11 +260,13 @@ config ARM_TANGO_CPUFREQ
+ 	depends on CPUFREQ_DT && ARCH_TANGO
+ 	default y
+ 
+-config ARM_TEGRA20_CPUFREQ
+-	tristate "Tegra20 CPUFreq support"
++ config ARM_TEGRA20_CPUFREQ
++ 	tristate "Tegra20 CPUFreq support"
++   depends on !CPU_THERMAL || THERMAL
+ 	depends on ARCH_TEGRA
+-	default y
+-	help
++	select PM_OPP
++ 	default y
++ 	help
+ 	  This adds the CPUFreq driver support for Tegra20 SOCs.
+ 
+ config ARM_TEGRA124_CPUFREQ
+diff --git a/drivers/cpufreq/cpufreq-dt-platdev.c b/drivers/cpufreq/cpufreq-dt-platdev.c
+index fe14c57..858d84b 100644
+--- a/drivers/cpufreq/cpufreq-dt-platdev.c
++++ b/drivers/cpufreq/cpufreq-dt-platdev.c
+@@ -113,7 +113,9 @@ static const struct of_device_id blacklist[] __initconst = {
+ 	{ .compatible = "mediatek,mt817x", },
+ 	{ .compatible = "mediatek,mt8173", },
+ 	{ .compatible = "mediatek,mt8176", },
+-
++	
++	{ .compatible = "nvidia,tegra20", },
++	{ .compatible = "nvidia,tegra30", },
+ 	{ .compatible = "nvidia,tegra124", },
+ 
+ 	{ .compatible = "qcom,apq8096", },
+diff --git a/drivers/cpufreq/tegra20-cpufreq.c b/drivers/cpufreq/tegra20-cpufreq.c
+index 05f57dc..648559c 100644
+--- a/drivers/cpufreq/tegra20-cpufreq.c
++++ b/drivers/cpufreq/tegra20-cpufreq.c
+@@ -16,171 +16,362 @@
+  *
+  */
+ 
+-#include <linux/clk.h>
+-#include <linux/cpufreq.h>
+-#include <linux/err.h>
+-#include <linux/init.h>
+-#include <linux/module.h>
+-#include <linux/platform_device.h>
+-#include <linux/types.h>
+-
+-static struct cpufreq_frequency_table freq_table[] = {
+-	{ .frequency = 216000 },
+-	{ .frequency = 312000 },
+-	{ .frequency = 456000 },
+-	{ .frequency = 608000 },
+-	{ .frequency = 760000 },
+-	{ .frequency = 816000 },
+-	{ .frequency = 912000 },
+-	{ .frequency = 1000000 },
+-	{ .frequency = CPUFREQ_TABLE_END },
+-};
++ #include <linux/clk.h>
++ #include <linux/cpu.h>
++ #include <linux/cpu_cooling.h>
++ #include <linux/cpufreq.h>
++ #include <linux/err.h>
++ #include <linux/init.h>
++ #include <linux/module.h>
++ #include <linux/of.h>
++ #include <linux/platform_device.h>
++ #include <linux/pm_opp.h>
++ #include <linux/types.h>
++ 
++#define PLLX_PREPARE		BIT(0)
++#define PLLX_PREPARED		BIT(1)
+ 
+ struct tegra20_cpufreq {
+ 	struct device *dev;
++	struct device *cpu_dev;
++	struct cpumask cpu_mask;
+ 	struct cpufreq_driver driver;
++	struct thermal_cooling_device *cdev;
++	struct cpufreq_frequency_table *freq_table;
+ 	struct clk *cpu_clk;
+ 	struct clk *pll_x_clk;
+ 	struct clk *pll_p_clk;
+ 	bool pll_x_prepared;
+-};
+-
+-static unsigned int tegra_get_intermediate(struct cpufreq_policy *policy,
+-					   unsigned int index)
+-{
+-	struct tegra20_cpufreq *cpufreq = cpufreq_get_driver_data();
+-	unsigned int ifreq = clk_get_rate(cpufreq->pll_p_clk) / 1000;
++	struct clk *backup_clk;
++	unsigned long backup_rate;
++	unsigned int state;
++ };
++ 
++ static unsigned int tegra_get_intermediate(struct cpufreq_policy *policy,
++ 					   unsigned int index)
++ {
++ 	struct tegra20_cpufreq *cpufreq = cpufreq_get_driver_data();
++	struct clk *cpu_parent = clk_get_parent(cpufreq->cpu_clk);
++	unsigned long new_rate = cpufreq->freq_table[index].frequency * 1000;
++	int err;
+ 
+ 	/*
+-	 * Don't switch to intermediate freq if:
+-	 * - we are already at it, i.e. policy->cur == ifreq
+-	 * - index corresponds to ifreq
++	 * Make sure that backup clock rate stays consistent during
++	 * transition by entering into critical section of the backup clock.
++	 */
++	err = clk_rate_exclusive_get(cpufreq->backup_clk);
++	/* this shouldn't fail */
++	WARN_ON_ONCE(err);
++ 
++ 	/*
++	 * When target rate is equal to backup rate, we don't need to
++	 * switch to backup clock and so the intermediate routine isn't
++	 * called.  Also, we wouldn't be using PLLX anymore and must not
++	 * take extra reference to it, as it can be disabled to save some
++	 * power.
+ 	 */
+-	if (freq_table[index].frequency == ifreq || policy->cur == ifreq)
+-		return 0;
++	cpufreq->backup_rate = clk_get_rate(cpufreq->backup_clk);
+ 
+-	return ifreq;
+-}
++	if (new_rate == cpufreq->backup_rate)
++		cpufreq->state &= ~PLLX_PREPARE;
++	else
++		cpufreq->state |= PLLX_PREPARE;
++
++	/* don't switch to intermediate freq if we are already at it */
++	if (clk_is_match(cpu_parent, cpufreq->backup_clk))
++ 		return 0;
++ 
++
++ return cpufreq->backup_rate / 1000;
++ }
++ 
++ static int tegra_target_intermediate(struct cpufreq_policy *policy,
++ 				     unsigned int index)
++ {
++ 	struct tegra20_cpufreq *cpufreq = cpufreq_get_driver_data();
++	unsigned int state = cpufreq->state;
++	int err;
++ 
++ 	/*
++	 * Take an extra reference to the main PLLX so it doesn't turn off
++	 * when we move the CPU clock to backup clock as enabling it again
++	 * while we switch to it from tegra_target() would take additional
++	 * time.
++ 	 */
++	if ((state & (PLLX_PREPARED | PLLX_PREPARE)) == PLLX_PREPARE) {
++		err = clk_prepare_enable(cpufreq->pll_x_clk);
++		if (err)
++			goto err_exclusive_put;
++ 
++		cpufreq->state |= PLLX_PREPARED;
++	}
+ 
+-static int tegra_target_intermediate(struct cpufreq_policy *policy,
+-				     unsigned int index)
+-{
+-	struct tegra20_cpufreq *cpufreq = cpufreq_get_driver_data();
+-	int ret;
++	err = clk_set_parent(cpufreq->cpu_clk, cpufreq->backup_clk);
++	if (err)
++		goto err_exclusive_put;
+ 
++	return 0;
++
++err_exclusive_put:
++	clk_rate_exclusive_put(cpufreq->backup_clk);
++
++	if (cpufreq->state & PLLX_PREPARED) {
++ 		clk_disable_unprepare(cpufreq->pll_x_clk);
++		cpufreq->state &= ~PLLX_PREPARED;
++	}
++ 
++	/* this shouldn't fail */
++	return WARN_ON_ONCE(err);
++ }
++ 
++ static int tegra_target(struct cpufreq_policy *policy, unsigned int index)
++ {
++ 	struct tegra20_cpufreq *cpufreq = cpufreq_get_driver_data();
++	unsigned long new_rate = cpufreq->freq_table[index].frequency * 1000;
++	unsigned int state = cpufreq->state;
++ 	int ret;
++ 
++ 	/*
++	 * Drop refcount to PLLX only if we switched to backup clock earlier
++	 * during transitioning to a target frequency and we are going to
++	 * stay with the backup clock.
++ 	 */
++	if ((state & (PLLX_PREPARED | PLLX_PREPARE)) == PLLX_PREPARED) {
++		clk_disable_unprepare(cpufreq->pll_x_clk);
++		state &= ~PLLX_PREPARED;
++	}
++ 
+ 	/*
+-	 * Take an extra reference to the main pll so it doesn't turn
+-	 * off when we move the cpu off of it as enabling it again while we
+-	 * switch to it from tegra_target() would take additional time.
+-	 *
+-	 * When target-freq is equal to intermediate freq we don't need to
+-	 * switch to an intermediate freq and so this routine isn't called.
+-	 * Also, we wouldn't be using pll_x anymore and must not take extra
+-	 * reference to it, as it can be disabled now to save some power.
++	 * Switch to new OPP, note that this will change PLLX rate and
++	 * not the CCLK.
+ 	 */
+-	clk_prepare_enable(cpufreq->pll_x_clk);
++	ret = dev_pm_opp_set_rate(cpufreq->cpu_dev, new_rate);
++ 	if (ret)
++		goto exclusive_put;
+ 
+-	ret = clk_set_parent(cpufreq->cpu_clk, cpufreq->pll_p_clk);
+-	if (ret)
++	/*
++	 * Target rate == backup rate leaves PLLX turned off, CPU is kept
++	 * running off the backup clock. This should save us some power by
++	 * keeping one more PLL disabled because the backup clock assumed
++	 * to be always-on. In this case PLLX_PREPARE flag will be omitted.
++	 */
++	if (state & PLLX_PREPARE) {
++		/*
++		 * CCF doesn't return error if clock-enabling fails on
++		 * re-parent, hence enable it now.
++		 */
++		ret = clk_prepare_enable(cpufreq->pll_x_clk);
++		if (ret)
++			goto exclusive_put;
++
++		ret = clk_set_parent(cpufreq->cpu_clk, cpufreq->pll_x_clk);
++ 
+ 		clk_disable_unprepare(cpufreq->pll_x_clk);
+-	else
+-		cpufreq->pll_x_prepared = true;
++	}
++ 
++ 	/*
++	 * Drop refcount to PLLX only if we switched to backup clock earlier
++	 * during transitioning to a target frequency.
++ 	 */
++	if (state & PLLX_PREPARED) {
++ 		clk_disable_unprepare(cpufreq->pll_x_clk);
++		state &= ~PLLX_PREPARED;
++ 	}
++ 
++exclusive_put:
++	clk_rate_exclusive_put(cpufreq->backup_clk);
++
++	cpufreq->state = state;
++
++	/* this shouldn't fail */
++	return WARN_ON_ONCE(ret);
++}
++
++static int tegra_cpu_setup_opp(struct tegra20_cpufreq *cpufreq)
++{
++	struct device *dev = cpufreq->cpu_dev;
++	int err;
+ 
+-	return ret;
++	err = dev_pm_opp_of_cpumask_add_table(cpu_possible_mask);
++	if (err)
++		return err;
++
++	err = dev_pm_opp_init_cpufreq_table(dev, &cpufreq->freq_table);
++	if (err)
++		goto err_remove_table;
++
++	return 0;
++
++err_remove_table:
++	dev_pm_opp_of_cpumask_remove_table(cpu_possible_mask);
++
++	return err;
+ }
+ 
+-static int tegra_target(struct cpufreq_policy *policy, unsigned int index)
++static void tegra_cpu_release_opp(struct tegra20_cpufreq *cpufreq)
+ {
+-	struct tegra20_cpufreq *cpufreq = cpufreq_get_driver_data();
+-	unsigned long rate = freq_table[index].frequency;
+-	unsigned int ifreq = clk_get_rate(cpufreq->pll_p_clk) / 1000;
++	dev_pm_opp_free_cpufreq_table(cpufreq->cpu_dev, &cpufreq->freq_table);
++	dev_pm_opp_of_cpumask_remove_table(cpu_possible_mask);
++}
++
++static int tegra_cpu_init_clk(struct tegra20_cpufreq *cpufreq)
++{
++	unsigned long backup_rate;
+ 	int ret;
+ 
+-	/*
+-	 * target freq == pll_p, don't need to take extra reference to pll_x_clk
+-	 * as it isn't used anymore.
+-	 */
+-	if (rate == ifreq)
+-		return clk_set_parent(cpufreq->cpu_clk, cpufreq->pll_p_clk);
++	ret = clk_rate_exclusive_get(cpufreq->backup_clk);
++	if (ret)
++		return ret;
+ 
+-	ret = clk_set_rate(cpufreq->pll_x_clk, rate * 1000);
+-	/* Restore to earlier frequency on error, i.e. pll_x */
++	ret = clk_set_parent(cpufreq->cpu_clk, cpufreq->backup_clk);
+ 	if (ret)
+-		dev_err(cpufreq->dev, "Failed to change pll_x to %lu\n", rate);
++		goto exclusive_put;
+ 
+-	ret = clk_set_parent(cpufreq->cpu_clk, cpufreq->pll_x_clk);
+-	/* This shouldn't fail while changing or restoring */
+-	WARN_ON(ret);
++	backup_rate = clk_get_rate(cpufreq->backup_clk);
+ 
+ 	/*
+-	 * Drop count to pll_x clock only if we switched to intermediate freq
+-	 * earlier while transitioning to a target frequency.
++	 * The CCLK has its own clock divider, that divider isn't getting
++	 * disabled on clock reparent. Hence set CCLK parent to backup clock
++	 * in order to disable the divider if it happens to be enabled,
++	 * otherwise clk_set_rate() has no effect.
+ 	 */
+-	if (cpufreq->pll_x_prepared) {
+-		clk_disable_unprepare(cpufreq->pll_x_clk);
+-		cpufreq->pll_x_prepared = false;
++	ret = clk_set_rate(cpufreq->cpu_clk, backup_rate);
++
++exclusive_put:
++	clk_rate_exclusive_put(cpufreq->backup_clk);
++
++ 	return ret;
++ }
++ 
++ static int tegra_cpu_init(struct cpufreq_policy *policy)
++ {
++ 	struct tegra20_cpufreq *cpufreq = cpufreq_get_driver_data();
++	struct device *cpu = cpufreq->cpu_dev;
++	int err;
++ 
++	err = tegra_cpu_setup_opp(cpufreq);
++	if (err) {
++		dev_err(cpufreq->dev, "Failed to setup OPP: %d\n", err);
++		return err;
++	}
++ 
++	err = clk_prepare_enable(cpufreq->cpu_clk);
++	if (err) {
++		dev_err(cpufreq->dev,
++			"Failed to enable CPU clock: %d\n", err);
++		goto er_release_opp;
+ 	}
+ 
+-	return ret;
+-}
+-
+-static int tegra_cpu_init(struct cpufreq_policy *policy)
+-{
+-	struct tegra20_cpufreq *cpufreq = cpufreq_get_driver_data();
+-	int ret;
++	err = clk_prepare_enable(cpufreq->backup_clk);
++	if (err) {
++		dev_err(cpufreq->dev,
++			"Failed to enable backup clock: %d\n", err);
++		goto err_cpu_disable;
++	}
+ 
+-	clk_prepare_enable(cpufreq->cpu_clk);
++	err = clk_rate_exclusive_get(cpufreq->cpu_clk);
++	if (err) {
++		dev_err(cpufreq->dev,
++			"Failed to make CPU clock exclusive: %d\n", err);
++		goto err_backup_disable;
++	}
+ 
+-	/* FIXME: what's the actual transition time? */
+-	ret = cpufreq_generic_init(policy, freq_table, 300 * 1000);
+-	if (ret) {
+-		clk_disable_unprepare(cpufreq->cpu_clk);
+-		return ret;
++	err = tegra_cpu_init_clk(cpufreq);
++	if (err) {
++		dev_err(cpufreq->dev,
++			"Failed to initialize CPU clock: %d\n", err);
++		goto err_exclusive_put;
+ 	}
+ 
++	err = cpufreq_generic_init(policy, cpufreq->freq_table,
++				   dev_pm_opp_get_max_transition_latency(cpu));
++	if (err)
++		goto err_exclusive_put;
++
+ 	policy->clk = cpufreq->cpu_clk;
+-	policy->suspend_freq = freq_table[0].frequency;
++	policy->suspend_freq = cpufreq->freq_table[0].frequency;
++	policy->suspend_freq = dev_pm_opp_get_suspend_opp_freq(cpu) / 1000;
++
+ 	return 0;
++
++err_exclusive_put:
++	clk_rate_exclusive_put(cpufreq->cpu_clk);
++err_backup_disable:
++	clk_disable_unprepare(cpufreq->backup_clk);
++err_cpu_disable:
++	clk_disable_unprepare(cpufreq->cpu_clk);
++er_release_opp:
++	tegra_cpu_release_opp(cpufreq);
++
++	return err;
+ }
+ 
+ static int tegra_cpu_exit(struct cpufreq_policy *policy)
+ {
+ 	struct tegra20_cpufreq *cpufreq = cpufreq_get_driver_data();
+ 
++	cpufreq_cooling_unregister(cpufreq->cdev);
++	clk_rate_exclusive_put(cpufreq->cpu_clk);
++	clk_disable_unprepare(cpufreq->backup_clk);
+ 	clk_disable_unprepare(cpufreq->cpu_clk);
++	tegra_cpu_release_opp(cpufreq);
++
+ 	return 0;
+ }
+ 
+-static int tegra20_cpufreq_probe(struct platform_device *pdev)
++static void tegra_cpu_ready(struct cpufreq_policy *policy)
+ {
+-	struct tegra20_cpufreq *cpufreq;
+-	int err;
+-
+-	cpufreq = devm_kzalloc(&pdev->dev, sizeof(*cpufreq), GFP_KERNEL);
+-	if (!cpufreq)
+-		return -ENOMEM;
++	struct tegra20_cpufreq *cpufreq = cpufreq_get_driver_data();
+ 
+-	cpufreq->cpu_clk = clk_get_sys(NULL, "cclk");
+-	if (IS_ERR(cpufreq->cpu_clk))
+-		return PTR_ERR(cpufreq->cpu_clk);
++	cpufreq->cdev = of_cpufreq_cooling_register(policy);
++}
+ 
+-	cpufreq->pll_x_clk = clk_get_sys(NULL, "pll_x");
+-	if (IS_ERR(cpufreq->pll_x_clk)) {
+-		err = PTR_ERR(cpufreq->pll_x_clk);
+-		goto put_cpu;
++static int tegra20_cpufreq_probe(struct platform_device *pdev)
++{
++	struct tegra20_cpufreq *cpufreq;
++	struct device_node *np;
++ 	int err;
++ 
++ 	cpufreq = devm_kzalloc(&pdev->dev, sizeof(*cpufreq), GFP_KERNEL);
++ 	if (!cpufreq)
++ 		return -ENOMEM;
++ 
++
++	cpufreq->cpu_dev = get_cpu_device(0);
++	if (!cpufreq->cpu_dev)
++		return -ENODEV;
++
++	np = cpufreq->cpu_dev->of_node;
++ 
++	cpufreq->cpu_clk = devm_get_clk_from_child(&pdev->dev, np, "cpu");
++	if (IS_ERR(cpufreq->cpu_clk)) {
++		err = PTR_ERR(cpufreq->cpu_clk);
++		dev_err(&pdev->dev, "Failed to get cpu clock: %d\n", err);
++		dev_err(&pdev->dev, "Please update your device tree\n");
++		return err;
+ 	}
+ 
+-	cpufreq->pll_p_clk = clk_get_sys(NULL, "pll_p");
+-	if (IS_ERR(cpufreq->pll_p_clk)) {
+-		err = PTR_ERR(cpufreq->pll_p_clk);
+-		goto put_pll_x;
++	cpufreq->pll_x_clk = devm_get_clk_from_child(&pdev->dev, np, "pll_x");
++ 	if (IS_ERR(cpufreq->pll_x_clk)) {
++ 		err = PTR_ERR(cpufreq->pll_x_clk);
++		dev_err(&pdev->dev, "Failed to get pll_x clock: %d\n", err);
++		return err;
++ 	}
++ 
++	cpufreq->backup_clk = devm_get_clk_from_child(&pdev->dev, np, "backup");
++	if (IS_ERR(cpufreq->backup_clk)) {
++		err = PTR_ERR(cpufreq->backup_clk);
++		dev_err(&pdev->dev, "Failed to get backup clock: %d\n", err);
++		return err;
+ 	}
++ 
+ 
+ 	cpufreq->dev = &pdev->dev;
+ 	cpufreq->driver.get = cpufreq_generic_get;
+ 	cpufreq->driver.attr = cpufreq_generic_attr;
+ 	cpufreq->driver.init = tegra_cpu_init;
+ 	cpufreq->driver.exit = tegra_cpu_exit;
++	cpufreq->driver.ready = tegra_cpu_ready;
+ 	cpufreq->driver.flags = CPUFREQ_NEED_INITIAL_FREQ_CHECK;
+ 	cpufreq->driver.verify = cpufreq_generic_frequency_table_verify;
+ 	cpufreq->driver.suspend = cpufreq_generic_suspend;
+@@ -192,20 +383,12 @@ static int tegra20_cpufreq_probe(struct platform_device *pdev)
+ 
+ 	err = cpufreq_register_driver(&cpufreq->driver);
+ 	if (err)
+-		goto put_pll_p;
++		return err;
+ 
+ 	platform_set_drvdata(pdev, cpufreq);
+ 
+ 	return 0;
+ 
+-put_pll_p:
+-	clk_put(cpufreq->pll_p_clk);
+-put_pll_x:
+-	clk_put(cpufreq->pll_x_clk);
+-put_cpu:
+-	clk_put(cpufreq->cpu_clk);
+-
+-	return err;
+ }
+ 
+ static int tegra20_cpufreq_remove(struct platform_device *pdev)
+@@ -214,10 +397,6 @@ static int tegra20_cpufreq_remove(struct platform_device *pdev)
+ 
+ 	cpufreq_unregister_driver(&cpufreq->driver);
+ 
+-	clk_put(cpufreq->pll_p_clk);
+-	clk_put(cpufreq->pll_x_clk);
+-	clk_put(cpufreq->cpu_clk);
+-
+ 	return 0;
+ }
+ 
+-- 
+2.7.4

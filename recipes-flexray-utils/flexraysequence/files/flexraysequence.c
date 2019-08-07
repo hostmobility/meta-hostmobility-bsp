@@ -28,7 +28,7 @@ static int running = 1;
 #define VERSION "5.0"
 #endif
 #ifndef PF_FLEXRAY
-#define PF_FLEXRAY 40
+#define PF_FLEXRAY 45
 #endif
 
 enum {

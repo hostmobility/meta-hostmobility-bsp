@@ -4,7 +4,7 @@ SECTION = "net"
 LICENSE = "GPLv2"
 LIC_FILES_CHKSUM = "file://../COPYING;md5=94d55d512a9ba36caa9b7df079bae19f"
 
-DEPENDS = ""
+DEPENDS = "virtual/kernel"
 
 # http://www.artila.com/download/9G20/Linux/Example/FlexrayBus/libsocketflexray/flexraysequence.c
 SRC_URI = " \
@@ -18,9 +18,14 @@ SRCREV = "${AUTOREV}"
 
 inherit autotools
 
+do_configure_prepend () {
+    install -d 0755 ${WORKDIR}/linux
+    install -m 0644 ${THISDIR}/../flexrayheader/flexray.h ${WORKDIR}/linux/flexray.h    
+}
+
 do_compile() {
     cd ${WORKDIR}/
-    ${CC} -g -I${STAGING_DIR}/usr/include -DVERSION=5.0 -DPF_FLEXRAY=40 ${WORKDIR}/flexraysequence.c -o ${WORKDIR}/flexraysequence
+    ${CC} -g -I${STAGING_DIR}/usr/include -DVERSION=5.0 -DPF_FLEXRAY=45 ${WORKDIR}/flexraysequence.c -o ${WORKDIR}/flexraysequence
 }
 
 do_install () {

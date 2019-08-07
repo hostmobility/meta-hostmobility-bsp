@@ -16,6 +16,7 @@ MACHINE_EXTRA_RDEPENDS_append = " \
 MACHINE_EXTRA_RDEPENDS_append_tegra3 = " \
     e2fsprogs-resize2fs \
     fs-init \
+    packagegroup-hostmobility-flexray-utils \
 "
 
 MACHINE_EXTRA_RDEPENDS_append_vf = " \

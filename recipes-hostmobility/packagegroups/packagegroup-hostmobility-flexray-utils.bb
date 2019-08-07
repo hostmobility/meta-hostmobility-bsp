@@ -13,6 +13,6 @@ RDEPENDS_${PN} += "\
     flexrayctl \
     flexrayd \
     flexraydump \
-    flexraysequence \
-    flexraytimesync\
+    flexraytimesync \
+    flexraywd \
 "

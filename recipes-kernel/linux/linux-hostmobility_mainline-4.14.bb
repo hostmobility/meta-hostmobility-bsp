@@ -9,7 +9,7 @@ FILESEXTRAPATHS_prepend := "${THISDIR}/linux-toradex-mainline-4.14:"
 inherit kernel siteinfo
 include conf/tdx_version.conf
 
-LINUX_VERSION ?= "4.19.63"
+LINUX_VERSION ?= "4.19.66"
 
 LOCALVERSION = "-${PR}"
 PR = "${TDX_VER_ITEM}"
@@ -27,6 +27,7 @@ MACHINE_PATCHES = " \
     file://0005-Add-support-for-flexray-device-driver.patch \
     file://0006-Add-flexray-driver-support.patch \
     file://0008-mmc-read-mmc-alias-from-device-tree.patch \
+    file://0009-Get-asixs-mac-from-uboot-env-area.patch \
 "
 
 
@@ -35,8 +36,8 @@ SRC_URI = " \
     ${GENERIC_PATCHES} \
     ${MACHINE_PATCHES} \
 "
-SRC_URI[md5sum] = "5f72b9a1e40192aecf867ff2cdcc15ba"
-SRC_URI[sha256sum] = "75988760b931864b46292dcfad1dd54b3f4da10168041f48ca6d7f6dd4e5d25d"
+SRC_URI[md5sum] = "025c07e37cb89afa2b26bb4850ce7fa2"
+SRC_URI[sha256sum] = "c981abe15c4b9496cdadb04e4f4afb88b3a78f31ced8d07684ee9c58b3fadb64"
 
 # For CI use one could use the following instead (plus patches still of course)
 LINUX_VERSION_use-head-next ?= "4.19"

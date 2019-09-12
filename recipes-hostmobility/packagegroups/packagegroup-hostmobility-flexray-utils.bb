@@ -15,4 +15,5 @@ RDEPENDS_${PN} += "\
     flexraydump \
     flexraytimesync \
     flexraywd \
+    minicom \
 "

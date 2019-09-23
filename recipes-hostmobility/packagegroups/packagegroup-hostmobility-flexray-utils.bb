@@ -16,4 +16,5 @@ RDEPENDS_${PN} += "\
     flexraytimesync \
     flexraywd \
     minicom \
+    fr-mcu \
 "

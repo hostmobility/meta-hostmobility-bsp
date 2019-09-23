@@ -1,0 +1,1 @@
+SUBSYSTEM=="net", ACTION=="add", KERNEL=="eth2",  RUN+="/bin/sh -c '/sbin/ifconfig eth2 10.42.42.1;' "

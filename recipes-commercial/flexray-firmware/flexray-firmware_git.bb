@@ -4,6 +4,7 @@ DESCRIPTION = "Firmware files for CO-CPU on MX-4"
 SUBPATH = "mx-flexray-firmware"
 
 require recipes-commercial/common/revision.inc
+DEPENDS = "lrzsz"
 
 S = "${WORKDIR}/mx-flexray-firmware"
 

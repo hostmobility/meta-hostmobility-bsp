@@ -1,13 +1,14 @@
-From f12354accb3ecc8b68c3a08c0c53da9e9ffad44c Mon Sep 17 00:00:00 2001
+From 4d40ab9538d4d054de8f9e28d0dd34846bdfe310 Mon Sep 17 00:00:00 2001
 From: rikardo <rikard.olander@hostmobility.com>
-Date: Wed, 11 Sep 2019 14:20:38 +0200
+Date: Mon, 14 Oct 2019 12:51:28 +0200
 Subject: [PATCH] Add device tree files for t30
 
+TODO fix export of gpios for can-xcvr or other chipselect solution
 ---
  arch/arm/boot/dts/Makefile             |   3 +-
- arch/arm/boot/dts/tegra30-mx4-t30.dts  | 210 ++++++++
- arch/arm/boot/dts/tegra30-mx4-t30.dtsi | 882 +++++++++++++++++++++++++++++++++
- 3 files changed, 1094 insertions(+), 1 deletion(-)
+ arch/arm/boot/dts/tegra30-mx4-t30.dts  | 217 ++++++++
+ arch/arm/boot/dts/tegra30-mx4-t30.dtsi | 961 +++++++++++++++++++++++++++++++++
+ 3 files changed, 1180 insertions(+), 1 deletion(-)
  create mode 100644 arch/arm/boot/dts/tegra30-mx4-t30.dts
  create mode 100644 arch/arm/boot/dts/tegra30-mx4-t30.dtsi
 
@@ -27,10 +28,10 @@ index b5bd3de..b4966a0 100644
  	tegra114-roth.dtb \
 diff --git a/arch/arm/boot/dts/tegra30-mx4-t30.dts b/arch/arm/boot/dts/tegra30-mx4-t30.dts
 new file mode 100644
-index 00000000..185e49c
+index 00000000..f08baab
 --- /dev/null
 +++ b/arch/arm/boot/dts/tegra30-mx4-t30.dts
-@@ -0,0 +1,210 @@
+@@ -0,0 +1,217 @@
 +/dts-v1/;
 +
 +#include "tegra30-mx4-t30.dtsi"
@@ -43,22 +44,29 @@ index 00000000..185e49c
 +		rtc0 = "/i2c@7000c000/pcf85063@51";
 +		serial0 = &uarta;
 +		serial1 = &uartb;
-+		serial2 = &uartd;
++		serial2 = &uartc;
++		serial3 = &uartd;
 +		mmc0 = "/sdhci@78000600"; /* eMMC (mmc4)*/
 +		mmc1 = "/sdhci@78000200"; /* sd card (sdmmc2)*/
 +		mmc2 = "/sdhci@78000000"; /* wifi (mmc3)*/
 +		mmc3 = "/sdhci@78000400"; /*not used, (sdmmc3 , clk A6 pin 30)*/
 +	};
-+
++	/* console (S0)*/
 +	serial@70006000 {
++		//compatible = "nvidia,tegra30-hsuart";
 +		status = "okay";
 +	};
-+
++	/* LIN 2 */
 +	serial@70006040 {
 +		compatible = "nvidia,tegra30-hsuart";
 +		status = "okay";
 +	};
-+
++   /* frm uppdate */
++	serial@70006200 {
++		compatible = "nvidia,tegra30-hsuart";
++		status = "okay";
++	};
++	/* LIN 1 */
 +	serial@70006300 {
 +		compatible = "nvidia,tegra30-hsuart";
 +		status = "okay";
@@ -103,7 +111,7 @@ index 00000000..185e49c
 +	       	spi-max-frequency = <5000000>;
 +			interrupt-parent = <&gpio>;
 +	       	interrupts = <TEGRA_GPIO(O, 5) GPIO_ACTIVE_HIGH>;
-+	        gpios = <&gpio TEGRA_GPIO(V, 1) GPIO_ACTIVE_HIGH>;
++	        //gpios = <&gpio TEGRA_GPIO(V, 1) GPIO_ACTIVE_HIGH>;
 +	       	spi-cpha;
 +   		};
 +
@@ -128,7 +136,6 @@ index 00000000..185e49c
 +			spi-cpha;	
 +		};
 +	};
-+
 +	/*wake up cpu from sleep, same as mx4_io_spi*/
 +	gpio-keys {
 +		compatible = "gpio-keys";
@@ -139,6 +146,7 @@ index 00000000..185e49c
 +			linux,code = <KEY_WAKEUP>;
 +			debounce-interval = <10>;
 +			wakeup-source;
++			//linux,can-disabled = <false>;
 +		};
 +	};
 +
@@ -244,10 +252,10 @@ index 00000000..185e49c
 \ No newline at end of file
 diff --git a/arch/arm/boot/dts/tegra30-mx4-t30.dtsi b/arch/arm/boot/dts/tegra30-mx4-t30.dtsi
 new file mode 100644
-index 00000000..7c307f7
+index 00000000..dd193b2
 --- /dev/null
 +++ b/arch/arm/boot/dts/tegra30-mx4-t30.dtsi
-@@ -0,0 +1,882 @@
+@@ -0,0 +1,961 @@
 +// SPDX-License-Identifier: GPL-2.0
 +#include <dt-bindings/input/input.h>
 +#include <dt-bindings/interrupt-controller/arm-gic.h>
@@ -433,13 +441,37 @@ index 00000000..7c307f7
 +				nvidia,tristate = <TEGRA_PIN_DISABLE>;
 +			};
 +
-+			/* Colibri UART_A , FF_TXD(debug pin list), FF_RXD, NC(sodim25), NC(sodim27), XANTSHORT(move? sodim31), NC(sodim29) */
-+			ulpi_data0 {
-+				nvidia,pins =   "ulpi_data0_po1",
-+						"ulpi_data1_po2",
-+						"ulpi_data2_po3",
++			/* Colibri UART_A FF_TXD(debug pin list)*/
++			ulpi_data0_po1 {
++				nvidia,pins = "ulpi_data0_po1";
++				nvidia,function = "uarta";
++				nvidia,pull = <TEGRA_PIN_PULL_NONE>;
++				nvidia,tristate = <TEGRA_PIN_DISABLE>;
++				nvidia,enable-input = <TEGRA_PIN_DISABLE>;
++			};
++
++			/* Colibri UART_A FF_RXD */
++			ulpi_data0_po2 {
++				nvidia,pins = "ulpi_data0_po2";
++				nvidia,function = "uarta";
++				nvidia,pull = <TEGRA_PIN_PULL_UP>;
++				nvidia,tristate = <TEGRA_PIN_DISABLE>;
++				nvidia,enable-input = <TEGRA_PIN_ENABLE>;
++			};
++
++			/* XANTSHORT */
++			ulpi_data5_po6 {
++				nvidia,pins = "ulpi_data5_po6";
++				nvidia,function = "uarta";
++				nvidia,pull = <TEGRA_PIN_PULL_UP>;
++				nvidia,tristate = <TEGRA_PIN_DISABLE>;
++				nvidia,enable-input = <TEGRA_PIN_ENABLE>;
++			};
++
++			/* Colibri NC(sodim25), NC(sodim27), NC(sodim29) */
++			ulpi_data3 {
++				nvidia,pins =   "ulpi_data2_po3",
 +						"ulpi_data3_po4",
-+						"ulpi_data5_po6",
 +						"ulpi_data6_po7";
 +				nvidia,function = "uarta";
 +				nvidia,pull = <TEGRA_PIN_PULL_NONE>;
@@ -460,7 +492,7 @@ index 00000000..7c307f7
 +				nvidia,pins =   "uart2_rxd_pc3",
 +						"uart2_txd_pc2";
 +				nvidia,function = "uartb";
-+				nvidia,pull = <TEGRA_PIN_PULL_NONE>;
++				nvidia,pull = <TEGRA_PIN_PULL_UP>;
 +				nvidia,tristate = <TEGRA_PIN_DISABLE>;
 +			};
 +
@@ -671,6 +703,46 @@ index 00000000..7c307f7
 +				nvidia,pins = "lcd_dc0_pn6";
 +				nvidia,function = "displaya";
 +				nvidia,pull = <TEGRA_PIN_PULL_NONE>;
++				nvidia,tristate = <TEGRA_PIN_DISABLE>;
++				nvidia,enable-input = <TEGRA_PIN_DISABLE>;
++			};
++			/*Flexray FR_MCU_IN (output)*/
++				lcd_d22_pm6 {
++				nvidia,pins = "lcd_d22_pm6";
++				nvidia,function = "displaya";
++				nvidia,pull = <TEGRA_PIN_PULL_UP>;
++				nvidia,tristate = <TEGRA_PIN_DISABLE>;
++				nvidia,enable-input = <TEGRA_PIN_DISABLE>;
++			};
++			/*Flexray FR_MCU_IN (set to input shared pin)*/
++			dap2_dout_pa5 {
++				nvidia,pins = "dap2_dout_pa5";
++				nvidia,function = "i2s1";
++				nvidia,pull = <TEGRA_PIN_PULL_NONE>;
++				nvidia,tristate = <TEGRA_PIN_DISABLE>;
++				nvidia,enable-input = <TEGRA_PIN_ENABLE>;
++			};
++			/*FR-ETH-WAKE*/
++			gmi_ad14_ph6 {
++				nvidia,pins = "gmi_ad14_ph6";
++				nvidia,function = "nand";
++				nvidia,pull = <TEGRA_PIN_PULL_UP>;
++				nvidia,tristate = <TEGRA_PIN_DISABLE>;
++				nvidia,enable-input = <TEGRA_PIN_DISABLE>;
++			};
++			/*nFR-RESET*/
++			gmi_ad15_ph7 {
++				nvidia,pins = "gmi_ad15_ph7";
++				nvidia,function = "nand";
++				nvidia,pull = <TEGRA_PIN_PULL_UP>;
++				nvidia,tristate = <TEGRA_PIN_DISABLE>;
++				nvidia,enable-input = <TEGRA_PIN_DISABLE>;
++			};
++			/*nFR-RESET*/
++			gmi_ad8_ph0 {
++				nvidia,pins = "gmi_ad8_ph0";
++				nvidia,function = "nand";
++				nvidia,pull = <TEGRA_PIN_PULL_UP>;
 +				nvidia,tristate = <TEGRA_PIN_DISABLE>;
 +				nvidia,enable-input = <TEGRA_PIN_DISABLE>;
 +			};
@@ -1125,6 +1197,21 @@ index 00000000..7c307f7
 +		gpios = <TEGRA_GPIO(M, 5) GPIO_ACTIVE_HIGH>;
 +		input;
 +		line-name = "SPI2_DEFAULT2";
++	};
++
++	/*shared the same sodim pin with FR_MCU_IN*/
++	FR_MCU_IN_DEFAULT {
++		gpio-hog;
++		gpios = <TEGRA_GPIO(A, 5) GPIO_ACTIVE_HIGH>;
++		input;
++		line-name = "FR_MCU_IN_DEFAULT";
++	};
++	/*USB hub reset*/
++	USB_HUB_RESET {
++		gpio-hog;
++		gpios = <TEGRA_GPIO(C, 0) GPIO_ACTIVE_HIGH>;
++		output-high;
++		line-name = "USB_HUB_RESET";
 +	};
 +
 +};

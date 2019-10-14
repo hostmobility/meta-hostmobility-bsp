@@ -451,8 +451,8 @@ index 00000000..dd193b2
 +			};
 +
 +			/* Colibri UART_A FF_RXD */
-+			ulpi_data0_po2 {
-+				nvidia,pins = "ulpi_data0_po2";
++			ulpi_data1_po2 {
++				nvidia,pins = "ulpi_data1_po2";
 +				nvidia,function = "uarta";
 +				nvidia,pull = <TEGRA_PIN_PULL_UP>;
 +				nvidia,tristate = <TEGRA_PIN_DISABLE>;

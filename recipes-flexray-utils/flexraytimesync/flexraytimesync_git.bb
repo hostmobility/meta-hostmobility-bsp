@@ -3,7 +3,7 @@ SECTION = "console"
 LICENSE = "CLOSED"
 PV = "0.0+gitr${SRCPV}"
 SRCREV = "${AUTOREV}"
-BRANCH_flexraytimesync ?= "RikardO-HM"
+BRANCH_flexraytimesync ?= "master"
 BRANCH = "${BRANCH_flexraytimesync}"
 SRC_URI = " \
 	git://git@github.com/hostmobility/mx-flexray-utils.git;protocol=ssh;branch=${BRANCH} \

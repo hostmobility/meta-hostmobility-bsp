@@ -7,7 +7,7 @@ LIC_FILES_CHKSUM = "file://${WORKDIR}/COPYING;md5=94d55d512a9ba36caa9b7df079bae1
 PV = "0.0+gitr${SRCPV}"
 SRCREV = "${AUTOREV}"
 
-BRANCH_flexrayctl ?= "master"
+BRANCH_flexrayctl ?= "mainline_4.19"
 BRANCH = "${BRANCH_flexrayctl}"
 
 SRC_URI = " \

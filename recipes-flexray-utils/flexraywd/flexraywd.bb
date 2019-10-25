@@ -3,7 +3,7 @@ SECTION = "net"
 LICENSE = "CLOSED"
 PV = "0.0+gitr${SRCPV}"
 SRCREV = "${AUTOREV}"
-BRANCH_flexraywd ?= "master"
+BRANCH_flexraywd ?= "mainline_4.19"
 BRANCH = "${BRANCH_flexraywd}"
 SRC_URI = " \
 	git://git@github.com/hostmobility/mx-flexray-utils.git;protocol=ssh;branch=${BRANCH} \

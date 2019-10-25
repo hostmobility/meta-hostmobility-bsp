@@ -1,20 +1,19 @@
-From b9d8c2db750262067755b0d5549000bc9f9e61c6 Mon Sep 17 00:00:00 2001
+From 9039d218025a8bc4b8aee5de7fbdef4103bf91f3 Mon Sep 17 00:00:00 2001
 From: rikardo <rikard.olander@hostmobility.com>
-Date: Tue, 6 Aug 2019 16:49:19 +0200
+Date: Thu, 24 Oct 2019 11:47:13 +0200
 Subject: [PATCH] Add flexray driver support
 
-Should be almost the same as the patch for 3.1.10 but could not find
-include/linux/Kbuild but maybe it works anyway.
 ---
  Documentation/networking/00-INDEX | 2 ++
  drivers/net/Makefile              | 1 +
  include/linux/socket.h            | 4 +++-
+ include/net/net_namespace.h       | 4 ++++
  include/uapi/linux/if_arp.h       | 3 ++-
  include/uapi/linux/if_ether.h     | 1 +
  net/Kconfig                       | 1 +
  net/Makefile                      | 1 +
  net/core/sock.c                   | 2 +-
- 8 files changed, 12 insertions(+), 3 deletions(-)
+ 9 files changed, 16 insertions(+), 3 deletions(-)
 
 diff --git a/Documentation/networking/00-INDEX b/Documentation/networking/00-INDEX
 index 02a323c..a12e0e0 100644
@@ -61,6 +60,28 @@ index 7ed4713..8ed5182 100644
  #define PF_MAX		AF_MAX
  
  /* Maximum queue length specifiable by listen.  */
+diff --git a/include/net/net_namespace.h b/include/net/net_namespace.h
+index 3f7b166..2b871b5 100644
+--- a/include/net/net_namespace.h
++++ b/include/net/net_namespace.h
+@@ -31,6 +31,7 @@
+ #include <net/netns/xfrm.h>
+ #include <net/netns/mpls.h>
+ #include <net/netns/can.h>
++#include <net/netns/flexray.h>
+ #include <linux/ns_common.h>
+ #include <linux/idr.h>
+ #include <linux/skbuff.h>
+@@ -159,6 +160,9 @@ struct net {
+ #if IS_ENABLED(CONFIG_CAN)
+ 	struct netns_can	can;
+ #endif
++#if IS_ENABLED(CONFIG_FLEXRAY)
++	struct netns_flexray	flexray;
++#endif
+ 	struct sock		*diag_nlsk;
+ 	atomic_t		fnhe_genid;
+ } __randomize_layout;
 diff --git a/include/uapi/linux/if_arp.h b/include/uapi/linux/if_arp.h
 index 4605527..99759540 100644
 --- a/include/uapi/linux/if_arp.h

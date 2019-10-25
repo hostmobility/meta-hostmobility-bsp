@@ -1,6 +1,6 @@
-From a05f810079b45c8a62eca19723d3a3e69d5d4118 Mon Sep 17 00:00:00 2001
+From a851e329ec519d9160bb89224608a0ceaf7416c9 Mon Sep 17 00:00:00 2001
 From: rikardo <rikard.olander@hostmobility.com>
-Date: Tue, 6 Aug 2019 17:02:51 +0200
+Date: Thu, 24 Oct 2019 11:49:53 +0200
 Subject: [PATCH] Add support for flexray device driver
 
 ---
@@ -11,18 +11,19 @@ Subject: [PATCH] Add support for flexray device driver
  drivers/net/flexray/flexcard_fr.c    | 2480 ++++++++++++++++++++++++++++++++++
  drivers/net/flexray/vflexray.c       |  134 ++
  include/linux/flexray.h              |   77 ++
- include/linux/flexray/Kbuild         |    3 +
- include/linux/flexray/core.h         |   46 +
+ include/linux/flexray/Kbuild         |    4 +
+ include/linux/flexray/core.h         |   53 +
  include/linux/flexray/dev.h          |   64 +
  include/linux/flexray/netlink.h      |  213 +++
  include/linux/flexray/raw.h          |   20 +
+ include/net/netns/flexray.h          |   39 +
  net/flexray/Kconfig                  |   30 +
  net/flexray/Makefile                 |    9 +
- net/flexray/af_flexray.c             |  608 +++++++++
- net/flexray/af_flexray.h             |   59 +
- net/flexray/proc.c                   |  197 +++
- net/flexray/raw.c                    |  675 +++++++++
- 18 files changed, 5392 insertions(+)
+ net/flexray/af_flexray.c             |  692 ++++++++++
+ net/flexray/af_flexray.h             |   54 +
+ net/flexray/proc.c                   |  163 +++
+ net/flexray/raw.c                    |  676 +++++++++
+ 19 files changed, 5485 insertions(+)
  create mode 100644 Documentation/networking/flexray.txt
  create mode 100644 drivers/net/flexray/Kconfig
  create mode 100644 drivers/net/flexray/Makefile
@@ -35,6 +36,7 @@ Subject: [PATCH] Add support for flexray device driver
  create mode 100644 include/linux/flexray/dev.h
  create mode 100644 include/linux/flexray/netlink.h
  create mode 100644 include/linux/flexray/raw.h
+ create mode 100644 include/net/netns/flexray.h
  create mode 100644 net/flexray/Kconfig
  create mode 100644 net/flexray/Makefile
  create mode 100644 net/flexray/af_flexray.c
@@ -44,7 +46,7 @@ Subject: [PATCH] Add support for flexray device driver
 
 diff --git a/Documentation/networking/flexray.txt b/Documentation/networking/flexray.txt
 new file mode 100644
-index 0000000..9c0b844
+index 00000000..9c0b844
 --- /dev/null
 +++ b/Documentation/networking/flexray.txt
 @@ -0,0 +1,24 @@
@@ -74,7 +76,7 @@ index 0000000..9c0b844
 +learn how to use FlexRay sockets.
 diff --git a/drivers/net/flexray/Kconfig b/drivers/net/flexray/Kconfig
 new file mode 100644
-index 0000000..091e6e4
+index 00000000..091e6e4
 --- /dev/null
 +++ b/drivers/net/flexray/Kconfig
 @@ -0,0 +1,41 @@
@@ -121,7 +123,7 @@ index 0000000..091e6e4
 +endmenu
 diff --git a/drivers/net/flexray/Makefile b/drivers/net/flexray/Makefile
 new file mode 100644
-index 0000000..97e2538
+index 00000000..97e2538
 --- /dev/null
 +++ b/drivers/net/flexray/Makefile
 @@ -0,0 +1,12 @@
@@ -139,7 +141,7 @@ index 0000000..97e2538
 +ccflags-$(CONFIG_FLEXRAY_DEBUG_DEVICES) := -DDEBUG
 diff --git a/drivers/net/flexray/dev.c b/drivers/net/flexray/dev.c
 new file mode 100644
-index 0000000..570e186
+index 00000000..77e834b
 --- /dev/null
 +++ b/drivers/net/flexray/dev.c
 @@ -0,0 +1,700 @@
@@ -845,7 +847,7 @@ index 0000000..570e186
 +MODULE_AUTHOR("Benedikt Spranger <b.spranger@linutronix.de>");
 diff --git a/drivers/net/flexray/flexcard_fr.c b/drivers/net/flexray/flexcard_fr.c
 new file mode 100644
-index 0000000..1f879ae
+index 00000000..1f879ae
 --- /dev/null
 +++ b/drivers/net/flexray/flexcard_fr.c
 @@ -0,0 +1,2480 @@
@@ -3331,7 +3333,7 @@ index 0000000..1f879ae
 +MODULE_DESCRIPTION("Eberspächer Flexcard FlexRay driver");
 diff --git a/drivers/net/flexray/vflexray.c b/drivers/net/flexray/vflexray.c
 new file mode 100644
-index 0000000..2c32eff
+index 00000000..3966363
 --- /dev/null
 +++ b/drivers/net/flexray/vflexray.c
 @@ -0,0 +1,134 @@
@@ -3471,7 +3473,7 @@ index 0000000..2c32eff
 +MODULE_AUTHOR("Benedikt Spranger <b.spranger@linutronix.de>");
 diff --git a/include/linux/flexray.h b/include/linux/flexray.h
 new file mode 100644
-index 0000000..a7ab5ba
+index 00000000..a0df757
 --- /dev/null
 +++ b/include/linux/flexray.h
 @@ -0,0 +1,77 @@
@@ -3554,19 +3556,20 @@ index 0000000..a7ab5ba
 +#endif /* FLEXRAY_H */
 diff --git a/include/linux/flexray/Kbuild b/include/linux/flexray/Kbuild
 new file mode 100644
-index 0000000..24741e7
+index 00000000..0abf22c
 --- /dev/null
 +++ b/include/linux/flexray/Kbuild
-@@ -0,0 +1,3 @@
+@@ -0,0 +1,4 @@
 +header-y += raw.h
 +header-y += core.h
 +header-y += netlink.h
++header-y += flexray.h
 diff --git a/include/linux/flexray/core.h b/include/linux/flexray/core.h
 new file mode 100644
-index 0000000..4acbbc9
+index 00000000..7787005
 --- /dev/null
 +++ b/include/linux/flexray/core.h
-@@ -0,0 +1,46 @@
+@@ -0,0 +1,53 @@
 +/*
 + * Copyright 2012 Eberspächer Electronics GmbH & Co. KG. All Rights Reserved.
 + */
@@ -3577,6 +3580,13 @@ index 0000000..4acbbc9
 +#include <linux/flexray.h>
 +#include <linux/skbuff.h>
 +#include <linux/netdevice.h>
++
++#define FLEXRAY_VERSION "20191023"
++
++/* increment this number each time you change some user-space interface */
++#define FLEXRAY_ABI_VERSION "0"
++
++#define FLEXRAY_VERSION_STRING "rev " FLEXRAY_VERSION " abi " FLEXRAY_ABI_VERSION
 +
 +#define DNAME(dev) ((dev) ? (dev)->name : "any")
 +
@@ -3599,12 +3609,12 @@ index 0000000..4acbbc9
 +extern int  flexray_proto_register(const struct flexray_proto *frp);
 +extern void flexray_proto_unregister(const struct flexray_proto *frp);
 +
-+extern int  flexray_rx_register(struct net_device *dev, flexray_frame_filter_t frame_id,
++extern int  flexray_rx_register(struct net *net, struct net_device *dev, flexray_frame_filter_t frame_id,
 +				flexray_frame_filter_t mask,
 +				void (*func)(struct sk_buff *, void *),
 +				void *data, char *ident);
 +
-+extern void flexray_rx_unregister(struct net_device *dev, flexray_frame_filter_t frame_id,
++extern void flexray_rx_unregister(struct net *net, struct net_device *dev, flexray_frame_filter_t frame_id,
 +				flexray_frame_filter_t mask,
 +				void (*func)(struct sk_buff *, void *),
 +				void *data);
@@ -3615,7 +3625,7 @@ index 0000000..4acbbc9
 +#endif /* FLEXRAY_CORE_H */
 diff --git a/include/linux/flexray/dev.h b/include/linux/flexray/dev.h
 new file mode 100644
-index 0000000..999ebab
+index 00000000..999ebab
 --- /dev/null
 +++ b/include/linux/flexray/dev.h
 @@ -0,0 +1,64 @@
@@ -3685,7 +3695,7 @@ index 0000000..999ebab
 +#endif /* FLEXRAY_DEV_H */
 diff --git a/include/linux/flexray/netlink.h b/include/linux/flexray/netlink.h
 new file mode 100644
-index 0000000..b1e0d85
+index 00000000..b1e0d85
 --- /dev/null
 +++ b/include/linux/flexray/netlink.h
 @@ -0,0 +1,213 @@
@@ -3904,7 +3914,7 @@ index 0000000..b1e0d85
 +#endif /* FLEXRAY_NETLINK_H */
 diff --git a/include/linux/flexray/raw.h b/include/linux/flexray/raw.h
 new file mode 100644
-index 0000000..22dd5ab
+index 00000000..22dd5ab
 --- /dev/null
 +++ b/include/linux/flexray/raw.h
 @@ -0,0 +1,20 @@
@@ -3928,9 +3938,54 @@ index 0000000..22dd5ab
 +};
 +
 +#endif
+diff --git a/include/net/netns/flexray.h b/include/net/netns/flexray.h
+new file mode 100644
+index 00000000..650c8fb
+--- /dev/null
++++ b/include/net/netns/flexray.h
+@@ -0,0 +1,39 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * flexray in net namespaces
++ */
++
++#ifndef __NETNS_FLEXRAY_H__
++#define __NETNS_FLEXRAY_H__
++
++#include <linux/spinlock.h>
++
++struct dev_rcv_lists;
++struct s_stats;
++struct s_pstats;
++
++struct netns_flexray {
++
++	struct proc_dir_entry *proc_dir;
++	struct proc_dir_entry *pde_rcvlist_all;
++	struct proc_dir_entry *pde_reset_stats;
++	struct proc_dir_entry *pde_stats;
++/*#if IS_ENABLED(CONFIG_PROC_FS)
++	struct proc_dir_entry *pde_version;
++	struct proc_dir_entry *pde_rcvlist_fil;
++	struct proc_dir_entry *pde_rcvlist_inv;
++	struct proc_dir_entry *pde_rcvlist_sff;
++	struct proc_dir_entry *pde_rcvlist_eff;
++	struct proc_dir_entry *pde_rcvlist_err;
++	struct proc_dir_entry *bcmproc_dir;
++#endif*/
++
++	/* receive filters subscribed for 'all' flexray devices */
++	struct dev_rcv_lists *flexray_rx_alldev_list;
++	spinlock_t flexray_rcvlists_lock;
++
++	struct s_stats *flexray_stats;	/* packet statistics */
++	struct s_pstats *flexray_pstats;	/* receive list statistics */
++};
++
++#endif /* __NETNS_FLEXRAY_H__ */
 diff --git a/net/flexray/Kconfig b/net/flexray/Kconfig
 new file mode 100644
-index 0000000..1f497e5
+index 00000000..1f497e5
 --- /dev/null
 +++ b/net/flexray/Kconfig
 @@ -0,0 +1,30 @@
@@ -3966,7 +4021,7 @@ index 0000000..1f497e5
 +source "drivers/net/flexray/Kconfig"
 diff --git a/net/flexray/Makefile b/net/flexray/Makefile
 new file mode 100644
-index 0000000..f5e05b6c
+index 00000000..f5e05b6c
 --- /dev/null
 +++ b/net/flexray/Makefile
 @@ -0,0 +1,9 @@
@@ -3981,10 +4036,10 @@ index 0000000..f5e05b6c
 +flexray-raw-y			:= raw.o
 diff --git a/net/flexray/af_flexray.c b/net/flexray/af_flexray.c
 new file mode 100644
-index 0000000..0793529
+index 00000000..86109da
 --- /dev/null
 +++ b/net/flexray/af_flexray.c
-@@ -0,0 +1,608 @@
+@@ -0,0 +1,692 @@
 +/* Copyright 2012 Eberspächer Electronics GmbH & Co. KG. All Rights Reserved */
 +
 +#include <linux/module.h>
@@ -4004,15 +4059,19 @@ index 0000000..0793529
 +#include <linux/flexray.h>
 +#include <linux/flexray/core.h>
 +#include <linux/flexray/dev.h>
++
 +#include <linux/ratelimit.h>
 +#include <net/net_namespace.h>
 +#include <net/sock.h>
 +
 +#include "af_flexray.h"
 +
-+/* receive filters subscribed for 'all' FlexRay devices */
-+struct dev_rcv_lists flexray_rx_alldev_list;
-+static DEFINE_SPINLOCK(flexray_rcvlists_lock);
++MODULE_DESCRIPTION("FlexRay PF_FLEXRAY core");
++MODULE_LICENSE("GPL v2");
++MODULE_AUTHOR("Benedikt Spranger <b.spranger@linutronix.de>, "
++	"Rikard Olander <rikard.olander@hostmobility.com>");
++
++MODULE_ALIAS_NETPROTO(PF_FLEXRAY);
 +
 +static struct kmem_cache *rcv_cache __read_mostly;
 +
@@ -4020,8 +4079,6 @@ index 0000000..0793529
 +static const struct flexray_proto *proto_tab[FLEXRAY_NPROTO] __read_mostly;
 +static DEFINE_MUTEX(proto_tab_lock);
 +
-+struct s_stats	flexray_stats;	/* packet statistics */
-+struct s_pstats	flexray_pstats;	/* receive list statistics */
 +
 +/* af_flexray socket functions */
 +
@@ -4075,14 +4132,26 @@ index 0000000..0793529
 +	if (protocol < 0 || protocol >= FLEXRAY_NPROTO)
 +		return -EINVAL;
 +
-+	if (!net_eq(net, &init_net))
-+		return -EAFNOSUPPORT;
++	/*if (!net_eq(net, &init_net))
++		return -EAFNOSUPPORT;*/
 +
 +	frp = flexray_get_proto(protocol);
 +
 +#ifdef CONFIG_MODULES
 +	if (!frp) {
-+		request_module("flexray-proto-%d", protocol);
++/* try to load protocol module if kernel is modular */
++
++		err = request_module("flexray-proto-%d", protocol);
++
++		/*
++		 * In case of error we only print a message but don't
++		 * return the error code immediately.  Below we will
++		 * return -EPROTONOSUPPORT
++		 */
++		if (err)
++			printk_ratelimited(KERN_ERR "flexray: request_module "
++			       "(flexray-proto-%d) failed.\n", protocol);
++
 +		frp = flexray_get_proto(protocol);
 +	}
 +#endif
@@ -4123,7 +4192,7 @@ index 0000000..0793529
 +/**
 + * flexray_send - transmit a FlexRay frame
 + * @skb: pointer to socket buffer with FlexRay frame in data section
-+ * @loop: loopback for listeners on local CAN sockets (recommended default!)
++ * @loop: loopback for listeners on local flexray sockets (recommended default!)
 + *
 + * Due to the loopback this routine must not be called from hardirq context.
 + *
@@ -4139,7 +4208,8 @@ index 0000000..0793529
 +{
 +   struct sk_buff *newskb = NULL;
 +	struct flexray_priv *priv;
-+	int err;
++	struct s_stats *flexray_stats = dev_net(skb->dev)->flexray.flexray_stats;
++	int err = -EINVAL;
 +
 +	priv = netdev_priv(skb->dev);
 +
@@ -4175,15 +4245,15 @@ index 0000000..0793529
 +	skb_reset_transport_header(skb);
 +
 +	if (loop) {
-+		/* local loopback of sent CAN frames */
++		/* local loopback of sent flexray frames */
 +
-+		/* indication for the CAN driver: do loopback */
++		/* indication for the flexray driver: do loopback */
 +		skb->pkt_type = PACKET_LOOPBACK;
 +
 +		/*
 +		 * The reference to the originating sock may be required
 +		 * by the receiving socket to check whether the frame is
-+		 * its own. Example: can_raw sockopt CAN_RAW_RECV_OWN_MSGS
++		 * its own. Example: flexray_raw sockopt FLEXRAY_RAW_RECV_OWN_MSGS
 +		 * Therefore we have to ensure that skb->sk remains the
 +		 * reference to the originating sock by restoring skb->sk
 +		 * after each skb_clone() or skb_orphan() usage.
@@ -4205,7 +4275,7 @@ index 0000000..0793529
 +			newskb->pkt_type = PACKET_BROADCAST;
 +		}
 +	} else {
-+		/* indication for the CAN driver: no loopback required */
++		/* indication for the flexray driver: no loopback required */
 +		skb->pkt_type = PACKET_HOST;
 +	}
 +
@@ -4223,7 +4293,7 @@ index 0000000..0793529
 +      netif_rx_ni(newskb);
 +
 +   /* update statistics */
-+	flexray_stats.tx_frames++;
++	flexray_stats->tx_frames++;
 +
 +   return 0;
 +}
@@ -4231,52 +4301,55 @@ index 0000000..0793529
 +
 +/* af_flexray rx path */
 +
-+static struct dev_rcv_lists *find_dev_rcv_lists(struct net_device *dev)
++static struct dev_rcv_lists *find_dev_rcv_lists(struct net *net, struct net_device *dev)
 +{
 +	if (!dev)
-+		return &flexray_rx_alldev_list;
++		return net->flexray.flexray_rx_alldev_list;
 +	else
 +		return (struct dev_rcv_lists *)dev->ml_priv;
 +}
 +
-+int flexray_rx_register(struct net_device *dev, flexray_frame_filter_t frame_id,
++int flexray_rx_register(struct net *net, struct net_device *dev, flexray_frame_filter_t frame_id,
 +			flexray_frame_filter_t mask,
 +			void (*func)(struct sk_buff *, void *),
 +			void *data, char *ident)
 +{
 +	struct receiver *r;
 +	struct dev_rcv_lists *d;
++	struct s_pstats *flexray_pstats = net->flexray.flexray_pstats;
 +	int err = 0;
 +
 +	if (dev && dev->type != ARPHRD_FLEXRAY)
++		return -ENODEV;
++
++	if (dev && !net_eq(net, dev_net(dev)))
 +		return -ENODEV;
 +
 +	r = kmem_cache_alloc(rcv_cache, GFP_KERNEL);
 +	if (!r)
 +		return -ENOMEM;
 +
-+	spin_lock(&flexray_rcvlists_lock);
++	spin_lock(&net->flexray.flexray_rcvlists_lock);
 +
-+	d = find_dev_rcv_lists(dev);
++	d = find_dev_rcv_lists(net, dev);
 +	if (d) {
 +		r->func		= func;
 +		r->data		= data;
 +		r->ident	= ident;
 +
 +
-+		hlist_add_head_rcu(&r->list, &d->rx[RX_ALL]);
++		hlist_add_head_rcu(&r->list, (struct hlist_head *)&d->rx[RX_ALL]);
 +		d->entries++;
 +
-+		flexray_pstats.rcv_entries++;
-+		if (flexray_pstats.rcv_entries_max < flexray_pstats.rcv_entries)
-+			flexray_pstats.rcv_entries_max =
-+				flexray_pstats.rcv_entries;
++		flexray_pstats->rcv_entries++;
++		if (flexray_pstats->rcv_entries_max < flexray_pstats->rcv_entries)
++			flexray_pstats->rcv_entries_max = flexray_pstats->rcv_entries;
 +	} else {
 +		kmem_cache_free(rcv_cache, r);
 +		err = -ENODEV;
 +	}
 +
-+	spin_unlock(&flexray_rcvlists_lock);
++	spin_unlock(&net->flexray.flexray_rcvlists_lock);
 +
 +	return err;
 +}
@@ -4285,27 +4358,36 @@ index 0000000..0793529
 +static void flexray_rx_delete_receiver(struct rcu_head *rp)
 +{
 +	struct receiver *r = container_of(rp, struct receiver, rcu);
++	struct sock *sk = r->sk;
 +
 +	kmem_cache_free(rcv_cache, r);
++	if (sk)
++		sock_put(sk);
 +}
 +
-+void flexray_rx_unregister(struct net_device *dev, flexray_frame_filter_t frame_id,
++void flexray_rx_unregister(struct net *net, struct net_device *dev,
++			flexray_frame_filter_t frame_id,
 +			flexray_frame_filter_t mask,
 +			void (*func)(struct sk_buff *, void *), void *data)
 +{
 +	struct receiver *r = NULL;
 +	struct hlist_head *rl;
-+	//struct hlist_node *next;
++	struct s_pstats *flexray_pstats = net->flexray.flexray_pstats;
 +	struct dev_rcv_lists *d;
 +
 +	if (dev && dev->type != ARPHRD_FLEXRAY)
 +		return;
 +
-+	spin_lock(&flexray_rcvlists_lock);
++	if (dev && !net_eq(net, dev_net(dev)))
++		return;
 +
-+	d = find_dev_rcv_lists(dev);
++	spin_lock(&net->flexray.flexray_rcvlists_lock);
++
++	d = find_dev_rcv_lists(net, dev);
 +	if (!d) {
-+		netdev_err(dev, "BUG: receive list not found\n");
++		pr_err("BUG: receive list not found for "
++		       "dev %s\n",
++		       DNAME(dev));
 +		goto out;
 +	}
 +
@@ -4328,17 +4410,17 @@ index 0000000..0793529
 +	 * will be NULL, while r will point to the last item of the list.
 +	 */
 +
-+	//if (!next) {
-+	//	netdev_err(dev, "BUG: receive list entry not found\n");
-+	//	r = NULL;
-+	//	goto out;
-+	//}
++	if (!r) {
++		WARN(1, "BUG: receive list entry not found for dev %s, "
++		     "\n", DNAME(dev));
++		goto out;
++	}
 +
 +	hlist_del_rcu(&r->list);
 +	d->entries--;
 +
-+	if (flexray_pstats.rcv_entries > 0)
-+		flexray_pstats.rcv_entries--;
++	if (flexray_pstats->rcv_entries > 0)
++		flexray_pstats->rcv_entries--;
 +
 +	/* remove device structure requested by NETDEV_UNREGISTER */
 +	if (d->remove_on_zero_entries && !d->entries) {
@@ -4347,23 +4429,26 @@ index 0000000..0793529
 +	}
 +
 +out:
-+	spin_unlock(&flexray_rcvlists_lock);
++	spin_unlock(&net->flexray.flexray_rcvlists_lock);
 +
 +	/* schedule the receiver item for deletion */
-+	if (r)
++	if (r) {
++		if (r->sk)
++			sock_hold(r->sk);
 +		call_rcu(&r->rcu, flexray_rx_delete_receiver);
++	}
 +}
 +EXPORT_SYMBOL(flexray_rx_unregister);
 +
 +static inline void deliver(struct sk_buff *skb, struct receiver *r)
 +{
 +	r->func(skb, r->data);
++	//r->matches++;
 +}
 +
 +static int flexray_rcv_filter(struct dev_rcv_lists *d, struct sk_buff *skb)
 +{
 +	struct receiver *r;
-+	//struct hlist_node *next;
 +	int matches = 0;
 +
 +	if (d->entries == 0)
@@ -4382,12 +4467,14 @@ index 0000000..0793529
 +		       struct packet_type *pt, struct net_device *orig_dev)
 +{
 +	struct dev_rcv_lists *d;
++	struct net *net = dev_net(dev);
 +	struct flexray_frame *frf = (struct flexray_frame *)skb->data;
++	struct s_stats *flexray_stats = net->flexray.flexray_stats;
 +	int matches;
 +
-+	if (!net_eq(dev_net(dev), &init_net)) {
++	/*if (!net_eq(dev_net(dev), &init_net)) {
 +		goto drop;
-+   }
++   }*/
 +   
 +	if (WARN_ONCE(dev->type != ARPHRD_FLEXRAY,
 +		      "PF_FLEXRAY: dropped non conform skbuf: "
@@ -4396,15 +4483,15 @@ index 0000000..0793529
 +		goto drop;
 +
 +	/* update statistics */
-+	flexray_stats.rx_frames++;
++	flexray_stats->rx_frames++;
 +   
 +	rcu_read_lock();
 +
 +	/* deliver the packet to sockets listening on all devices */
-+	matches = flexray_rcv_filter(&flexray_rx_alldev_list, skb);
++	matches = flexray_rcv_filter(net->flexray.flexray_rx_alldev_list, skb);
 +
 +	/* find receive list for this device */
-+	d = find_dev_rcv_lists(dev);
++	d = find_dev_rcv_lists(net, dev);
 +	if (d) {
 +		matches += flexray_rcv_filter(d, skb);
 +   }
@@ -4415,7 +4502,7 @@ index 0000000..0793529
 +	consume_skb(skb);
 +
 +	if (matches > 0) {
-+		flexray_stats.matches++;
++		flexray_stats->matches++;
 +   }
 +	return NET_RX_SUCCESS;
 +
@@ -4441,12 +4528,12 @@ index 0000000..0793529
 +
 +	mutex_lock(&proto_tab_lock);
 +
-+	if (proto_tab[proto]) {
++	if (rcu_access_pointer(proto_tab[proto])) {
 +		pr_err("flexray: protocol %d already registered\n",
 +		       proto);
 +		err = -EBUSY;
 +	} else
-+		rcu_assign_pointer(proto_tab[proto], frp);
++		RCU_INIT_POINTER(proto_tab[proto], frp);
 +
 +	mutex_unlock(&proto_tab_lock);
 +
@@ -4462,7 +4549,7 @@ index 0000000..0793529
 +	int proto = frp->protocol;
 +
 +	mutex_lock(&proto_tab_lock);
-+	BUG_ON(proto_tab[proto] != frp);
++	BUG_ON(rcu_access_pointer(proto_tab[proto])!= frp);
 +	rcu_assign_pointer(proto_tab[proto], NULL);
 +	mutex_unlock(&proto_tab_lock);
 +
@@ -4476,11 +4563,11 @@ index 0000000..0793529
 +static int flexray_notifier(struct notifier_block *nb, unsigned long msg,
 +			    void *data)
 +{
-+	struct net_device *dev = (struct net_device *)data;
++	struct net_device *dev = netdev_notifier_info_to_dev(data);
 +	struct dev_rcv_lists *d;
 +
-+	if (!net_eq(dev_net(dev), &init_net))
-+		return NOTIFY_DONE;
++	/*if (!net_eq(dev_net(dev), &init_net))
++		return NOTIFY_DONE;*/
 +
 +	if (dev->type != ARPHRD_FLEXRAY)
 +		return NOTIFY_DONE;
@@ -4500,7 +4587,7 @@ index 0000000..0793529
 +		break;
 +
 +	case NETDEV_UNREGISTER:
-+		spin_lock(&flexray_rcvlists_lock);
++		spin_lock(&dev_net(dev)->flexray.flexray_rcvlists_lock);
 +
 +		d = dev->ml_priv;
 +		if (d) {
@@ -4513,18 +4600,65 @@ index 0000000..0793529
 +		} else
 +			netdev_err(dev, "notifier: receive list not found\n");
 +
-+		spin_unlock(&flexray_rcvlists_lock);
++		spin_unlock(&dev_net(dev)->flexray.flexray_rcvlists_lock);
 +		break;
 +	}
 +
 +	return NOTIFY_DONE;
 +}
 +
-+/* af_flexray module init/exit functions */
++static int flexray_pernet_init(struct net *net)
++{
++	spin_lock_init(&net->flexray.flexray_rcvlists_lock);
++	net->flexray.flexray_rx_alldev_list =
++		kzalloc(sizeof(struct dev_rcv_lists), GFP_KERNEL);
++	if (!net->flexray.flexray_rx_alldev_list)
++		goto out;
++	net->flexray.flexray_stats = kzalloc(sizeof(struct s_stats), GFP_KERNEL);
++	if (!net->flexray.flexray_stats)
++		goto out_free_alldev_list;
++	net->flexray.flexray_pstats = kzalloc(sizeof(struct s_pstats), GFP_KERNEL);
++	if (!net->flexray.flexray_pstats)
++		goto out_free_flexray_stats;
++
++	return 0;
++
++ out_free_flexray_stats:
++	kfree(net->flexray.flexray_stats);
++ out_free_alldev_list:
++	kfree(net->flexray.flexray_rx_alldev_list);
++ out:
++	return -ENOMEM;
++}
++
++static void flexray_pernet_exit(struct net *net)
++{
++	struct net_device *dev;
++
++	/* remove created dev_rcv_lists from still registered flexray devices */
++	rcu_read_lock();
++	for_each_netdev_rcu(net, dev) {
++		if (dev->type == ARPHRD_FLEXRAY && dev->ml_priv) {
++			struct dev_rcv_lists *d = dev->ml_priv;
++
++			BUG_ON(d->entries);
++			kfree(d);
++			dev->ml_priv = NULL;
++		}
++	}
++	rcu_read_unlock();
++
++	kfree(net->flexray.flexray_rx_alldev_list);
++	kfree(net->flexray.flexray_stats);
++	kfree(net->flexray.flexray_pstats);
++}
++
++/*
++ * af_flexray module init/exit functions
++ */
 +
 +static struct packet_type flexray_packet __read_mostly = {
 +	.type = cpu_to_be16(ETH_P_FLEXRAY),
-+   .dev  = NULL,
 +	.func = flexray_rcv,
 +};
 +
@@ -4539,66 +4673,72 @@ index 0000000..0793529
 +	.notifier_call = flexray_notifier,
 +};
 +
++static struct pernet_operations flexray_pernet_ops __read_mostly = {
++	.init = flexray_pernet_init,
++	.exit = flexray_pernet_exit,
++};
++
 +static __init int flexray_init(void)
 +{
-+	memset(&flexray_rx_alldev_list, 0, sizeof(flexray_rx_alldev_list));
++	int err;
++
++	pr_info("flexray: core (" FLEXRAY_VERSION_STRING ")\n");
 +
 +	rcv_cache = kmem_cache_create("flexray_receiver",
 +				      sizeof(struct receiver), 0, 0, NULL);
 +	if (!rcv_cache)
 +		return -ENOMEM;
 +
-+	flexray_init_proc();
++	err = register_pernet_subsys(&flexray_pernet_ops);
++	if (err)
++		goto out_pernet;
 +
 +	/* protocol register */
-+	sock_register(&flexray_family_ops);
-+	register_netdevice_notifier(&flexray_netdev_notifier);
++	err = sock_register(&flexray_family_ops);
++	if (err)
++		goto out_sock;
++	err = register_netdevice_notifier(&flexray_netdev_notifier);
++	if (err)
++		goto out_notifier;
++
 +	dev_add_pack(&flexray_packet);
++
 +	return 0;
++
++out_notifier:
++	sock_unregister(PF_FLEXRAY);
++out_sock:
++	unregister_pernet_subsys(&flexray_pernet_ops);
++out_pernet:
++	kmem_cache_destroy(rcv_cache);
++	return err;
++
 +}
-+module_init(flexray_init);
 +
 +static __exit void flexray_exit(void)
 +{
-+	struct net_device *dev;
-+
-+	flexray_remove_proc();
 +
 +	/* protocol unregister */
 +	dev_remove_pack(&flexray_packet);
 +	unregister_netdevice_notifier(&flexray_netdev_notifier);
 +	sock_unregister(PF_FLEXRAY);
 +
-+	/* remove created dev_rcv_lists from still registered FlexRay devices */
-+	rcu_read_lock();
-+	for_each_netdev_rcu(&init_net, dev) {
-+		if (dev->type == ARPHRD_FLEXRAY && dev->ml_priv) {
-+			struct dev_rcv_lists *d = dev->ml_priv;
-+
-+			BUG_ON(d->entries);
-+			kfree(d);
-+			dev->ml_priv = NULL;
-+		}
-+	}
-+	rcu_read_unlock();
++unregister_pernet_subsys(&flexray_pernet_ops);
 +
 +	rcu_barrier(); /* Wait for completion of call_rcu()'s */
 +
 +	kmem_cache_destroy(rcv_cache);
 +}
++
++module_init(flexray_init);
 +module_exit(flexray_exit);
-+
-+MODULE_DESCRIPTION("FlexRay PF_FLEXRAY core");
-+MODULE_LICENSE("GPL v2");
-+MODULE_AUTHOR("Benedikt Spranger <b.spranger@linutronix.de>");
-+
-+MODULE_ALIAS_NETPROTO(PF_FLEXRAY);
+\ No newline at end of file
 diff --git a/net/flexray/af_flexray.h b/net/flexray/af_flexray.h
 new file mode 100644
-index 0000000..5aec894
+index 00000000..063045e
 --- /dev/null
 +++ b/net/flexray/af_flexray.h
-@@ -0,0 +1,59 @@
+@@ -0,0 +1,54 @@
 +/* Copyright 2012 Eberspächer Electronics GmbH & Co. KG. All Rights Reserved */
 +
 +#ifndef AF_FLEXRAY_H
@@ -4618,6 +4758,7 @@ index 0000000..5aec894
 +	void (*func)(struct sk_buff *, void *);
 +	void *data;
 +	char *ident;
++	struct sock *sk;
 +};
 +
 +enum {RX_ALL, RX_MAX};
@@ -4646,24 +4787,18 @@ index 0000000..5aec894
 +};
 +
 +/* function prototypes for the FlexRay networklayer procfs (proc.c) */
-+extern void flexray_init_proc(void);
-+extern void flexray_remove_proc(void);
++extern void flexray_init_proc(struct net *net);
++extern void flexray_remove_proc(struct net *net);
 +extern void flexray_stat_update(unsigned long data);
 +
-+/* structures and variables from af_flexray.c needed in proc.c for reading */
-+extern struct s_stats	flexray_stats;		/* packet statistics */
-+extern struct s_pstats	flexray_pstats;		/* receive list statistics */
-+extern struct hlist_head flexray_rx_dev_list;	/* rx dispatcher structures */
-+/* receive filters subscribed for 'all' FlexRay devices */
-+extern struct dev_rcv_lists flexray_rx_alldev_list;
 +
 +#endif /* AF_FLEXRAY_H */
 diff --git a/net/flexray/proc.c b/net/flexray/proc.c
 new file mode 100644
-index 0000000..a480f60
+index 00000000..1d5aea9
 --- /dev/null
 +++ b/net/flexray/proc.c
-@@ -0,0 +1,197 @@
+@@ -0,0 +1,163 @@
 +/* Copyright 2012 Eberspächer Electronics GmbH & Co. KG. All Rights Reserved */
 +
 +#include <linux/module.h>
@@ -4682,11 +4817,6 @@ index 0000000..a480f60
 +#define FLEXRAY_PROC_RCVLIST_ALL "rcvlist_all"
 +#define FLEXRAY_PROC_RCVLIST_FIL "rcvlist_fil"
 +
-+static struct proc_dir_entry *flexray_dir;
-+static struct proc_dir_entry *pde_stats;
-+static struct proc_dir_entry *pde_reset_stats;
-+static struct proc_dir_entry *pde_rcvlist_all;
-+
 +static const char rx_list_name[][8] = {
 +	[RX_ALL] = "rx_all",
 +};
@@ -4696,7 +4826,6 @@ index 0000000..a480f60
 +				  struct net_device *dev)
 +{
 +	struct receiver *r;
-+	//struct hlist_node *n;
 +
 +   hlist_for_each_entry_rcu(r, rx_list, list)
 +		seq_printf(m, "   %-5s     %pK  %pK  %s\n",
@@ -4711,67 +4840,45 @@ index 0000000..a480f60
 +
 +static int flexray_stats_proc_show(struct seq_file *m, void *v)
 +{
++	struct net *net = m->private;
++	struct s_stats *flexray_stats = net->flexray.flexray_stats;
++	struct s_pstats *flexray_pstats = net->flexray.flexray_pstats;
++
 +	seq_putc(m, '\n');
-+	seq_printf(m, " %8ld transmitted frames (TXF)\n",
-+		   flexray_stats.tx_frames);
-+	seq_printf(m, " %8ld received frames (RXF)\n",
-+		   flexray_stats.rx_frames);
-+	seq_printf(m, " %8ld matched frames (RXMF)\n",
-+		   flexray_stats.matches);
++	seq_printf(m, " %8ld transmitted frames (TXF)\n", flexray_stats->tx_frames);
++	seq_printf(m, " %8ld received frames (RXF)\n", flexray_stats->rx_frames);
++	seq_printf(m, " %8ld matched frames (RXMF)\n", flexray_stats->matches);
 +
 +	seq_putc(m, '\n');
 +
 +	seq_printf(m, " %8ld current receive list entries (CRCV)\n",
-+		   flexray_pstats.rcv_entries);
++		   flexray_pstats->rcv_entries);
 +	seq_printf(m, " %8ld maximum receive list entries (MRCV)\n",
-+		   flexray_pstats.rcv_entries_max);
++		   flexray_pstats->rcv_entries_max);
 +
-+	if (flexray_pstats.stats_reset)
++	if (flexray_pstats->stats_reset)
 +		seq_printf(m, "\n %8ld statistic resets (STR)\n",
-+			   flexray_pstats.stats_reset);
++			   flexray_pstats->stats_reset);
 +
-+	if (flexray_pstats.user_reset)
++	if (flexray_pstats->user_reset)
 +		seq_printf(m, " %8ld user statistic resets (USTR)\n",
-+			   flexray_pstats.user_reset);
++			   flexray_pstats->user_reset);
 +
 +	seq_putc(m, '\n');
 +	return 0;
 +}
 +
-+static int flexray_stats_proc_open(struct inode *inode, struct file *file)
-+{
-+	return single_open(file, flexray_stats_proc_show, NULL);
-+}
-+
-+static const struct file_operations flexray_stats_proc_fops = {
-+	.owner		= THIS_MODULE,
-+	.open		= flexray_stats_proc_open,
-+	.read		= seq_read,
-+	.llseek		= seq_lseek,
-+	.release	= single_release,
-+};
-+
 +static int flexray_reset_stats_proc_show(struct seq_file *m, void *v)
 +{
++	struct net *net = m->private;
++	struct s_pstats *flexray_pstats = net->flexray.flexray_pstats;
++	//struct s_stats *flexray_stats = net->flexray.flexray_stats;
++
 +	seq_printf(m, "Performed statistic reset #%ld.\n",
-+		   flexray_pstats.stats_reset);
++		   flexray_pstats->stats_reset + 1);
 +
 +	return 0;
 +}
-+
-+static int flexray_reset_stats_proc_open(struct inode *inode,
-+					 struct file *file)
-+{
-+	return single_open(file, flexray_reset_stats_proc_show, NULL);
-+}
-+
-+static const struct file_operations flexray_reset_stats_proc_fops = {
-+	.owner		= THIS_MODULE,
-+	.open		= flexray_reset_stats_proc_open,
-+	.read		= seq_read,
-+	.llseek		= seq_lseek,
-+	.release	= single_release,
-+};
 +
 +static void flexray_rcvlist_proc_show_one(struct seq_file *m, int idx,
 +						 struct net_device *dev,
@@ -4786,23 +4893,24 @@ index 0000000..a480f60
 +
 +static int flexray_rcvlist_proc_show(struct seq_file *m, void *v)
 +{
-+	int idx = (int)(long)m->private;
++	/* double cast to prevent GCC warning */
++	int idx = (int)(long)PDE_DATA(m->file->f_inode);
 +	struct net_device *dev;
 +	struct dev_rcv_lists *d;
++	struct net *net = m->private;
 +
 +	seq_printf(m, "\nreceive list '%s':\n", rx_list_name[idx]);
 +
 +	rcu_read_lock();
 +
 +	/* receive list for 'all' FlexRay devices (dev == NULL) */
-+	d = &flexray_rx_alldev_list;
++	d = net->flexray.flexray_rx_alldev_list;
 +	flexray_rcvlist_proc_show_one(m, idx, NULL, d);
 +
 +	/* receive list for registered FlexRay devices */
-+	for_each_netdev_rcu(&init_net, dev) {
++	for_each_netdev_rcu(net, dev) {
 +		if (dev->type == ARPHRD_FLEXRAY && dev->ml_priv)
-+			flexray_rcvlist_proc_show_one(m, idx, dev,
-+						      dev->ml_priv);
++			flexray_rcvlist_proc_show_one(m, idx, dev, dev->ml_priv);
 +	}
 +
 +	rcu_read_unlock();
@@ -4810,63 +4918,56 @@ index 0000000..a480f60
 +	seq_putc(m, '\n');
 +	return 0;
 +}
-+
-+static int flexray_rcvlist_proc_open(struct inode *inode, struct file *file)
++/*
++ * flexray_init_proc - create main Flexray proc directory and procfs entries
++ */
++void flexray_init_proc(struct net *net)
 +{
-+	return single_open(file, flexray_rcvlist_proc_show, NULL);
-+}
++	/* create /proc/net/flexray directory */
++	net->flexray.proc_dir = proc_net_mkdir(net, "flexray", net->proc_net);
 +
-+static const struct file_operations flexray_rcvlist_proc_fops = {
-+	.owner		= THIS_MODULE,
-+	.open		= flexray_rcvlist_proc_open,
-+	.read		= seq_read,
-+	.llseek		= seq_lseek,
-+	.release	= single_release,
-+};
-+
-+static void flexray_remove_proc_readentry(const char *name)
-+{
-+	remove_proc_entry(name, flexray_dir);
-+}
-+
-+void flexray_init_proc(void)
-+{
-+	int perm = S_IRUGO | S_IWUSR;
-+
-+	flexray_dir = proc_mkdir("flexray", init_net.proc_net);
-+	if (!flexray_dir)
++	if (!net->flexray.proc_dir) {
++		printk(KERN_INFO "flexray: failed to create /proc/net/flexray . "
++			   "CONFIG_PROC_FS missing?\n");
 +		return;
++	}
 +
-+	pde_stats = proc_create(FLEXRAY_PROC_STATS, perm, flexray_dir,
-+			&flexray_stats_proc_fops);
-+	pde_reset_stats = proc_create(FLEXRAY_PROC_RESET_STATS, perm,
-+			flexray_dir, &flexray_reset_stats_proc_fops);
-+	pde_rcvlist_all = proc_create_data(FLEXRAY_PROC_RCVLIST_ALL, perm,
-+			flexray_dir, &flexray_rcvlist_proc_fops,
++	net->flexray.pde_stats = proc_create_net_single(FLEXRAY_PROC_STATS, 0644,
++			net->flexray.proc_dir, flexray_stats_proc_show, NULL);
++
++	net->flexray.pde_reset_stats = proc_create_net_single(FLEXRAY_PROC_RESET_STATS,
++			0644, net->flexray.proc_dir, flexray_reset_stats_proc_show,
++			NULL);
++
++	net->flexray.pde_rcvlist_all = proc_create_net_single(FLEXRAY_PROC_RCVLIST_ALL,
++			0644, net->flexray.proc_dir, flexray_rcvlist_proc_show,
 +			(void *)RX_ALL);
 +}
 +
-+void flexray_remove_proc(void)
++/*
++ * flexray_remove_proc - remove procfs entries and main Flexray proc directory
++ */
++void flexray_remove_proc(struct net *net)
 +{
-+	if (!flexray_dir)
-+		return;
-+	if (pde_stats)
-+		flexray_remove_proc_readentry(FLEXRAY_PROC_STATS);
 +
-+	if (pde_reset_stats)
-+		flexray_remove_proc_readentry(FLEXRAY_PROC_RESET_STATS);
++	if (net->flexray.pde_stats)
++		remove_proc_entry(FLEXRAY_PROC_STATS, net->flexray.proc_dir);
 +
-+	if (pde_rcvlist_all)
-+		flexray_remove_proc_readentry(FLEXRAY_PROC_RCVLIST_ALL);
++	if (net->flexray.pde_reset_stats)
++		remove_proc_entry(FLEXRAY_PROC_RESET_STATS, net->flexray.proc_dir);
 +
-+	remove_proc_entry("flexray", init_net.proc_net);
++	if (net->flexray.pde_rcvlist_all)
++		remove_proc_entry(FLEXRAY_PROC_RCVLIST_ALL, net->flexray.proc_dir);
++
++	if (net->flexray.proc_dir)
++		remove_proc_entry("flexray", net->proc_net);
 +}
 diff --git a/net/flexray/raw.c b/net/flexray/raw.c
 new file mode 100644
-index 0000000..a1571ce
+index 00000000..adcf007
 --- /dev/null
 +++ b/net/flexray/raw.c
-@@ -0,0 +1,675 @@
+@@ -0,0 +1,676 @@
 +/* Copyright 2012 Eberspächer Electronics GmbH & Co. KG. All Rights Reserved */
 +
 +#include <linux/module.h>
@@ -4883,6 +4984,13 @@ index 0000000..a1571ce
 +#include <linux/flexray/raw.h>
 +#include <net/sock.h>
 +#include <net/net_namespace.h>
++
++#define FLEXRAY_RAW_VERSION FLEXRAY_VERSION
++
++MODULE_DESCRIPTION("PF_FLEXRAY raw protocol");
++MODULE_LICENSE("GPL v2");
++MODULE_AUTHOR("Benedikt Spranger <b.spranger@linutronix.de>, Rikard Olander <rikard.olander@hostmobility.com>");
++MODULE_ALIAS("flexray-proto-1");
 +
 +#define MASK_ALL 0
 +
@@ -4901,8 +5009,8 @@ index 0000000..a1571ce
 +
 +static inline unsigned int *raw_flags(struct sk_buff *skb)
 +{
-+	BUILD_BUG_ON(sizeof(skb->cb) <= (sizeof(struct sockaddr_flexray) +
-+					 sizeof(unsigned int)));
++	sock_skb_cb_check_size(sizeof(struct sockaddr_flexray) +
++					 sizeof(unsigned int));
 +
 +	/* return pointer after struct sockaddr_flexray */
 +	return (unsigned int *)(&((struct sockaddr_flexray *)skb->cb)[1]);
@@ -4936,7 +5044,7 @@ index 0000000..a1571ce
 +	 *  containing the interface index.
 +	 */
 +
-+	BUILD_BUG_ON(sizeof(skb->cb) < sizeof(struct sockaddr_flexray));
++	sock_skb_cb_check_size(sizeof(struct sockaddr_flexray));
 +	addr = (struct sockaddr_flexray *)skb->cb;
 +	memset(addr, 0, sizeof(*addr));
 +	addr->flexray_family  = AF_FLEXRAY;
@@ -4954,22 +5062,22 @@ index 0000000..a1571ce
 +		kfree_skb(skb);
 +}
 +
-+static int raw_enable_filters(struct net_device *dev, struct sock *sk,
-+			      struct flexray_filter *filter, int count)
++static int raw_enable_filters(struct net *net, struct net_device *dev,
++				struct sock *sk, struct flexray_filter *filter, int count)
 +{
 +	int err = 0;
 +	int i;
 +
 +	for (i = 0; i < count; i++) {
 +      //printk(KERN_INFO "raw_enable_filters: flexray_rx_register %d 0x%X 0x%X\n", i,  filter[i].flexray_id, filter[i].flexray_mask);
-+		err = flexray_rx_register(dev, filter[i].flexray_id,
++		err = flexray_rx_register(net, dev, filter[i].flexray_id,
 +				      filter[i].flexray_mask,
 +				      raw_rcv, sk, "raw");
 +		if (err) {
 +         //printk(KERN_INFO "raw_enable_filters: failed, remove again\n");
 +			/* clean up successfully registered filters */
 +			while (--i >= 0)
-+				flexray_rx_unregister(dev, filter[i].flexray_id,
++				flexray_rx_unregister(net, dev, filter[i].flexray_id,
 +						  filter[i].flexray_mask,
 +						  raw_rcv, sk);
 +			break;
@@ -4979,53 +5087,49 @@ index 0000000..a1571ce
 +	return err;
 +}
 +
-+static void raw_disable_filters(struct net_device *dev, struct sock *sk,
-+			      struct flexray_filter *filter, int count)
++static void raw_disable_filters(struct net *net, struct net_device *dev,
++				struct sock *sk, struct flexray_filter *filter, int count)
 +{
 +	int i;
 +
 +	for (i = 0; i < count; i++) {
-+		flexray_rx_unregister(dev, filter[i].flexray_id, filter[i].flexray_mask,
++		flexray_rx_unregister(net, dev, filter[i].flexray_id, filter[i].flexray_mask,
 +				  raw_rcv, sk);
 +   }
 +}
 +
-+static int raw_enable_allfilters(struct net_device *dev, struct sock *sk)
++static int raw_enable_allfilters(struct net *net, struct net_device *dev, struct sock *sk)
 +{
 +	//return flexray_rx_register(dev, raw_rcv, sk, "raw");
 +   struct flexray_raw_sock *ro = raw_sk(sk);
 +   int err;
 +
-+   err = raw_enable_filters(dev, sk, ro->filter, ro->count);
++   err = raw_enable_filters(net, dev, sk, ro->filter, ro->count);
 +   if (err) {
-+      raw_disable_filters(dev, sk, ro->filter, ro->count);
++      raw_disable_filters(net, dev, sk, ro->filter, ro->count);
 +   }
 +   //printk(KERN_INFO "raw_enable_allfilters: err=%d count=%d\n", err, ro->count);
 +   return err;
 +}
 +
-+static inline void raw_disable_allfilters(struct net_device *dev,
++static inline void raw_disable_allfilters(struct net *net, struct net_device *dev,
 +					  struct sock *sk)
 +{
 +	//flexray_rx_unregister(dev, raw_rcv, sk);
 +   struct flexray_raw_sock *ro = raw_sk(sk);
 +
-+   raw_disable_filters(dev, sk, ro->filter, ro->count);
++   raw_disable_filters(net, dev, sk, ro->filter, ro->count);
 +}
 +
-+static struct flexray_raw_sock *nb_to_raw_sock(struct notifier_block *nb)
-+{
-+	return container_of(nb, struct flexray_raw_sock, notifier);
-+}
 +
 +static int raw_notifier(struct notifier_block *nb,
 +			unsigned long msg, void *data)
 +{
-+	struct net_device *dev = (struct net_device *)data;
-+	struct flexray_raw_sock *ro = nb_to_raw_sock(nb);
++	struct net_device *dev = netdev_notifier_info_to_dev(data);
++	struct flexray_raw_sock *ro = container_of(nb, struct flexray_raw_sock, notifier);
 +	struct sock *sk = &ro->sk;
 +
-+	if (!net_eq(dev_net(dev), &init_net))
++	if (!net_eq(dev_net(dev), sock_net(sk)))
 +		return NOTIFY_DONE;
 +
 +	if (dev->type != ARPHRD_FLEXRAY)
@@ -5040,7 +5144,7 @@ index 0000000..a1571ce
 +		lock_sock(sk);
 +		/* remove current filters & unregister */
 +		if (ro->bound)
-+			raw_disable_allfilters(dev, sk);
++			raw_disable_allfilters(dev_net(dev), dev, sk);
 +
 +		ro->ifindex = 0;
 +		ro->bound   = 0;
@@ -5105,13 +5209,13 @@ index 0000000..a1571ce
 +		if (ro->ifindex) {
 +			struct net_device *dev;
 +
-+			dev = dev_get_by_index(&init_net, ro->ifindex);
++			dev = dev_get_by_index(sock_net(sk), ro->ifindex);
 +			if (dev) {
-+				raw_disable_allfilters(dev, sk);
++				raw_disable_allfilters(dev_net(dev),dev, sk);
 +				dev_put(dev);
 +			}
 +		} else
-+			raw_disable_allfilters(NULL, sk);
++			raw_disable_allfilters(sock_net(sk), NULL, sk);
 +	}
 +
 +	ro->ifindex = 0;
@@ -5138,6 +5242,10 @@ index 0000000..a1571ce
 +	if (len < sizeof(*addr))
 +		return -EINVAL;
 +
++	if (addr->flexray_family != AF_FLEXRAY)
++		return -EINVAL;
++
++
 +	lock_sock(sk);
 +
 +	if (ro->bound && addr->flexray_ifindex == ro->ifindex) {
@@ -5147,7 +5255,7 @@ index 0000000..a1571ce
 +	if (addr->flexray_ifindex) {
 +		struct net_device *dev;
 +
-+		dev = dev_get_by_index(&init_net, addr->flexray_ifindex);
++		dev = dev_get_by_index(sock_net(sk), addr->flexray_ifindex);
 +		if (!dev) {
 +			err = -ENODEV;
 +			goto out;
@@ -5164,13 +5272,13 @@ index 0000000..a1571ce
 +		ifindex = dev->ifindex;
 +
 +		/* filters set by default/setsockopt */
-+		err = raw_enable_allfilters(dev, sk);
++		err = raw_enable_allfilters(sock_net(sk), dev, sk);
 +		dev_put(dev);
 +	} else {
 +		ifindex = 0;
 +
 +		/* filters set by default/setsockopt */
-+		err = raw_enable_allfilters(NULL, sk);
++		err = raw_enable_allfilters(sock_net(sk), NULL, sk);
 +	}
 +
 +	if (!err) {
@@ -5179,13 +5287,13 @@ index 0000000..a1571ce
 +			if (ro->ifindex) {
 +				struct net_device *dev;
 +
-+				dev = dev_get_by_index(&init_net, ro->ifindex);
++				dev = dev_get_by_index(sock_net(sk), ro->ifindex);
 +				if (dev) {
-+					raw_disable_allfilters(dev, sk);
++					raw_disable_allfilters(dev_net(dev),dev, sk);
 +					dev_put(dev);
 +				}
 +			} else
-+				raw_disable_allfilters(NULL, sk);
++				raw_disable_allfilters(sock_net(sk), NULL, sk);
 +		}
 +		ro->ifindex = ifindex;
 +		ro->bound = 1;
@@ -5257,14 +5365,14 @@ index 0000000..a1571ce
 +		lock_sock(sk);
 +
 +		if (ro->bound && ro->ifindex)
-+			dev = dev_get_by_index(&init_net, ro->ifindex);
++			dev = dev_get_by_index(sock_net(sk), ro->ifindex);
 +
 +		if (ro->bound) {
 +			/* (try to) register the new filters */
 +			if (count == 1)
-+				err = raw_enable_filters(dev, sk, &sfilter, 1);
++				err = raw_enable_filters(sock_net(sk), dev, sk, &sfilter, 1);
 +			else
-+				err = raw_enable_filters(dev, sk, filter,
++				err = raw_enable_filters(sock_net(sk), dev, sk, filter,
 +							 count);
 +			if (err) {
 +				if (count > 1)
@@ -5273,7 +5381,7 @@ index 0000000..a1571ce
 +			}
 +
 +			/* remove old filter registrations */
-+			raw_disable_filters(dev, sk, ro->filter, ro->count);
++			raw_disable_filters(sock_net(sk), dev, sk, ro->filter, ro->count);
 +		}
 +
 +		/* remove old filter space */
@@ -5391,8 +5499,7 @@ index 0000000..a1571ce
 +	int err;
 +   
 +	if (msg->msg_name) {
-+		struct sockaddr_flexray *addr =
-+			(struct sockaddr_flexray *)msg->msg_name;
++		DECLARE_SOCKADDR(struct sockaddr_flexray *, addr, msg->msg_name);
 +
 +		if (msg->msg_namelen < sizeof(*addr))
 +			return -EINVAL;
@@ -5405,7 +5512,7 @@ index 0000000..a1571ce
 +		ifindex = ro->ifindex;
 +   }
 +   
-+	dev = dev_get_by_index(&init_net, ifindex);
++	dev = dev_get_by_index(sock_net(sk), ifindex);
 +	if (!dev)
 +		return -ENXIO;
 +
@@ -5419,11 +5526,6 @@ index 0000000..a1571ce
 +		goto free_skb;
 +   sock_tx_timestamp(sk,  sk->sk_tsflags, &skb_shinfo(skb)->tx_flags);
 +   
-+ 
-+   
-+
-+ 
-+
 +   skb->dev = dev;
 +	skb->sk  = sk;
 +
@@ -5524,23 +5626,23 @@ index 0000000..a1571ce
 +{
 +	int err;
 +
++	pr_info("flexray: raw protocol (rev " FLEXRAY_RAW_VERSION ")\n");
++
 +	err = flexray_proto_register(&raw_flexray_proto);
 +	if (err < 0)
 +		pr_err("flexray: registration of raw protocol failed\n");
 +
 +	return err;
 +}
-+module_init(raw_module_init);
 +
 +static __exit void raw_module_exit(void)
 +{
 +	flexray_proto_unregister(&raw_flexray_proto);
 +}
++
++module_init(raw_module_init);
 +module_exit(raw_module_exit);
 +
-+MODULE_DESCRIPTION("PF_FLEXRAY raw protocol");
-+MODULE_LICENSE("GPL v2");
-+MODULE_AUTHOR("Benedikt Spranger <b.spranger@linutronix.de>");
-+MODULE_ALIAS("flexray-proto-1");
++
 -- 
 2.7.4

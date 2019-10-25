@@ -1,12 +1,14 @@
-From 7440bd3a463b400b0dc4adf8e6ec9929b694d824 Mon Sep 17 00:00:00 2001
+From a329e715110060e348d05a56cc5d2e2a0720f459 Mon Sep 17 00:00:00 2001
 From: rikardo <rikard.olander@hostmobility.com>
-Date: Mon, 2 Sep 2019 13:57:56 +0200
+Date: Tue, 3 Sep 2019 12:33:25 +0200
 Subject: [PATCH] Add support for thermal throttling
-support both tegra20 and tegra30 from 4.18 patch
+support both tegra20 and tegra30 from 4.18 patch.
+
+
 ---
  Documentation/cpu-freq/core.txt          |   2 +-
  Documentation/cpu-freq/cpufreq-stats.txt |   8 +-
- arch/arm/boot/dts/tegra30.dtsi           | 825 ++++++++++++++++++++++++++++++-
+ arch/arm/boot/dts/tegra30.dtsi           | 842 ++++++++++++++++++++++++++++++-
  arch/arm/mach-tegra/tegra.c              |   4 +
  drivers/cpufreq/Kconfig.arm              |   6 +-
  drivers/cpufreq/cpufreq-dt-platdev.c     |   3 +
@@ -15,7 +17,7 @@ support both tegra20 and tegra30 from 4.18 patch
  drivers/opp/core.c                       |   9 +-
  drivers/soc/tegra/fuse/tegra-apbmisc.c   |   1 +
  include/linux/pm_opp.h                   |   4 +-
- 11 files changed, 1433 insertions(+), 135 deletions(-)
+ 11 files changed, 1446 insertions(+), 139 deletions(-)
 
 diff --git a/Documentation/cpu-freq/core.txt b/Documentation/cpu-freq/core.txt
 index 073f128..55193e6 100644
@@ -50,10 +52,18 @@ index a873855..14378ce 100644
  If the transition table is bigger than PAGE_SIZE, reading this will
  return an -EFBIG error.
 diff --git a/arch/arm/boot/dts/tegra30.dtsi b/arch/arm/boot/dts/tegra30.dtsi
-index a6781f6..6521ab3 100644
+index a6781f6..2cfa25a 100644
 --- a/arch/arm/boot/dts/tegra30.dtsi
 +++ b/arch/arm/boot/dts/tegra30.dtsi
-@@ -896,7 +896,7 @@
+@@ -4,6 +4,7 @@
+ #include <dt-bindings/memory/tegra30-mc.h>
+ #include <dt-bindings/pinctrl/pinctrl-tegra.h>
+ #include <dt-bindings/interrupt-controller/arm-gic.h>
++#include <dt-bindings/thermal/thermal.h>
+ 
+ / {
+ 	compatible = "nvidia,tegra30";
+@@ -896,7 +897,7 @@
  		nvidia,elastic-limit = <16>;
  		nvidia,term-range-adj = <6>;
  		nvidia,xcvr-setup = <51>;
@@ -62,7 +72,7 @@ index a6781f6..6521ab3 100644
  		nvidia,xcvr-lsfslew = <1>;
  		nvidia,xcvr-lsrslew = <1>;
  		nvidia,xcvr-hsslew = <32>;
-@@ -933,7 +933,7 @@
+@@ -933,7 +934,7 @@
  		nvidia,elastic-limit = <16>;
  		nvidia,term-range-adj = <6>;
  		nvidia,xcvr-setup = <51>;
@@ -71,7 +81,7 @@ index a6781f6..6521ab3 100644
  		nvidia,xcvr-lsfslew = <2>;
  		nvidia,xcvr-lsrslew = <2>;
  		nvidia,xcvr-hsslew = <32>;
-@@ -969,7 +969,7 @@
+@@ -969,7 +970,7 @@
  		nvidia,elastic-limit = <16>;
  		nvidia,term-range-adj = <6>;
  		nvidia,xcvr-setup = <51>;
@@ -80,7 +90,7 @@ index a6781f6..6521ab3 100644
  		nvidia,xcvr-lsfslew = <2>;
  		nvidia,xcvr-lsrslew = <2>;
  		nvidia,xcvr-hsslew = <32>;
-@@ -978,6 +978,809 @@
+@@ -978,32 +979,855 @@
  		status = "disabled";
  	};
  
@@ -91,7 +101,7 @@ index a6781f6..6521ab3 100644
 +		opp@460000000_800 {
 +			clock-latency-ns = <100000>;
 +			opp-microvolt = <800000 800000 1250000>;
-+			opp-supported-hw = <0x08 0x0001>;
++			opp-supported-hw = <0x01 0x0192>; /*can not recover from this freq(0x08 0x0001)!*/
 +			opp-hz = /bits/ 64 <460000000>;
 +		};
 +
@@ -105,7 +115,7 @@ index a6781f6..6521ab3 100644
 +		opp@520000000_800 {
 +			clock-latency-ns = <100000>;
 +			opp-microvolt = <800000 800000 1250000>;
-+			opp-supported-hw = <0x04 0x019E>;
++			opp-supported-hw = <0x08 0x0001>; 
 +			opp-hz = /bits/ 64 <520000000>;
 +		};
 +
@@ -890,44 +900,57 @@ index a6781f6..6521ab3 100644
  	cpus {
  		#address-cells = <1>;
  		#size-cells = <0>;
-@@ -986,24 +1789,36 @@
+ 
+-		cpu@0 {
++		cpu0: cpu@0 {
  			device_type = "cpu";
  			compatible = "arm,cortex-a9";
  			reg = <0>;
 +			clocks = <&tegra_car TEGRA30_CLK_CCLK_G>;
 +			operating-points-v2 = <&cpu0_opp_table>;
++			cooling-min-state = <0>;
++			cooling-max-state = <7>;
 +			#cooling-cells = <2>;
  		};
  
- 		cpu@1 {
+-		cpu@1 {
++		cpu1: cpu@1 {
  			device_type = "cpu";
  			compatible = "arm,cortex-a9";
  			reg = <1>;
 +			clocks = <&tegra_car TEGRA30_CLK_CCLK_G>;
 +			operating-points-v2 = <&cpu0_opp_table>;
++			cooling-min-state = <0>;
++			cooling-max-state = <7>;
 +			#cooling-cells = <2>;
  		};
  
- 		cpu@2 {
+-		cpu@2 {
++		cpu2: cpu@2 {
  			device_type = "cpu";
  			compatible = "arm,cortex-a9";
  			reg = <2>;
 +			clocks = <&tegra_car TEGRA30_CLK_CCLK_G>;
 +			operating-points-v2 = <&cpu0_opp_table>;
++			cooling-min-state = <0>;
++			cooling-max-state = <7>;
 +			#cooling-cells = <2>;
  		};
  
- 		cpu@3 {
+-		cpu@3 {
++		cpu3: cpu@3 {
  			device_type = "cpu";
  			compatible = "arm,cortex-a9";
  			reg = <3>;
 +			clocks = <&tegra_car TEGRA30_CLK_CCLK_G>;
 +			operating-points-v2 = <&cpu0_opp_table>;
++			cooling-min-state = <0>;
++			cooling-max-state = <7>;
 +			#cooling-cells = <2>;
  		};
  	};
  
-@@ -1013,5 +1828,9 @@
+@@ -1013,5 +1837,9 @@
  			     <GIC_SPI 145 IRQ_TYPE_LEVEL_HIGH>,
  			     <GIC_SPI 146 IRQ_TYPE_LEVEL_HIGH>,
  			     <GIC_SPI 147 IRQ_TYPE_LEVEL_HIGH>;
@@ -1003,7 +1026,7 @@ index e58bfcb..7cd658f 100644
  			ret = PTR_ERR(opp_table);
  			dev_err(cpu_dev, "Failed to set regulator for cpu%d: %d\n",
 diff --git a/drivers/cpufreq/tegra20-cpufreq.c b/drivers/cpufreq/tegra20-cpufreq.c
-index 05f57dc..c23634a 100644
+index 05f57dc..33fd645 100644
 --- a/drivers/cpufreq/tegra20-cpufreq.c
 +++ b/drivers/cpufreq/tegra20-cpufreq.c
 @@ -1,236 +1,698 @@

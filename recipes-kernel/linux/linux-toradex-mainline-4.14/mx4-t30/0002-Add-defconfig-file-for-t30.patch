@@ -1,19 +1,19 @@
-From ac47f3c2e4c00b059867362fa38977594db36b1c Mon Sep 17 00:00:00 2001
+From 699edc142151890907826f3619573087ccb00fd6 Mon Sep 17 00:00:00 2001
 From: rikardo <rikard.olander@hostmobility.com>
-Date: Thu, 5 Sep 2019 15:57:15 +0200
-Subject: [PATCH] Add defconfig file for t30
+Date: Wed, 25 Sep 2019 08:59:40 +0200
+Subject: [PATCH] Fix defconfig with module asix and vflexay
 
 ---
- arch/arm/configs/mx4_t30_defconfig | 385 +++++++++++++++++++++++++++++++++++++
- 1 file changed, 385 insertions(+)
+ arch/arm/configs/mx4_t30_defconfig | 381 +++++++++++++++++++++++++++++++++++++
+ 1 file changed, 381 insertions(+)
  create mode 100644 arch/arm/configs/mx4_t30_defconfig
 
 diff --git a/arch/arm/configs/mx4_t30_defconfig b/arch/arm/configs/mx4_t30_defconfig
 new file mode 100644
-index 00000000..c2a9db7
+index 00000000..6c18bf2
 --- /dev/null
 +++ b/arch/arm/configs/mx4_t30_defconfig
-@@ -0,0 +1,385 @@
+@@ -0,0 +1,381 @@
 +CONFIG_SYSVIPC=y
 +CONFIG_POSIX_MQUEUE=y
 +CONFIG_NO_HZ=y
@@ -165,6 +165,8 @@ index 00000000..c2a9db7
 +CONFIG_PPP_MPPE=y
 +CONFIG_PPP_ASYNC=y
 +CONFIG_USB_USBNET=y
++CONFIG_USB_NET_AX8817X=m
++CONFIG_USB_NET_AX88179_178A=m
 +CONFIG_USB_NET_SMSC75XX=y
 +# CONFIG_USB_NET_ZAURUS is not set
 +# CONFIG_WLAN_VENDOR_ADMTEK is not set
@@ -213,9 +215,8 @@ index 00000000..c2a9db7
 +CONFIG_I2C_MUX_PINCTRL=y
 +CONFIG_I2C_TEGRA=y
 +CONFIG_SPI=y
-+CONFIG_SPI_SPIDEV=y
-+CONFIG_SPI_DEBUG=n
 +CONFIG_SPI_TEGRA20_SLINK=y
++CONFIG_SPI_SPIDEV=y
 +CONFIG_PINCTRL_AS3722=y
 +CONFIG_PINCTRL_PALMAS=y
 +CONFIG_GPIO_SYSFS=y
@@ -322,11 +323,7 @@ index 00000000..c2a9db7
 +CONFIG_LEDS_TRIGGER_TRANSIENT=y
 +CONFIG_LEDS_TRIGGER_CAMERA=y
 +CONFIG_RTC_CLASS=y
-+CONFIG_RTC_DRV_PCF8523=n
 +CONFIG_RTC_DRV_PCF85063=y
-+CONFIG_RTC_DRV_PCF85363=n
-+CONFIG_RTC_DRV_PCF8563=n
-+CONFIG_RTC_DRV_PCF8583=n
 +CONFIG_DMADEVICES=y
 +CONFIG_TEGRA20_APB_DMA=y
 +CONFIG_STAGING=y

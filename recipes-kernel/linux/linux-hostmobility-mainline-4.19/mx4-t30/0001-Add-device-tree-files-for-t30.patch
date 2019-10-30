@@ -1,14 +1,13 @@
-From 4d40ab9538d4d054de8f9e28d0dd34846bdfe310 Mon Sep 17 00:00:00 2001
+From 72d32a75d186a23b2e864c55624fbda3c215620e Mon Sep 17 00:00:00 2001
 From: rikardo <rikard.olander@hostmobility.com>
-Date: Mon, 14 Oct 2019 12:51:28 +0200
-Subject: [PATCH] Add device tree files for t30
+Date: Fri, 25 Oct 2019 14:27:45 +0200
+Subject: [PATCH] Update device tree with pps
 
-TODO fix export of gpios for can-xcvr or other chipselect solution
 ---
  arch/arm/boot/dts/Makefile             |   3 +-
- arch/arm/boot/dts/tegra30-mx4-t30.dts  | 217 ++++++++
- arch/arm/boot/dts/tegra30-mx4-t30.dtsi | 961 +++++++++++++++++++++++++++++++++
- 3 files changed, 1180 insertions(+), 1 deletion(-)
+ arch/arm/boot/dts/tegra30-mx4-t30.dts  | 226 ++++++++
+ arch/arm/boot/dts/tegra30-mx4-t30.dtsi | 977 +++++++++++++++++++++++++++++++++
+ 3 files changed, 1205 insertions(+), 1 deletion(-)
  create mode 100644 arch/arm/boot/dts/tegra30-mx4-t30.dts
  create mode 100644 arch/arm/boot/dts/tegra30-mx4-t30.dtsi
 
@@ -28,10 +27,10 @@ index b5bd3de..b4966a0 100644
  	tegra114-roth.dtb \
 diff --git a/arch/arm/boot/dts/tegra30-mx4-t30.dts b/arch/arm/boot/dts/tegra30-mx4-t30.dts
 new file mode 100644
-index 00000000..f08baab
+index 00000000..91a8679
 --- /dev/null
 +++ b/arch/arm/boot/dts/tegra30-mx4-t30.dts
-@@ -0,0 +1,217 @@
+@@ -0,0 +1,226 @@
 +/dts-v1/;
 +
 +#include "tegra30-mx4-t30.dtsi"
@@ -248,14 +247,23 @@ index 00000000..f08baab
 +			linux,default-trigger = "phy0rx";
 +		};
 +	};
++
++	pps-gen {
++		compatible = "pps-generator-gpios";
++
++		echo-gpios = <&gpio TEGRA_GPIO(M, 7) GPIO_ACTIVE_HIGH>;
++		echo-active-ms = <5000>;
++		assert-falling-edge;
++		status = "okay";
++	};
 +};
 \ No newline at end of file
 diff --git a/arch/arm/boot/dts/tegra30-mx4-t30.dtsi b/arch/arm/boot/dts/tegra30-mx4-t30.dtsi
 new file mode 100644
-index 00000000..dd193b2
+index 00000000..bae3ac8
 --- /dev/null
 +++ b/arch/arm/boot/dts/tegra30-mx4-t30.dtsi
-@@ -0,0 +1,961 @@
+@@ -0,0 +1,977 @@
 +// SPDX-License-Identifier: GPL-2.0
 +#include <dt-bindings/input/input.h>
 +#include <dt-bindings/interrupt-controller/arm-gic.h>
@@ -746,6 +754,22 @@ index 00000000..dd193b2
 +				nvidia,tristate = <TEGRA_PIN_DISABLE>;
 +				nvidia,enable-input = <TEGRA_PIN_DISABLE>;
 +			};
++			/*Flexray pps-in (set to input shared pin)*/
++			dap2_din_pa4 {
++				nvidia,pins = "dap2_din_pa4";
++				nvidia,function = "i2s1";
++				nvidia,pull = <TEGRA_PIN_PULL_NONE>;
++				nvidia,tristate = <TEGRA_PIN_DISABLE>;
++				nvidia,enable-input = <TEGRA_PIN_PULL_NONE>;
++			};
++			/*Flexray pps-in*/
++			lcd_d23_pm7 {
++				nvidia,pins = "lcd_d23_pm7";
++				nvidia,function = "displaya";
++				nvidia,pull = <TEGRA_PIN_PULL_NONE>;
++				nvidia,tristate = <TEGRA_PIN_DISABLE>;
++				nvidia,enable-input = <TEGRA_PIN_PULL_NONE>;
++			};
 +
 +		};
 +	};
@@ -1219,3 +1243,4 @@ index 00000000..dd193b2
 +
 -- 
 2.7.4
+

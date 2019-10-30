@@ -26,8 +26,9 @@ MACHINE_PATCHES = " \
     file://0004-Add-support-for-thermal-throttling.patch \
     file://0005-Add-support-for-flexray-device-driver.patch \
     file://0006-Add-flexray-driver-support.patch \
+    file://0007-Add-pps-generator-gpio.patch \
     file://0008-mmc-read-mmc-alias-from-device-tree.patch \
-    file://0009-Get-asixs-mac-from-uboot-env-area.patch \
+    file://0009-Change-asix-driver-to-version-4.23.patch \
 "
 
 

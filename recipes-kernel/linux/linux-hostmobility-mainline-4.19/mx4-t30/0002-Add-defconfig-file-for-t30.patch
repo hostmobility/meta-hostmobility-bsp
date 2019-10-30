@@ -1,19 +1,19 @@
-From 699edc142151890907826f3619573087ccb00fd6 Mon Sep 17 00:00:00 2001
+From 30f532f75e713e7f8a9a9901a46b69dc1d2b40ee Mon Sep 17 00:00:00 2001
 From: rikardo <rikard.olander@hostmobility.com>
-Date: Wed, 25 Sep 2019 08:59:40 +0200
-Subject: [PATCH] Fix defconfig with module asix and vflexay
+Date: Wed, 30 Oct 2019 09:45:26 +0100
+Subject: [PATCH] Add defconfig file for mx4-t30
 
 ---
- arch/arm/configs/mx4_t30_defconfig | 381 +++++++++++++++++++++++++++++++++++++
- 1 file changed, 381 insertions(+)
+ arch/arm/configs/mx4_t30_defconfig | 382 +++++++++++++++++++++++++++++++++++++
+ 1 file changed, 382 insertions(+)
  create mode 100644 arch/arm/configs/mx4_t30_defconfig
 
 diff --git a/arch/arm/configs/mx4_t30_defconfig b/arch/arm/configs/mx4_t30_defconfig
 new file mode 100644
-index 00000000..6c18bf2
+index 00000000..50fea2a
 --- /dev/null
 +++ b/arch/arm/configs/mx4_t30_defconfig
-@@ -0,0 +1,381 @@
+@@ -0,0 +1,382 @@
 +CONFIG_SYSVIPC=y
 +CONFIG_POSIX_MQUEUE=y
 +CONFIG_NO_HZ=y
@@ -116,7 +116,7 @@ index 00000000..6c18bf2
 +CONFIG_CAN_SJA1000_PLATFORM=y
 +CONFIG_FLEXRAY=y
 +CONFIG_FLEXRAY_RAW=y
-+CONFIG_FLEXRAY_VFLEXRAY=y
++CONFIG_FLEXRAY_VFLEXRAY=m
 +CONFIG_BT=y
 +CONFIG_BT_RFCOMM=y
 +CONFIG_BT_BNEP=y
@@ -217,6 +217,7 @@ index 00000000..6c18bf2
 +CONFIG_SPI=y
 +CONFIG_SPI_TEGRA20_SLINK=y
 +CONFIG_SPI_SPIDEV=y
++CONFIG_PPS_GENERATOR_GPIO=m
 +CONFIG_PINCTRL_AS3722=y
 +CONFIG_PINCTRL_PALMAS=y
 +CONFIG_GPIO_SYSFS=y

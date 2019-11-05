@@ -1,7 +1,7 @@
-From a851e329ec519d9160bb89224608a0ceaf7416c9 Mon Sep 17 00:00:00 2001
+From 04501c591c14772c29a0593f4910d503a9c9d510 Mon Sep 17 00:00:00 2001
 From: rikardo <rikard.olander@hostmobility.com>
-Date: Thu, 24 Oct 2019 11:49:53 +0200
-Subject: [PATCH] Add support for flexray device driver
+Date: Fri, 1 Nov 2019 14:56:23 +0100
+Subject: [PATCH] Test 2 flexray rsk
 
 ---
  Documentation/networking/flexray.txt |   24 +
@@ -19,11 +19,11 @@ Subject: [PATCH] Add support for flexray device driver
  include/net/netns/flexray.h          |   39 +
  net/flexray/Kconfig                  |   30 +
  net/flexray/Makefile                 |    9 +
- net/flexray/af_flexray.c             |  692 ++++++++++
+ net/flexray/af_flexray.c             |  693 ++++++++++
  net/flexray/af_flexray.h             |   54 +
  net/flexray/proc.c                   |  163 +++
  net/flexray/raw.c                    |  676 +++++++++
- 19 files changed, 5485 insertions(+)
+ 19 files changed, 5486 insertions(+)
  create mode 100644 Documentation/networking/flexray.txt
  create mode 100644 drivers/net/flexray/Kconfig
  create mode 100644 drivers/net/flexray/Makefile
@@ -3566,7 +3566,7 @@ index 00000000..0abf22c
 +header-y += flexray.h
 diff --git a/include/linux/flexray/core.h b/include/linux/flexray/core.h
 new file mode 100644
-index 00000000..7787005
+index 00000000..46753f9
 --- /dev/null
 +++ b/include/linux/flexray/core.h
 @@ -0,0 +1,53 @@
@@ -3612,7 +3612,7 @@ index 00000000..7787005
 +extern int  flexray_rx_register(struct net *net, struct net_device *dev, flexray_frame_filter_t frame_id,
 +				flexray_frame_filter_t mask,
 +				void (*func)(struct sk_buff *, void *),
-+				void *data, char *ident);
++				void *data, char *ident,  struct sock *sk);
 +
 +extern void flexray_rx_unregister(struct net *net, struct net_device *dev, flexray_frame_filter_t frame_id,
 +				flexray_frame_filter_t mask,
@@ -4036,10 +4036,10 @@ index 00000000..f5e05b6c
 +flexray-raw-y			:= raw.o
 diff --git a/net/flexray/af_flexray.c b/net/flexray/af_flexray.c
 new file mode 100644
-index 00000000..86109da
+index 00000000..91db4d7
 --- /dev/null
 +++ b/net/flexray/af_flexray.c
-@@ -0,0 +1,692 @@
+@@ -0,0 +1,693 @@
 +/* Copyright 2012 Eberspächer Electronics GmbH & Co. KG. All Rights Reserved */
 +
 +#include <linux/module.h>
@@ -4312,7 +4312,7 @@ index 00000000..86109da
 +int flexray_rx_register(struct net *net, struct net_device *dev, flexray_frame_filter_t frame_id,
 +			flexray_frame_filter_t mask,
 +			void (*func)(struct sk_buff *, void *),
-+			void *data, char *ident)
++			void *data, char *ident, struct sock *sk)
 +{
 +	struct receiver *r;
 +	struct dev_rcv_lists *d;
@@ -4336,6 +4336,7 @@ index 00000000..86109da
 +		r->func		= func;
 +		r->data		= data;
 +		r->ident	= ident;
++		r->sk      = sk;
 +
 +
 +		hlist_add_head_rcu(&r->list, (struct hlist_head *)&d->rx[RX_ALL]);
@@ -4964,7 +4965,7 @@ index 00000000..1d5aea9
 +}
 diff --git a/net/flexray/raw.c b/net/flexray/raw.c
 new file mode 100644
-index 00000000..adcf007
+index 00000000..8d27884
 --- /dev/null
 +++ b/net/flexray/raw.c
 @@ -0,0 +1,676 @@
@@ -5069,10 +5070,10 @@ index 00000000..adcf007
 +	int i;
 +
 +	for (i = 0; i < count; i++) {
-+      //printk(KERN_INFO "raw_enable_filters: flexray_rx_register %d 0x%X 0x%X\n", i,  filter[i].flexray_id, filter[i].flexray_mask);
++      //printk(KERN_INFO "raw_enable_filters: flexray_rx_register %d 0x%llX 0x%llX\n", i,  filter[i].flexray_id, filter[i].flexray_mask);
 +		err = flexray_rx_register(net, dev, filter[i].flexray_id,
 +				      filter[i].flexray_mask,
-+				      raw_rcv, sk, "raw");
++				      raw_rcv, sk, "raw", sk);
 +		if (err) {
 +         //printk(KERN_INFO "raw_enable_filters: failed, remove again\n");
 +			/* clean up successfully registered filters */
@@ -5115,10 +5116,10 @@ index 00000000..adcf007
 +static inline void raw_disable_allfilters(struct net *net, struct net_device *dev,
 +					  struct sock *sk)
 +{
-+	//flexray_rx_unregister(dev, raw_rcv, sk);
-+   struct flexray_raw_sock *ro = raw_sk(sk);
 +
-+   raw_disable_filters(net, dev, sk, ro->filter, ro->count);
++    struct flexray_raw_sock *ro = raw_sk(sk);
++
++    raw_disable_filters(net, dev, sk, ro->filter, ro->count);
 +}
 +
 +

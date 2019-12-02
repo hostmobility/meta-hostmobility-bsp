@@ -1232,7 +1232,7 @@ index 00000000..5d90e2c
 +	if (err == 0)
 +	{
 +		netif_dbg(dev, ifup, dev->net, "MAC address read from Device Tree");
-
++
 +		ret = is_valid_ether_addr((u8*)buf);
 +		if(!ret) {
 +			devwarn(dev, "MAC address read from Device Tree not valid.");

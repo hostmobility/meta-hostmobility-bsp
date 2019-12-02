@@ -1,13 +1,13 @@
-From 72d32a75d186a23b2e864c55624fbda3c215620e Mon Sep 17 00:00:00 2001
+From 50fc9e0da8119d112f8081a7e11999bcf288ecda Mon Sep 17 00:00:00 2001
 From: rikardo <rikard.olander@hostmobility.com>
-Date: Fri, 25 Oct 2019 14:27:45 +0200
-Subject: [PATCH] Update device tree with pps
+Date: Mon, 2 Dec 2019 08:13:16 +0100
+Subject: [PATCH] Add usb alias and default mac addresses
 
 ---
  arch/arm/boot/dts/Makefile             |   3 +-
- arch/arm/boot/dts/tegra30-mx4-t30.dts  | 226 ++++++++
- arch/arm/boot/dts/tegra30-mx4-t30.dtsi | 977 +++++++++++++++++++++++++++++++++
- 3 files changed, 1205 insertions(+), 1 deletion(-)
+ arch/arm/boot/dts/tegra30-mx4-t30.dts  | 260 +++++++++
+ arch/arm/boot/dts/tegra30-mx4-t30.dtsi | 965 +++++++++++++++++++++++++++++++++
+ 3 files changed, 1227 insertions(+), 1 deletion(-)
  create mode 100644 arch/arm/boot/dts/tegra30-mx4-t30.dts
  create mode 100644 arch/arm/boot/dts/tegra30-mx4-t30.dtsi
 
@@ -27,10 +27,10 @@ index b5bd3de..b4966a0 100644
  	tegra114-roth.dtb \
 diff --git a/arch/arm/boot/dts/tegra30-mx4-t30.dts b/arch/arm/boot/dts/tegra30-mx4-t30.dts
 new file mode 100644
-index 00000000..91a8679
+index 00000000..3c5e340
 --- /dev/null
 +++ b/arch/arm/boot/dts/tegra30-mx4-t30.dts
-@@ -0,0 +1,226 @@
+@@ -0,0 +1,260 @@
 +/dts-v1/;
 +
 +#include "tegra30-mx4-t30.dtsi"
@@ -49,6 +49,9 @@ index 00000000..91a8679
 +		mmc1 = "/sdhci@78000200"; /* sd card (sdmmc2)*/
 +		mmc2 = "/sdhci@78000000"; /* wifi (mmc3)*/
 +		mmc3 = "/sdhci@78000400"; /*not used, (sdmmc3 , clk A6 pin 30)*/
++		ethernet0 = "/usb@7d004000/ethernet@1"; /*eth0*/
++		ethernet1 = "/usb@7d008000/hub@1/ethernet@2"; /*eth1*/
++		//ethernet2 = "/usb@7d008000//hub@1/ethernet@3"; /*eth2 using eeprom*/
 +	};
 +	/* console (S0)*/
 +	serial@70006000 {
@@ -197,11 +200,42 @@ index 00000000..91a8679
 +		vbus-supply = <&usbc_vbus_reg>;
 +	};
 +
++	/* EHCI instance 1: USB2_DP/N -> AX88772B (On-module) */
++	usb@7d004000 {
++		status = "okay";
++		#address-cells = <1>;
++		#size-cells = <0>;
++
++		ethernet@1 {
++			reg = <1>;
++			local-mac-address = [00 00 00 00 00 00];
++		};
++	};
++
++	usb-phy@7d004000 {
++		status = "okay";
++		vbus-supply = <&reg_lan_v_bus>;
++	};
++
 +	/* EHCI instance 2: USB3_DP/N -> USBH_P/N */
 +	usb@7d008000 {
 +		status = "okay";
 +		#address-cells = <1>;
 +		#size-cells = <0>;
++		/*USB hub*/
++		hub@1 {
++			reg = <1>;
++			/* eth1 */
++			ethernet@2 {
++				reg = <3>;
++				local-mac-address = [00 00 00 00 00 00];
++			};
++			/* flexray eth2 uses eeprom so zeros needed */
++			ethernet@3 {
++				reg = <4>;
++				local-mac-address = [00 00 00 00 00 00];
++			};
++		};
 +	};
 +
 +	usb-phy@7d008000 {
@@ -260,10 +294,10 @@ index 00000000..91a8679
 \ No newline at end of file
 diff --git a/arch/arm/boot/dts/tegra30-mx4-t30.dtsi b/arch/arm/boot/dts/tegra30-mx4-t30.dtsi
 new file mode 100644
-index 00000000..bae3ac8
+index 00000000..e412833
 --- /dev/null
 +++ b/arch/arm/boot/dts/tegra30-mx4-t30.dtsi
-@@ -0,0 +1,977 @@
+@@ -0,0 +1,965 @@
 +// SPDX-License-Identifier: GPL-2.0
 +#include <dt-bindings/input/input.h>
 +#include <dt-bindings/interrupt-controller/arm-gic.h>
@@ -1057,18 +1091,6 @@ index 00000000..bae3ac8
 +		non-removable;
 +	};
 +
-+	/* EHCI instance 1: USB2_DP/N -> AX88772B (On-module) */
-+	usb@7d004000 {
-+		status = "okay";
-+		#address-cells = <1>;
-+		#size-cells = <0>;
-+	};
-+
-+	usb-phy@7d004000 {
-+		status = "okay";
-+		vbus-supply = <&reg_lan_v_bus>;
-+	};
-+
 +	clocks {
 +		compatible = "simple-bus";
 +		#address-cells = <1>;
@@ -1243,4 +1265,3 @@ index 00000000..bae3ac8
 +
 -- 
 2.7.4
-

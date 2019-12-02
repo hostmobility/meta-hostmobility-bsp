@@ -1,7 +1,7 @@
 From 04501c591c14772c29a0593f4910d503a9c9d510 Mon Sep 17 00:00:00 2001
 From: rikardo <rikard.olander@hostmobility.com>
 Date: Fri, 1 Nov 2019 14:56:23 +0100
-Subject: [PATCH] Test 2 flexray rsk
+Subject: [PATCH] Add support for flexray device driver
 
 ---
  Documentation/networking/flexray.txt |   24 +

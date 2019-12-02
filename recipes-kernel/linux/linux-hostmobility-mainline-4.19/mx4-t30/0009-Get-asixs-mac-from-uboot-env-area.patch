@@ -1,7 +1,8 @@
-From 832df50f45a2a275acb46a42dc886a51b5381cc9 Mon Sep 17 00:00:00 2001
+From 23b36c81d59f9528a7564951f98422500a4e3ba7 Mon Sep 17 00:00:00 2001
 From: rikardo <rikard.olander@hostmobility.com>
-Date: Mon, 2 Dec 2019 10:23:40 +0100
-Subject: [PATCH] change asix driver 4.23 add dtb before eeprom
+Date: Mon, 2 Dec 2019 16:38:52 +0100
+Subject: [PATCH]  Add asix driver version 4.23 with mac addresses from device
+ tree
 
 ---
  drivers/net/usb/Makefile       |    2 -
@@ -37,7 +38,7 @@ index 27307a4..3240d56 100644
  obj-$(CONFIG_USB_NET_DM9601)	+= dm9601.o
 diff --git a/drivers/net/usb/asix.c b/drivers/net/usb/asix.c
 new file mode 100644
-index 00000000..5d90e2c
+index 00000000..2cdf4df
 --- /dev/null
 +++ b/drivers/net/usb/asix.c
 @@ -0,0 +1,4346 @@
@@ -1233,7 +1234,7 @@ index 00000000..5d90e2c
 +	{
 +		netif_dbg(dev, ifup, dev->net, "MAC address read from Device Tree");
 +devwarn(dev,"MAC address read from Device Tree");
-+		ret = is_valid_ether_addr((u8*)buf
++		ret = is_valid_ether_addr((u8*)buf);
 +		if(!ret) {
 +			devwarn(dev, "MAC address read from Device Tree not valid.");
 +		} else {

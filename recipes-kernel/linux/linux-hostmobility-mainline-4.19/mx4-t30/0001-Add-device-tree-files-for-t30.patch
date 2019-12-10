@@ -283,10 +283,10 @@ index 00000000..3c5e340
 +	};
 +
 +	pps-gen {
-+		compatible = "pps-generator-gpios";
-+
-+		echo-gpios = <&gpio TEGRA_GPIO(M, 7) GPIO_ACTIVE_HIGH>;
-+		echo-active-ms = <5000>;
++		compatible = "pps-gen-gpio";
++       pps-gen-gpio = <&gpio TEGRA_GPIO(M, 7) GPIO_ACTIVE_HIGH>;
++		// remove line echo-gpios = <&gpio TEGRA_GPIO(M, 7) GPIO_ACTIVE_HIGH>;
++		default-state = "on";
 +		assert-falling-edge;
 +		status = "okay";
 +	};
@@ -794,7 +794,7 @@ index 00000000..e412833
 +				nvidia,function = "i2s1";
 +				nvidia,pull = <TEGRA_PIN_PULL_NONE>;
 +				nvidia,tristate = <TEGRA_PIN_DISABLE>;
-+				nvidia,enable-input = <TEGRA_PIN_PULL_NONE>;
++				nvidia,enable-input = <TEGRA_PIN_DISABLE>;
 +			};
 +			/*Flexray pps-in*/
 +			lcd_d23_pm7 {
@@ -802,7 +802,7 @@ index 00000000..e412833
 +				nvidia,function = "displaya";
 +				nvidia,pull = <TEGRA_PIN_PULL_NONE>;
 +				nvidia,tristate = <TEGRA_PIN_DISABLE>;
-+				nvidia,enable-input = <TEGRA_PIN_PULL_NONE>;
++				nvidia,enable-input = <TEGRA_PIN_DISABLE>;
 +			};
 +
 +		};
@@ -1031,7 +1031,7 @@ index 00000000..e412833
 +		temp_sensor: temp-sensor@4c {
 +			compatible = "national,lm95245";
 +			reg = <0x4c>;
-+           #thermal-sensor-cells = <1>;
++           #thermal-sensor-cells = <0>;
 +		};
 +
 +		/* SW: +V1.2_VDD_CORE */
@@ -1164,7 +1164,7 @@ index 00000000..e412833
 +		cpu_thermal: cpu-thermal {
 +				polling-delay = <1000>;
 +				polling-delay-passive = <1000>;
-+				thermal-sensors = <&temp_sensor 1>;/*ID 1 =remote lm95245*/
++				thermal-sensors = <&temp_sensor 0>;/*ID 1 =remote lm95245*/
 +               status = "okay";
 +			trips {
 +				cpu_alert: cpu-alert {

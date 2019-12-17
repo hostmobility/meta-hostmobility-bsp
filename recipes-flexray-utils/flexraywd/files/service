@@ -1,6 +1,7 @@
 [Unit]
 Description=Watchdog for flexray MCU
-After=multi-user.target
+After=ifplugd2.service
+Wants=ifplugd2.service
  
 [Service]
 Type=simple

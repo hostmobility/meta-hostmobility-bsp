@@ -1,7 +1,8 @@
 [Unit]
 Description=FlexRay Timesync Daemon
-After=multi-user.target
- 
+After=flexraywd.service
+Wants=ifplugd2.service
+
 [Service]
 Type=simple
 Restart=always

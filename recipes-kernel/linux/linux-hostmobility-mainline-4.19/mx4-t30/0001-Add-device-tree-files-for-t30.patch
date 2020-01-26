@@ -1,13 +1,13 @@
-From 50fc9e0da8119d112f8081a7e11999bcf288ecda Mon Sep 17 00:00:00 2001
+From 36072312d38987f68177bf5e49ccf3b5f695a9b2 Mon Sep 17 00:00:00 2001
 From: rikardo <rikard.olander@hostmobility.com>
-Date: Mon, 2 Dec 2019 08:13:16 +0100
-Subject: [PATCH] Add usb alias and default mac addresses
+Date: Fri, 24 Jan 2020 08:54:49 +0100
+Subject: [PATCH] Add thermal regulation in three steps
 
 ---
  arch/arm/boot/dts/Makefile             |   3 +-
  arch/arm/boot/dts/tegra30-mx4-t30.dts  | 260 +++++++++
- arch/arm/boot/dts/tegra30-mx4-t30.dtsi | 965 +++++++++++++++++++++++++++++++++
- 3 files changed, 1227 insertions(+), 1 deletion(-)
+ arch/arm/boot/dts/tegra30-mx4-t30.dtsi | 987 +++++++++++++++++++++++++++++++++
+ 3 files changed, 1249 insertions(+), 1 deletion(-)
  create mode 100644 arch/arm/boot/dts/tegra30-mx4-t30.dts
  create mode 100644 arch/arm/boot/dts/tegra30-mx4-t30.dtsi
 
@@ -27,7 +27,7 @@ index b5bd3de..b4966a0 100644
  	tegra114-roth.dtb \
 diff --git a/arch/arm/boot/dts/tegra30-mx4-t30.dts b/arch/arm/boot/dts/tegra30-mx4-t30.dts
 new file mode 100644
-index 00000000..3c5e340
+index 00000000..227dc7b
 --- /dev/null
 +++ b/arch/arm/boot/dts/tegra30-mx4-t30.dts
 @@ -0,0 +1,260 @@
@@ -294,10 +294,10 @@ index 00000000..3c5e340
 \ No newline at end of file
 diff --git a/arch/arm/boot/dts/tegra30-mx4-t30.dtsi b/arch/arm/boot/dts/tegra30-mx4-t30.dtsi
 new file mode 100644
-index 00000000..e412833
+index 00000000..bfa124d
 --- /dev/null
 +++ b/arch/arm/boot/dts/tegra30-mx4-t30.dtsi
-@@ -0,0 +1,965 @@
+@@ -0,0 +1,987 @@
 +// SPDX-License-Identifier: GPL-2.0
 +#include <dt-bindings/input/input.h>
 +#include <dt-bindings/interrupt-controller/arm-gic.h>
@@ -1029,9 +1029,9 @@ index 00000000..e412833
 +		 * LM95245 temperature sensor
 +		 * Note: OVERT_N directly connected to PMIC PWRDN */
 +		temp_sensor: temp-sensor@4c {
-+			compatible = "national,lm95245";
++			compatible = "national,lm90"; /* lm90 for thermal trottling lm95245 needs to be updated or integrated to lm90.*/
 +			reg = <0x4c>;
-+           #thermal-sensor-cells = <0>;
++           #thermal-sensor-cells = <1>;
 +		};
 +
 +		/* SW: +V1.2_VDD_CORE */
@@ -1160,15 +1160,29 @@ index 00000000..e412833
 +		};
 +	};
 +
++	/*hysteresis does not seem to work as it should so instead of ramping down to lowest frequency let it ramp 2 or 3 steps 
++		and if it does not work and it goes warmer than ramp it down some more (85C,90C,95C)
++		if it reach 110 degrees the sensor will shutdown the pmic.
++		Monitoring the environmet temp might be a good idea but not implementet. */
 +	thermal-zones {
 +		cpu_thermal: cpu-thermal {
 +				polling-delay = <1000>;
-+				polling-delay-passive = <1000>;
-+				thermal-sensors = <&temp_sensor 0>;/*ID 1 =remote lm95245*/
++				polling-delay-passive = <2000>;
++				thermal-sensors = <&temp_sensor 1>;/*ID 1 =remote lm95245*/
 +               status = "okay";
 +			trips {
-+				cpu_alert: cpu-alert {
-+					temperature = <50000>;
++				cpu_alert0: cpu-alert0 {
++					temperature = <85000>;
++					hysteresis = <2000>;
++					type = "passive";
++				};
++				cpu_alert1: cpu-alert1 {
++					temperature = <90000>;
++					hysteresis = <2000>;
++					type = "passive";
++				};
++				cpu_alert2: cpu-alert2 {
++					temperature = <95000>;
 +					hysteresis = <2000>;
 +					type = "passive";
 +				};
@@ -1176,8 +1190,16 @@ index 00000000..e412833
 +
 +			cooling-maps {
 +				map0 {
-+					trip = <&cpu_alert>;
-+					cooling-device = <&cpu0 0 6>;
++					trip = <&cpu_alert0>;
++					cooling-device = <&cpu0 THERMAL_NO_LIMIT 3>;
++				};
++				map1 {
++					trip = <&cpu_alert1>;
++					cooling-device = <&cpu0 3 4>;
++				};
++				map2 {
++					trip = <&cpu_alert2>;
++					cooling-device = <&cpu0 4 6>;
 +				};
 +			};
 +

@@ -80,6 +80,9 @@ FILES_${PN}-scripts = "\
     /opt/hm/unload_module.sh \
     /opt/hm/version_script.sh \
     /opt/hm/frmcu_update.sh \
+    /opt/hm/calibrate_analog.sh \
+    /opt/hm/firmware_update_next_boot.sh \
+    /opt/hm/wake_up_cause.sh \
 "
 
 FILES_${PN}-scripts_mx4-mil += "\

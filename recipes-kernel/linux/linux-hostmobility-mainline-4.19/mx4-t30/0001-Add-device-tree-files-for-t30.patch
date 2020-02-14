@@ -1,13 +1,13 @@
-From 36072312d38987f68177bf5e49ccf3b5f695a9b2 Mon Sep 17 00:00:00 2001
+From df487e283b7975ed5b14873d25c05afc3c31311e Mon Sep 17 00:00:00 2001
 From: rikardo <rikard.olander@hostmobility.com>
-Date: Fri, 24 Jan 2020 08:54:49 +0100
-Subject: [PATCH] Add thermal regulation in three steps
+Date: Thu, 13 Feb 2020 18:47:57 +0100
+Subject: [PATCH 1/1] Add flexray gpio  and default inactivate pps device tree
 
 ---
- arch/arm/boot/dts/Makefile             |   3 +-
- arch/arm/boot/dts/tegra30-mx4-t30.dts  | 260 +++++++++
- arch/arm/boot/dts/tegra30-mx4-t30.dtsi | 987 +++++++++++++++++++++++++++++++++
- 3 files changed, 1249 insertions(+), 1 deletion(-)
+ arch/arm/boot/dts/Makefile             |    3 +-
+ arch/arm/boot/dts/tegra30-mx4-t30.dts  |  260 ++++++++
+ arch/arm/boot/dts/tegra30-mx4-t30.dtsi | 1012 ++++++++++++++++++++++++++++++++
+ 3 files changed, 1274 insertions(+), 1 deletion(-)
  create mode 100644 arch/arm/boot/dts/tegra30-mx4-t30.dts
  create mode 100644 arch/arm/boot/dts/tegra30-mx4-t30.dtsi
 
@@ -27,7 +27,7 @@ index b5bd3de..b4966a0 100644
  	tegra114-roth.dtb \
 diff --git a/arch/arm/boot/dts/tegra30-mx4-t30.dts b/arch/arm/boot/dts/tegra30-mx4-t30.dts
 new file mode 100644
-index 00000000..227dc7b
+index 00000000..32912f1
 --- /dev/null
 +++ b/arch/arm/boot/dts/tegra30-mx4-t30.dts
 @@ -0,0 +1,260 @@
@@ -175,7 +175,7 @@ index 00000000..227dc7b
 +		
 +		no-1-8-v;
 +		non-removable;	
-+		keep-power-in-suspend;
++		//keep-power-in-suspend; //we remove the source voltage so this should not work.
 +		cap-power-off-card;
 +		max-frequency = <50000000>;
 +		#address-cells = <1>;
@@ -288,16 +288,16 @@ index 00000000..227dc7b
 +		// remove line echo-gpios = <&gpio TEGRA_GPIO(M, 7) GPIO_ACTIVE_HIGH>;
 +		default-state = "on";
 +		assert-falling-edge;
-+		status = "okay";
++		status = "disabled";
 +	};
 +};
 \ No newline at end of file
 diff --git a/arch/arm/boot/dts/tegra30-mx4-t30.dtsi b/arch/arm/boot/dts/tegra30-mx4-t30.dtsi
 new file mode 100644
-index 00000000..bfa124d
+index 00000000..97be156
 --- /dev/null
 +++ b/arch/arm/boot/dts/tegra30-mx4-t30.dtsi
-@@ -0,0 +1,987 @@
+@@ -0,0 +1,1012 @@
 +// SPDX-License-Identifier: GPL-2.0
 +#include <dt-bindings/input/input.h>
 +#include <dt-bindings/interrupt-controller/arm-gic.h>
@@ -314,6 +314,7 @@ index 00000000..bfa124d
 +	memory {
 +		reg = <0x80000000 0x40000000>;
 +	};
++
 +
 +	pinmux@70000868 {
 +		pinctrl-names = "default";
@@ -1208,7 +1209,7 @@ index 00000000..bfa124d
 +};
 +
 +&gpio {
-+	gpio-line-names = "lan-reset-n", "canxcvr-frm", "canxcvr-cs0", "canxcvr-cs1", "canxcvr-cs2", "pic-irq", "spi2-default", "spi2-default1", "spi2-default2";
++	
 +	/* (in-module) */
 +	lan-reset-n {
 +		gpio-hog;
@@ -1242,9 +1243,6 @@ index 00000000..bfa124d
 +		line-name = "CAN_XCVR_CS2";
 +	};
 +
-+	/*TODO ADD flexray wake up etc pin*/
-+	/*TODO wakeup eth2 and fr eth GPIO_ACTIVE_LOW*/
-+
 +	/*Default value for the spi2 bus for canxcvr*/
 +	spi2-default {
 +		gpio-hog;
@@ -1268,18 +1266,45 @@ index 00000000..bfa124d
 +	};
 +
 +	/*shared the same sodim pin with FR_MCU_IN*/
-+	FR_MCU_IN_DEFAULT {
++	fr-mcu-in-default {
 +		gpio-hog;
 +		gpios = <TEGRA_GPIO(A, 5) GPIO_ACTIVE_HIGH>;
 +		input;
 +		line-name = "FR_MCU_IN_DEFAULT";
 +	};
 +	/*USB hub reset*/
-+	USB_HUB_RESET {
++	usb-hub-reset {
 +		gpio-hog;
 +		gpios = <TEGRA_GPIO(C, 0) GPIO_ACTIVE_HIGH>;
 +		output-high;
 +		line-name = "USB_HUB_RESET";
++	};
++	/* # gpio-56  - ETH2-WAKE (linux eth1). Signal high if remote wake up should be enable (disable for now).*/
++	eth2-wake {
++		gpio-hog;
++		gpios = <TEGRA_GPIO(H, 0) GPIO_ACTIVE_HIGH>;
++		output-low;
++		line-name = "ETH2_WAKE";
++	};
++	/* Flexray*/
++	/* # gpio-62  - FR-ETH-WAKE(linux eth2).Signal high if remote wake up should be enable (disable for now).*/
++	fr-eth-wake {
++		gpio-hog;
++		gpios = <TEGRA_GPIO(H, 6) GPIO_ACTIVE_HIGH>;
++		output-low;
++		line-name = "FR_ETH_WAKE";
++	};
++	/* # gpio-63  - nFR-RST */
++	nfr-rst {
++		gpios = <TEGRA_GPIO(H, 7) GPIO_ACTIVE_HIGH>;
++		output-high;
++		line-name = "nFR_RST";
++	};
++	/* # gpio-102 - FR-MCU-IN (force-update PIN=disabled=0)*/
++	fr-mcu-in {
++		gpios = <TEGRA_GPIO(M, 6) GPIO_ACTIVE_HIGH>;
++		output-high;
++		line-name = "FR_MCU_IN";
 +	};
 +
 +};

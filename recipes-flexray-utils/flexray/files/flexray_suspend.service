@@ -1,0 +1,11 @@
+[Unit]
+Description=FlexRay suspend chip
+Before=sleep.target
+ 
+[Service]
+Type=simple
+ExecStart=/usr/bin/flexray_suspend.sh
+ 
+[Install]
+Alias=flexray_suspend.service
+WantedBy=sleep.target

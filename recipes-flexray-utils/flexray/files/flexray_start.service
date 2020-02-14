@@ -1,0 +1,12 @@
+[Unit]
+Description=FlexRay resume eth2 interface.
+Requires=network.target
+After=suspend.target
+ 
+[Service]
+Type=simple
+ExecStart=/usr/bin/flexray_start.sh
+ 
+[Install]
+Alias=flexray_start.service
+WantedBy=suspend.target

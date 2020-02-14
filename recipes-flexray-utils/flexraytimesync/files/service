@@ -1,7 +1,8 @@
 [Unit]
 Description=FlexRay Timesync Daemon
 After=flexraywd.service
-Wants=ifplugd2.service
+Wants=flexraywd.service
+PartOf=flexraywd.service
 
 [Service]
 Type=simple

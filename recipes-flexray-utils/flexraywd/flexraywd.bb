@@ -8,6 +8,8 @@ BRANCH = "${BRANCH_flexraywd}"
 SRC_URI = " \
 	git://git@github.com/hostmobility/mx-flexray-utils.git;protocol=ssh;branch=${BRANCH} \
 	file://service \
+	file://flexray_boot.sh \
+	file://flexray_shutdown.sh \
 "
 
 S = "${WORKDIR}/git/flexraywd"
@@ -18,6 +20,7 @@ DEPENDS = "virtual/kernel"
 
 SYSTEMD_PACKAGES = "${PN}"
 SYSTEMD_SERVICE_${PN} = "flexraywd.service"
+RDEPENDS_${PN} = "bash"
 
 do_configure_prepend () {
     install -d 0755 ${S}/src/linux
@@ -30,4 +33,8 @@ do_install_append() {
 
         install -d ${D}${bindir}
         install -m 0755 ${S}/flexraywd ${D}${bindir}/flexraywd
+        install -m 0755 ${WORKDIR}/flexray_boot.sh ${D}${bindir}/flexray_boot.sh
+        install -m 0755 ${WORKDIR}/flexray_shutdown.sh ${D}${bindir}/flexray_shutdown.sh
+        # make a dummy file for first time boot the lazy way.
+        install -m 0755 ${WORKDIR}/flexray_shutdown.sh ${D}${bindir}/first_boot_after_update_flexray.txt
 }

@@ -9,7 +9,7 @@ RPROVIDES_${PN}-dev = "virtual/kernel-module-mcc-pic"
 
 inherit module
 
-SRCREV = "17ee00cd8a0a38f84e9cc543472e3f98f126f619"
+SRCREV = "417993a8c897058f9c4e4bc396799ddff0564185"
 SRC_URI = "git://github.com/hostmobility/mx4-kmod-pic.git;protocol=https;branch=master"
 
 SRC_URI[md5sum] = "849dfdc34e08c7c82a5e8b452a95f1b3"

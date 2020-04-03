@@ -18,4 +18,5 @@ RDEPENDS_${PN} += "\
     flexraywd \
     minicom \
     fr-mcu \
+    flexray-firmware \
 "

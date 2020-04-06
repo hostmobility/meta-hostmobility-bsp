@@ -1,12 +1,10 @@
-SUMMARY = "FlexRay Twatchdog"
+SUMMARY = "FlexRay Watchdog"
 SECTION = "net"
 LICENSE = "CLOSED"
-PV = "0.0+gitr${SRCPV}"
-SRCREV = "${AUTOREV}"
-BRANCH_flexraywd ?= "mainline_4.19"
-BRANCH = "${BRANCH_flexraywd}"
-SRC_URI = " \
-	git://git@github.com/hostmobility/mx-flexray-utils.git;protocol=ssh;branch=${BRANCH} \
+
+require recipes-flexray-utils/common/revision.inc
+
+SRC_URI += " \
 	file://service \
 	file://flexray_boot.sh \
 	file://flexray_shutdown.sh \

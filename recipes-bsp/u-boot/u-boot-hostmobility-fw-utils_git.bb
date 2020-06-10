@@ -10,7 +10,7 @@ DEFAULT_PREFERENCE_vf60 = "1"
 DEFAULT_PREFERENCE_tegra2 = "1"
 FILESPATHPKG =. "git:"
 
-SRCREV = "68d62aa5688ca944cbcdde163ca5c54b9379dce6"
+SRCREV = "179ccf1c2f26f031c7cbe863b6fe3824af51e73c"
 SRCBRANCH = "2015.04-hm"
 SRC_URI = " \
     git://github.com/hostmobility/u-boot-toradex.git;protocol=https;branch=${SRCBRANCH} \

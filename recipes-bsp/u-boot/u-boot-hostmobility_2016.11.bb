@@ -6,7 +6,7 @@ SRCREV = "308d070967c0090328c61240ca9a6c20eb8c9953"
 SRCBRANCH = "2016.11-hm"
 PV = "v${SRCBRANCH}+git${SRCPV}"
 
-DEFAULT_PREFERENCE = "1"
+DEFAULT_PREFERENCE_tegra3 = "1"
 
 # require u-boot-dtb-tegra.bin to be used
 UBOOT_IMAGE_tegra = "u-boot-dtb-tegra-${MACHINE}-${PV}-${PR}.${UBOOT_SUFFIX}"

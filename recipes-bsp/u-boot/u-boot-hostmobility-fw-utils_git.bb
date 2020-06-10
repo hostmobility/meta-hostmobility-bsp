@@ -6,6 +6,8 @@ PROVIDES = "u-boot-fw-utils"
 RPROVIDES_${PN} = "u-boot-fw-utils"
 DEPENDS = "mtd-utils"
 
+DEFAULT_PREFERENCE_vf60 = "1"
+DEFAULT_PREFERENCE_tegra2 = "1"
 FILESPATHPKG =. "git:"
 
 SRCREV = "68d62aa5688ca944cbcdde163ca5c54b9379dce6"

@@ -11,9 +11,9 @@ KERNEL_IMAGETYPE = "zImage"
 # We store kernel on seperate MTD partition so no need to deploy to rootfs.
 RDEPENDS_kernel-base = ""
 
-PREFERRED_PROVIDER_u-boot ?= "u-boot-hostmobility_2015.04"
-PREFERRED_PROVIDER_virtual/bootloader ?= "u-boot-hostmobility_2015.04"
-PREFERRED_PROVIDER_u-boot-fw-utils ?= "u-boot-hostmobility-fw-utils_2015.04"
+PREFERRED_PROVIDER_u-boot ?= "u-boot-hostmobility"
+PREFERRED_PROVIDER_virtual/bootloader ?= "u-boot-hostmobility"
+PREFERRED_PROVIDER_u-boot-fw-utils ?= "u-boot-hostmobility-fw-utils"
 
 # U-Boot NAND binary includes 0x400 padding required for NAND boot
 UBOOT_BINARY ?= "u-boot-nand.imx"

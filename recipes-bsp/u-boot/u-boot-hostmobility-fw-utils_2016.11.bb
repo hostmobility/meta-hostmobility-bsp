@@ -8,6 +8,7 @@ DEPENDS = "mtd-utils"
 
 include conf/tdx_version.conf
 
+DEFAULT_PREFERENCE_vf60 = "1"
 DEFAULT_PREFERENCE_tegra3 = "1"
 
 FILESPATHPKG =. "git:"

@@ -18,15 +18,21 @@ SRC_URI = "\
     file://0002-include-linux-module.h-copy-__init-__exit-attrs-to-i.patch \
     file://0001-perf-Make-perf-able-to-build-with-latest-libbfd.patch \
 "
+
 SRCBRANCH = "imx_4.19.35_1.0.0_mx5_bringup"
 SRCREV = "f407442a8eaf7617f85bd2de47b8da47fb6d7b1d"
 
 PV = "${LINUX_VERSION}+git${SRCPV}"
 
 KCONFIG_MODE="--alldefconfig"
+do_configure_prepend () {
+    cd ${S}
+    export KBUILD_OUTPUT=${B}
+    oe_runmake ${KERNEL_DEFCONFIG}
+}
 
 COMPATIBLE_MACHINE = "mx5-pt"
-KBUILD_DEFCONFIG_mx5-pt ?= "mx5_imx6qp_defconfig"
+KBUILD_DEFCONFIG ?= "${KERNEL_DEFCONFIG}"
 
 do_configure_append() {
     # Disable the built-in driver, this means that kernel-module-imx-gpu-viv

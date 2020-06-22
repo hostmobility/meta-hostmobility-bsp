@@ -13,8 +13,9 @@ KERNEL_IMAGETYPE = "zImage"
 # We store kernel on seperate MTD partition so no need to deploy to rootfs.
 RDEPENDS_kernel-base = ""
 
-PREFERRED_PROVIDER_u-boot = "u-boot-mobilityx"
-PREFERRED_PROVIDER_virtual/bootloader = "u-boot-mobilityx"
+PREFERRED_PROVIDER_u-boot = "u-boot-hostmobility"
+PREFERRED_PROVIDER_virtual/bootloader = "u-boot-hostmobility"
+PREFERRED_PROVIDER_u-boot-fw-utils ?= "libubootenv"
 
 UBOOT_BINARY ?= "u-boot-dtb.imx"
 UBOOT_MAKE_TARGET = "u-boot-dtb.imx"
@@ -33,8 +34,11 @@ MACHINE_EXTRA_RDEPENDS_append = " \
     kernel-modules \
     usb-rndis-systemd \
     usb-suspend-resume \
+    e2fsprogs-resize2fs \
+    fs-init \
 "
 
 # TODO add packagegroup-hostmobility-commercial or mx5 commercial tools.
 # ${@bb.utils.contains('LICENSE_FLAGS_WHITELIST', 'closed', \
 #                          'packagegroup-hostmobility-commercial', '', d)} \
+# fix u-boot-fw-utils \ using libubootenv if we need fw_setenv?

@@ -3,12 +3,16 @@
 # Copyright 2017-2019 NXP
 # Copyright 2020 Host Mobility AB
 
+inherit fsl-u-boot-localversion
+
+DEFAULT_PREFERENCE_mx6 = "1"
+
 DESCRIPTION = "i.MX U-Boot suppporting Host Mobility MX-5 boards"
 require recipes-bsp/u-boot/u-boot.inc
 
 DEPENDS += "flex-native bison-native bc-native"
 
-PROVIDES += "u-boot"
+FILESEXTRAPATHS_prepend := "${THISDIR}/u-boot-mobilityx-2019.04:"
 
 LICENSE = "GPLv2+"
 LIC_FILES_CHKSUM = "file://Licenses/gpl-2.0.txt;md5=b234ee4d69f5fce4486a80fdaf4a4263"
@@ -22,9 +26,5 @@ SRC_URI = "\
 SRCREV = "360acfe1932b2bfd8f51e3c95f8bf6b908d1dc32"
 
 S = "${WORKDIR}/git"
-B = "${WORKDIR}/build"
 
-LOCALVERSION ?= "u-boot-mx-${SRCBRANCH}"
-
-PACKAGE_ARCH = "${MACHINE_ARCH}"
-COMPATIBLE_MACHINE = "(mx5-pt)"
+PV = "v2019.07+git${SRCPV}"

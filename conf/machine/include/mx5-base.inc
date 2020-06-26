@@ -35,7 +35,8 @@ MACHINE_EXTRA_RDEPENDS_append = " \
     usb-rndis-systemd \
     usb-suspend-resume \
     e2fsprogs-resize2fs \
-    fs-init \
+    ${@bb.utils.contains('LICENSE_FLAGS_WHITELIST', 'closed', \
+        'packagegroup-hostmobility-commercial-mx5', '', d)} \
 "
 
 # TODO add packagegroup-hostmobility-commercial or mx5 commercial tools.

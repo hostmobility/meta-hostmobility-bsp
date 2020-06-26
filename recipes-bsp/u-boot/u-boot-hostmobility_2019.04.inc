@@ -18,12 +18,12 @@ LICENSE = "GPLv2+"
 LIC_FILES_CHKSUM = "file://Licenses/gpl-2.0.txt;md5=b234ee4d69f5fce4486a80fdaf4a4263"
 
 UBOOT_SRC = "git://git@gitlab.com/hostmobility/u-boot-mx5;protocol=ssh"
-SRCBRANCH = "fix-regulators"
+SRCBRANCH = "imx_4.19.35_1.0.0_mx5_bringup_prototype2"
 SRC_URI = "\
     ${UBOOT_SRC};branch=${SRCBRANCH} \
     file://0001-Add-target-to-generate-initial-environment.patch \
 "
-SRCREV = "360acfe1932b2bfd8f51e3c95f8bf6b908d1dc32"
+SRCREV = "ba150baf1e4a8d948ed145fce8850e115c8deb26"
 
 S = "${WORKDIR}/git"
 

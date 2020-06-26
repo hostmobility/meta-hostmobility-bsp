@@ -19,8 +19,8 @@ SRC_URI = "\
     file://0001-perf-Make-perf-able-to-build-with-latest-libbfd.patch \
 "
 
-SRCBRANCH = "imx_4.19.35_1.0.0_mx5_bringup"
-SRCREV = "f407442a8eaf7617f85bd2de47b8da47fb6d7b1d"
+SRCBRANCH = "imx_4.19.35_1.0.0_mx5_bringup_prototype2"
+SRCREV = "695d7efc22559bba71b39d65e0218b9bb0c9b984"
 
 PV = "${LINUX_VERSION}+git${SRCPV}"
 

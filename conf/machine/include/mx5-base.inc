@@ -39,7 +39,5 @@ MACHINE_EXTRA_RDEPENDS_append = " \
         'packagegroup-hostmobility-commercial-mx5', '', d)} \
 "
 
-# TODO add packagegroup-hostmobility-commercial or mx5 commercial tools.
-# ${@bb.utils.contains('LICENSE_FLAGS_WHITELIST', 'closed', \
-#                          'packagegroup-hostmobility-commercial', '', d)} \
+KERNEL_MODULE_AUTOLOAD += "cryptodev-module"
 # fix u-boot-fw-utils \ using libubootenv if we need fw_setenv?

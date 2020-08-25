@@ -16,6 +16,7 @@ SRC_URI = "\
     git://git@gitlab.com/hostmobility/linux-mx5;name=linuxkernel;branch=${LINUXBRANCH};protocol=ssh;nocheckout=1 \
     git://git@gitlab.com/hostmobility/gpio-overlay;name=gpiooverlay;protocol=ssh;destsuffix=git/extra-drivers/gpio-overlay \
     git://git@gitlab.com/hostmobility/l9826-gpio-driver;name=l9826;protocol=ssh;destsuffix=git/extra-drivers/l9826-gpio-driver \
+    git://git@gitlab.com/hostmobility/modem_controller;name=modemcontroller;protocol=ssh;destsuffix=git/extra-drivers/modem_controller \
     file://0001-Compiler-Attributes-add-support-for-__copy-gcc-9.patch \
     file://0002-include-linux-module.h-copy-__init-__exit-attrs-to-i.patch \
     file://0001-perf-Make-perf-able-to-build-with-latest-libbfd.patch \
@@ -25,6 +26,7 @@ LINUXBRANCH = "imx_4.19.35_1.0.0_mx5_bringup_prototype2"
 SRCREV_linuxkernel = "3c825662e7dc2381d6b604429faec86886872ae2"
 SRCREV_gpiooverlay = "${AUTOREV}" 
 SRCREV_l9826 = "${AUTOREV}"
+SRCREV_modemcontroller = "${AUTOREV}"
 
 PV = "${LINUX_VERSION}+git${SRCPV}"
 
@@ -52,13 +54,16 @@ do_patch_append() {
     # Remove our drivers from gpio Makefile
     sed -i -e "/gpio-overlay/d" '${S}/drivers/gpio/Makefile'
     sed -i -e "/gpio-l9826/d" '${S}/drivers/gpio/Makefile'
+    sed -i -e "/modem_controller/d" '${S}/drivers/gpio/Makefile'
 
     # Create links into kernel tree 
     ln -s ${S}/extra-drivers/gpio-overlay/gpio-overlay.c ${S}/drivers/gpio
     ln -s ${S}/extra-drivers/l9826-gpio-driver/gpio-l9826.c ${S}/drivers/gpio
+    ln -s ${S}/extra-drivers/modem_controller/modem_controller.c ${S}/drivers/gpio
 
     # Add our drivers to Makefile to build them
     # obj-m builds as module, obj-y includes in kernel image
     echo "obj-y += gpio-l9826.o" >> '${S}/drivers/gpio/Makefile'
     echo "obj-y += gpio-overlay.o" >> '${S}/drivers/gpio/Makefile'
+    echo "obj-y += modem_controller.o" >> '${S}/drivers/gpio/Makefile'
 }

@@ -23,7 +23,7 @@ SRC_URI = "\
 "
 
 LINUXBRANCH = "imx_4.19.35_1.0.0_mx5_bringup_prototype2"
-SRCREV_linuxkernel = "3c825662e7dc2381d6b604429faec86886872ae2"
+SRCREV_linuxkernel = "${AUTOREV}"
 SRCREV_gpiooverlay = "${AUTOREV}" 
 SRCREV_l9826 = "${AUTOREV}"
 SRCREV_modemcontroller = "${AUTOREV}"

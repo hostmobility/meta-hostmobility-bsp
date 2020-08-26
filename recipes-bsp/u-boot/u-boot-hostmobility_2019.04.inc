@@ -23,7 +23,7 @@ SRC_URI = "\
     ${UBOOT_SRC};branch=${SRCBRANCH} \
     file://0001-Add-target-to-generate-initial-environment.patch \
 "
-SRCREV = "56cb1bfc7992e7b0323bd1e5892cc6f42147f409"
+SRCREV = "${AUTOREV}"
 
 S = "${WORKDIR}/git"
 

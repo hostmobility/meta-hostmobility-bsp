@@ -32,9 +32,8 @@ SERIAL_CONSOLE ?= "115200 ttyLP0"
 
 MACHINE_EXTRA_RDEPENDS_append = " \
     kernel-modules \
-    usb-rndis-systemd \
-    usb-suspend-resume \
     e2fsprogs-resize2fs \
+    alsa-utils \
     ${@bb.utils.contains('LICENSE_FLAGS_WHITELIST', 'closed', \
         'packagegroup-hostmobility-commercial-mx5', '', d)} \
 "

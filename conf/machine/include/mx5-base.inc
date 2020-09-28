@@ -45,5 +45,4 @@ KERNEL_MODULE_AUTOLOAD += "cryptodev-module"
 BBMASK +=  "recipes-angstrom/angstrom/angstrom-feed-configs.bbappend"
 BBMASK +=  "recipes-core/fs-init/fs-init.bbappend"
 BBMASK +=  "recipes-core/usb-rndis-systemd/usb-rndis-systemd.bbappend"
-
-
+BBMASK += "recipes-connectivity/iproute2/iproute2_3.15.0.bb"

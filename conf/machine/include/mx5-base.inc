@@ -40,3 +40,10 @@ MACHINE_EXTRA_RDEPENDS_append = " \
 
 KERNEL_MODULE_AUTOLOAD += "cryptodev-module"
 # fix u-boot-fw-utils \ using libubootenv if we need fw_setenv?
+
+
+BBMASK +=  "recipes-angstrom/angstrom/angstrom-feed-configs.bbappend"
+BBMASK +=  "recipes-core/fs-init/fs-init.bbappend"
+BBMASK +=  "recipes-core/usb-rndis-systemd/usb-rndis-systemd.bbappend"
+
+

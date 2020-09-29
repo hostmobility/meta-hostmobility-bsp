@@ -17,8 +17,8 @@ PREFERRED_PROVIDER_u-boot = "u-boot-hostmobility"
 PREFERRED_PROVIDER_virtual/bootloader = "u-boot-hostmobility"
 PREFERRED_PROVIDER_u-boot-fw-utils ?= "libubootenv"
 
-UBOOT_BINARY ?= "u-boot-dtb.imx"
-UBOOT_MAKE_TARGET = "u-boot-dtb.imx"
+UBOOT_BINARY = "u-boot-dtb.imx"
+UBOOT_MAKE_TARGET = "all"
 
 IMAGE_FSTYPES = "wic.gz tar.xz"
 # wic support

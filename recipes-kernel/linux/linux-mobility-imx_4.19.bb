@@ -10,7 +10,7 @@ LIC_FILES_CHKSUM = "file://COPYING;md5=bbea815ee2795b2f4230826c0c6b8814"
 DEPENDS += "lzop-native bc-native"
 
 LINUX_VERSION ?= "4.19.35"
-LINUX_VERSION_EXTENSION_append = "-mobilityx"
+LINUX_VERSION_EXTENSION_append = "-imx"
 
 SRC_URI = "\
     git://git@gitlab.com/hostmobility/linux-mx5;name=linuxkernel;branch=${LINUXBRANCH};protocol=ssh;nocheckout=1 \

@@ -1,7 +1,6 @@
 SUMMARY = "mx5-platform-version"
 DESCRIPTION = "save build versions as a part of MX-5 Board Support Package"
 LICENSE = "CLOSED"
-LICENSE_FLAGS = "closed"
 
 S = "${WORKDIR}"
 

@@ -7,8 +7,8 @@ IMX_DEFAULT_BSP = "nxp"
 require conf/machine/include/imx-base.inc
 require conf/machine/include/tune-cortexa9.inc
 
-PREFERRED_PROVIDER_virtual/kernel = "linux-hostmobility"
 KERNEL_IMAGETYPE = "zImage"
+PREFERRED_PROVIDER_virtual/kernel = "linux-mobility-imx"
 
 # We store kernel on seperate MTD partition so no need to deploy to rootfs.
 RDEPENDS_${KERNEL_PACKAGE_NAME}-base = ""
@@ -34,8 +34,7 @@ MACHINE_EXTRA_RDEPENDS_append = " \
     kernel-modules \
     e2fsprogs-resize2fs \
     alsa-utils \
-    ${@bb.utils.contains('LICENSE_FLAGS_WHITELIST', 'closed', \
-        'packagegroup-hostmobility-commercial-mx5', '', d)} \
+    packagegroup-hostmobility-commercial-mx5 \
 "
 
 KERNEL_MODULE_AUTOLOAD += "cryptodev-module"

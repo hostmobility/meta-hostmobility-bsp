@@ -35,6 +35,8 @@ MACHINE_EXTRA_RDEPENDS_append = " \
     e2fsprogs-resize2fs \
     alsa-utils \
     packagegroup-hostmobility-commercial-mx5 \
+    ${@bb.utils.contains('MACHINE_FEATURES', 'wifi', \
+                          'linux-firmware-sd8897 hostapd', '', d)} \
 "
 
 KERNEL_MODULE_AUTOLOAD += "cryptodev-module"

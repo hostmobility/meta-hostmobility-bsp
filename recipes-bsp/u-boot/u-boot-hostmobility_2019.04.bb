@@ -28,6 +28,7 @@ S = "${WORKDIR}/git"
 B = "${WORKDIR}/build"
 
 LOCALVERSION ?= "${SRCBRANCH}"
+PV = "+git${SRCPV}"
 
 PACKAGE_ARCH = "${MACHINE_ARCH}"
 

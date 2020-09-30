@@ -33,7 +33,6 @@ SERIAL_CONSOLE ?= "115200 ttyLP0"
 MACHINE_EXTRA_RDEPENDS_append = " \
     kernel-modules \
     e2fsprogs-resize2fs \
-    alsa-utils \
     packagegroup-hostmobility-commercial-mx5 \
     ${@bb.utils.contains('MACHINE_FEATURES', 'wifi', \
                           'linux-firmware-sd8897 hostapd', '', d)} \

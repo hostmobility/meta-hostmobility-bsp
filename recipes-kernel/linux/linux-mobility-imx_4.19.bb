@@ -17,6 +17,7 @@ SRC_URI = "\
     git://git@gitlab.com/hostmobility/gpio-overlay;name=gpiooverlay;protocol=ssh;destsuffix=git/extra-drivers/gpio-overlay \
     git://git@gitlab.com/hostmobility/l9826-gpio-driver;name=l9826;protocol=ssh;destsuffix=git/extra-drivers/l9826-gpio-driver \
     git://git@gitlab.com/hostmobility/modem_controller;name=modemcontroller;protocol=ssh;destsuffix=git/extra-drivers/modem_controller \
+    git://git@gitlab.com/hostmobility/mx5-cocpu;name=mx5cocpu;protocol=ssh;destsuffix=git/extra-drivers/mx5cocpu \
     file://0001-Compiler-Attributes-add-support-for-__copy-gcc-9.patch \
     file://0002-include-linux-module.h-copy-__init-__exit-attrs-to-i.patch \
     file://0001-perf-Make-perf-able-to-build-with-latest-libbfd.patch \
@@ -27,6 +28,7 @@ SRCREV_linuxkernel = "${AUTOREV}"
 SRCREV_gpiooverlay = "${AUTOREV}" 
 SRCREV_l9826 = "${AUTOREV}"
 SRCREV_modemcontroller = "${AUTOREV}"
+SRCREV_mx5cocpu = "${AUTOREV}"
 
 PV = "${LINUX_VERSION}+git${SRCPV}"
 
@@ -55,15 +57,22 @@ do_patch_append() {
     sed -i -e "/gpio-overlay/d" '${S}/drivers/gpio/Makefile'
     sed -i -e "/gpio-l9826/d" '${S}/drivers/gpio/Makefile'
     sed -i -e "/modem_controller/d" '${S}/drivers/gpio/Makefile'
+    sed -i -e "/mx5cocpu\//d" '${S}/drivers/platform/Makefile'
 
     # Create links into kernel tree 
     ln -s ${S}/extra-drivers/gpio-overlay/gpio-overlay.c ${S}/drivers/gpio
     ln -s ${S}/extra-drivers/l9826-gpio-driver/gpio-l9826.c ${S}/drivers/gpio
     ln -s ${S}/extra-drivers/modem_controller/modem_controller.c ${S}/drivers/gpio
 
+    ln -s ${S}/extra-drivers/mx5cocpu/Linux-Driver ${S}/drivers/platform/mx5cocpu
+    ln -s ${S}/extra-drivers/mx5cocpu/MX5 ${S}/drivers/platform/MX5
+
     # Add our drivers to Makefile to build them
     # obj-m builds as module, obj-y includes in kernel image
     echo "obj-y += gpio-l9826.o" >> '${S}/drivers/gpio/Makefile'
     echo "obj-y += gpio-overlay.o" >> '${S}/drivers/gpio/Makefile'
     echo "obj-y += modem_controller.o" >> '${S}/drivers/gpio/Makefile'
+
+    echo "obj-y += mx5cocpu/" >> '${S}/drivers/platform/Makefile'
+    echo 'source "drivers/platform/mx5cocpu/Kconfig"' >>'${S}/drivers/platform/Kconfig'
 }

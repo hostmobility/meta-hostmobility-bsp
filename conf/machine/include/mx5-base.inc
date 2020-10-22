@@ -36,11 +36,12 @@ MACHINE_EXTRA_RDEPENDS_append = " \
     packagegroup-hostmobility-commercial-mx5 \
     ${@bb.utils.contains('MACHINE_FEATURES', 'wifi', \
                           'linux-firmware-sd8887 linux-firmware-sd8897 hostapd', '', d)} \
+    cryptodev-module \
+    cryptodev-tests \
 "
 
 KERNEL_MODULE_AUTOLOAD += "cryptodev-module"
 # fix u-boot-fw-utils \ using libubootenv if we need fw_setenv?
-
 
 BBMASK +=  "recipes-core/fs-init/fs-init.bbappend"
 BBMASK +=  "recipes-core/usb-rndis-systemd/usb-rndis-systemd.bbappend"

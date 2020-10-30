@@ -43,15 +43,6 @@ do_configure_prepend () {
 COMPATIBLE_MACHINE = "mx5-pt"
 KBUILD_DEFCONFIG ?= "${KERNEL_DEFCONFIG}"
 
-do_configure_append() {
-    # Disable the built-in driver, this means that kernel-module-imx-gpu-viv
-    # will be used instead which is provided by meta-freescale and built as
-    # an out of tree module
-    #
-    # This makes the GPU driver independent of the Linux kernel version
-    sed -i -e "/CONFIG_MXC_GPU_VIV[ =]/d" '${B}/.config'
-    echo "# CONFIG_MXC_GPU_VIV is not set" >> '${B}/.config'
-}
 
 do_patch_append() {
     # Add our drivers to the Makefiles to build them.

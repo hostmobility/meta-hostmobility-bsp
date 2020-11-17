@@ -40,9 +40,6 @@ PREFERRED_PROVIDER_virtual/libgles2 = "tdx-nv-binaries"
 # Kernel is out-of-date. More recent versions do not work
 PREFERRED_VERSION_iproute2 ?= "3.15.0"
 
-# Install NV binaries which contains tegra X-Server drivers when X11 is chosen
-MACHINE_EXTRA_RRECOMMENDS_append_tegra = " ${@bb.utils.contains('DISTRO_FEATURES', 'x11', 'tdx-nv-binaries', '', d)}"
-
 # used by sysvinit_2
 SERIAL_CONSOLE = "115200 ttyS0"
 

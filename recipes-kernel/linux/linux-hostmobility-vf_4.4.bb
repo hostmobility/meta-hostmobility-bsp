@@ -7,9 +7,10 @@ SRC_URI = "git://github.com/hostmobility/linux-toradex.git;protocol=https;branch
 
 KERNEL_MODULE_AUTOLOAD += "${@bb.utils.contains('COMBINED_FEATURES', 'usbgadget', ' libcomposite', '',d)}"
 
-LOCALVERSION = "-${SRCBRANCH}"
-SRCBRANCH = "mx4-bsp-2.0.x-vybrid"
-SRCREV = "33fac6437474670595aaeca085e4fcbf87a8f665"
+LOCALVERSION = ""
+SRCBRANCH = "hm_vf_4.4"
+SRCREV = "d2cd7ba972b2ef2091f037c5a6d4104225a788df"
+
 DEPENDS += "lzop-native bc-native u-boot-mkimage-native"
 COMPATIBLE_MACHINE = "(mx4-c61|mx4-v61)"
 

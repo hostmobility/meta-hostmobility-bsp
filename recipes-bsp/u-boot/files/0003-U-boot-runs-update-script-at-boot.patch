@@ -17,7 +17,7 @@ index c8aa69af16..551dd93510 100644
  #define CONFIG_SYS_I2C_SPEED		100000
  
 -#define CONFIG_SYS_MMC_ENV_DEV		2	/* SDHC3 */
-+#define CONFIG_SYS_MMC_ENV_DEV		1	/* SDHC3 */
++#define CONFIG_SYS_MMC_ENV_DEV		2	/* SDHC3 */
  #define CONFIG_SYS_MMC_ENV_PART		1       /* user partition */
  #define CONFIG_MMCROOT			"/dev/mmcblk2p2"  /* SDHC3 */
  #define CONSOLE_DEV			"ttymxc0"

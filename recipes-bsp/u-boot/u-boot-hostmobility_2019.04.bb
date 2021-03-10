@@ -17,10 +17,11 @@ LIC_FILES_CHKSUM = "file://Licenses/gpl-2.0.txt;md5=b234ee4d69f5fce4486a80fdaf4a
 
 UBOOT_SRC = "git://git@gitlab.com/hostmobility/u-boot-mx5;protocol=ssh"
 SRCBRANCH = "imx_v2019.04_4.19.35_1.0.0_mx5_bringup"
-SRC_URI = "\
-    ${UBOOT_SRC};branch=${SRCBRANCH} \
-    file://0001-Add-target-to-generate-initial-environment.patch \
-"
+SRC_URI = "${UBOOT_SRC};branch=${SRCBRANCH} \
+           file://0001-Add-target-to-generate-initial-environment.patch \
+           file://0002-Add-CONFIG_CMD_UNZIP-y-to-mx5_imx6qp_defconfig.patch \
+           file://0003-U-boot-runs-update-script-at-boot.patch \
+           "
 
 SRCREV = "${AUTOREV}"
 

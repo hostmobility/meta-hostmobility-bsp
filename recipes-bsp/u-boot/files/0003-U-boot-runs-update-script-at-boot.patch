@@ -1,0 +1,38 @@
+From 77cd906f444a4f87b1954960ca058cd96018fd62 Mon Sep 17 00:00:00 2001
+From: Markus Mirevik <markus.mirevik@dpsverige.se>
+Date: Fri, 5 Mar 2021 08:42:42 +0100
+Subject: [PATCH] U-boot runs update script at boot.
+
+u-boot loads and runs update.scr, if it exists, before continuing with normal boot.
+---
+ include/configs/mx5_imx6_common.h | 8 ++++++--
+ 1 file changed, 6 insertions(+), 2 deletions(-)
+
+diff --git a/include/configs/mx5_imx6_common.h b/include/configs/mx5_imx6_common.h
+index c8aa69af16..551dd93510 100644
+--- a/include/configs/mx5_imx6_common.h
++++ b/include/configs/mx5_imx6_common.h
+@@ -43,7 +43,7 @@
+ #define CONFIG_SYS_I2C_MXC_I2C3		/* enable I2C bus 3 */
+ #define CONFIG_SYS_I2C_SPEED		100000
+ 
+-#define CONFIG_SYS_MMC_ENV_DEV		2	/* SDHC3 */
++#define CONFIG_SYS_MMC_ENV_DEV		1	/* SDHC3 */
+ #define CONFIG_SYS_MMC_ENV_PART		1       /* user partition */
+ #define CONFIG_MMCROOT			"/dev/mmcblk2p2"  /* SDHC3 */
+ #define CONSOLE_DEV			"ttymxc0"
+@@ -80,9 +80,13 @@
+ 	"loadfdt=fatload mmc ${mmcdev}:${mmcpart} ${fdt_addr} ${fdt_file}\0" \
+ 	"mmcboot=echo Booting from mmc ...; " \
+ 		"run mmcargs; " \
+-		"bootz ${loadaddr} - ${fdt_addr}; " \
++		"bootz ${loadaddr} - ${fdt_addr};\0" \
++	"script_name=update.scr\0" \
++	"script_addr=0x10700000\0" \
++	"update_script=if test -e mmc 1 ${script_name}; then echo Loading ${script_name}; fatload mmc ${mmcdev} ${script_addr} ${script_name}; source ${script_addr}; else echo No ${script_name} found, skipping update check.;fi\0" \
+ 
+ #define CONFIG_BOOTCOMMAND \
++	"run update_script;" \
+ 	"mmc dev ${mmcdev};" \
+ 	"run loadimage;" \
+ 	"run loadfdt;" \

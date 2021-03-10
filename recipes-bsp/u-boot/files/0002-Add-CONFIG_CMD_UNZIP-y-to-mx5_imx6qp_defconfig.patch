@@ -1,0 +1,22 @@
+From 8ce629c01a388b380d50aaa62e614e283d24ee15 Mon Sep 17 00:00:00 2001
+From: Markus Mirevik <markus.mirevik@dpsverige.se>
+Date: Wed, 17 Feb 2021 13:58:25 +0100
+Subject: [PATCH] Add CONFIG_CMD_UNZIP=y to mx5_imx6qp_defconfig
+to be able to run gzwrite in u-boot
+
+---
+ configs/mx5_imx6qp_defconfig | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/configs/mx5_imx6qp_defconfig b/configs/mx5_imx6qp_defconfig
+index 789f85352e..33e6a618e1 100644
+--- a/configs/mx5_imx6qp_defconfig
++++ b/configs/mx5_imx6qp_defconfig
+@@ -74,4 +74,5 @@ CONFIG_USB_GADGET_MANUFACTURER="FSL"
+ CONFIG_USB_GADGET_VENDOR_NUM=0x0525
+ CONFIG_USB_GADGET_PRODUCT_NUM=0xa4a5
+ CONFIG_CI_UDC=y
+-CONFIG_USB_GADGET_DOWNLOAD=y
+\ No newline at end of file
++CONFIG_USB_GADGET_DOWNLOAD=y
++CONFIG_CMD_UNZIP=y

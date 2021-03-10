@@ -23,8 +23,8 @@ mw ${loadaddr} ${bool_true} 1
 
 #set i2c bus and read 2 flags into memory.
 i2c dev ${i2c_bus}
-i2c read ${i2c_dev} ${i2c_addr_1} 0x01 ${loadaddr}
-i2c read ${i2c_dev} ${i2c_addr_2} 0x01 ${loadaddr}
+i2c read ${i2c_dev} ${i2c_addr_1} 0x01 ${reflash_1}
+i2c read ${i2c_dev} ${i2c_addr_2} 0x01 ${reflash_2}
 
 #load the compare memory statement into env variables for readability. 
 env set cmp_flag_1 "cmp ${loadaddr} ${reflash_1} 1"

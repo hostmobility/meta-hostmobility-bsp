@@ -23,7 +23,8 @@ SRC_URI = "\
     file://0001-perf-Make-perf-able-to-build-with-latest-libbfd.patch \
 "
 
-LINUXBRANCH = "imx_4.19.35_1.0.0_mx5_bringup_prototype2"
+LINUXBRANCH = "mx5_prototype3"
+COCPUBRANCH = "prototype3"
 SRCREV_FORMAT = "linuxkernel_gpiooverlay_l9826_modemcontroller_mx5cocpu"
 SRCREV_linuxkernel = "${AUTOREV}"
 SRCREV_gpiooverlay = "${AUTOREV}" 

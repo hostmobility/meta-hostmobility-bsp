@@ -17,7 +17,7 @@ SRC_URI = "\
     git://git@gitlab.com/hostmobility/gpio-overlay;name=gpiooverlay;protocol=ssh;destsuffix=git/drivers/gpio/gpio-overlay \
     git://git@gitlab.com/hostmobility/l9826-gpio-driver;name=l9826;protocol=ssh;destsuffix=git/drivers/gpio/l9826-gpio-driver \
     git://git@gitlab.com/hostmobility/modem_controller;name=modemcontroller;protocol=ssh;destsuffix=git/drivers/gpio/modem_controller \
-    git://git@gitlab.com/hostmobility/mx5-cocpu;name=mx5cocpu;protocol=ssh;destsuffix=git/drivers/platform/mx5cocpu \
+    git://git@gitlab.com/hostmobility/mx5-cocpu;name=mx5cocpu;branch=${COCPUBRANCH};protocol=ssh;destsuffix=git/drivers/platform/mx5cocpu \
     file://0001-Compiler-Attributes-add-support-for-__copy-gcc-9.patch \
     file://0002-include-linux-module.h-copy-__init-__exit-attrs-to-i.patch \
     file://0001-perf-Make-perf-able-to-build-with-latest-libbfd.patch \

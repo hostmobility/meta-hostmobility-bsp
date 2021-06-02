@@ -15,7 +15,7 @@ LINUX_VERSION_EXTENSION_append = "-imx"
 SRC_URI = "\
     git://git@gitlab.com/hostmobility/linux-mx5;name=linuxkernel;branch=${LINUXBRANCH};protocol=ssh;nocheckout=1 \
     git://git@gitlab.com/hostmobility/gpio-overlay;name=gpiooverlay;protocol=ssh;destsuffix=git/drivers/gpio/gpio-overlay \
-    git://git@gitlab.com/hostmobility/l9826-gpio-driver;name=l9826;protocol=ssh;destsuffix=git/drivers/gpio/l9826-gpio-driver \
+    git://git@gitlab.com/hostmobility/ncv7751-gpio-driver;name=ncv7751;protocol=ssh;destsuffix=git/drivers/gpio/ncv7751-gpio-driver \
     git://git@gitlab.com/hostmobility/modem_controller;name=modemcontroller;protocol=ssh;destsuffix=git/drivers/gpio/modem_controller \
     git://git@gitlab.com/hostmobility/mx5-cocpu;name=mx5cocpu;branch=${COCPUBRANCH};protocol=ssh;destsuffix=git/drivers/platform/mx5cocpu \
     file://0001-Compiler-Attributes-add-support-for-__copy-gcc-9.patch \
@@ -25,10 +25,10 @@ SRC_URI = "\
 
 LINUXBRANCH = "mx5_prototype3"
 COCPUBRANCH = "prototype3"
-SRCREV_FORMAT = "linuxkernel_gpiooverlay_l9826_modemcontroller_mx5cocpu"
+SRCREV_FORMAT = "linuxkernel_gpiooverlay_ncv7751_modemcontroller_mx5cocpu"
 SRCREV_linuxkernel = "${AUTOREV}"
 SRCREV_gpiooverlay = "${AUTOREV}" 
-SRCREV_l9826 = "${AUTOREV}"
+SRCREV_ncv7751 = "${AUTOREV}"
 SRCREV_modemcontroller = "${AUTOREV}"
 SRCREV_mx5cocpu = "${AUTOREV}"
 
@@ -47,13 +47,13 @@ KBUILD_DEFCONFIG ?= "${KERNEL_DEFCONFIG}"
 
 do_patch_append() {
     # Add our drivers to the Makefiles to build them.
-    echo 'obj-$(CONFIG_GPIO_L9826) += l9826-gpio-driver/gpio-l9826.o' >> '${S}/drivers/gpio/Makefile'
+    echo 'obj-$(CONFIG_GPIO_NCV7751) += ncv7751-gpio-driver/gpio-ncv7751.o' >> '${S}/drivers/gpio/Makefile'
     echo 'obj-$(CONFIG_MX5_GPIO_OVERLAY) += gpio-overlay/gpio-overlay.o' >> '${S}/drivers/gpio/Makefile'
     echo 'obj-$(CONFIG_MX5_MODEM_DRIVER) += modem_controller/modem_controller.o' >> '${S}/drivers/gpio/Makefile'
     echo 'obj-$(CONFIG_MX5_COCPU) += mx5cocpu/Linux-Driver/' >> '${S}/drivers/platform/Makefile'
 
     echo 'source "drivers/platform/mx5cocpu/Linux-Driver/Kconfig"' >>'${S}/drivers/platform/Kconfig'
     echo 'source "drivers/gpio/gpio-overlay/Kconfig"' >>'${S}/drivers/gpio/Kconfig'
-    echo 'source "drivers/gpio/l9826-gpio-driver/Kconfig"' >>'${S}/drivers/gpio/Kconfig'
+    echo 'source "drivers/gpio/ncv7751-gpio-driver/Kconfig"' >>'${S}/drivers/gpio/Kconfig'
     echo 'source "drivers/gpio/modem_controller/Kconfig"' >>'${S}/drivers/gpio/Kconfig'
 }

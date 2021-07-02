@@ -44,3 +44,5 @@ PREFERRED_VERSION_iproute2 ?= "3.15.0"
 SERIAL_CONSOLE = "115200 ttyS0"
 
 IMAGE_FSTYPES ?= "tar.xz"
+
+BBMASK += "recipes-bsp/u-boot/u-boot-hostmobility_2019.04.bb"

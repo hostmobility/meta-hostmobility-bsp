@@ -1,0 +1,65 @@
+From 3d26188fda04e50e67b7681b8043b085740a4d9a Mon Sep 17 00:00:00 2001
+From: rikardo <rikard.olander@hostmobility.com>
+Date: Fri, 13 Aug 2021 10:53:18 +0200
+Subject: [PATCH 4/4] Modify Makfile and kconfig to include mx5 dtb and board
+ target
+
+---
+ arch/arm/dts/Makefile         |  6 ++++--
+ arch/arm/mach-imx/mx6/Kconfig | 10 ++++++++++
+ 2 files changed, 14 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm/dts/Makefile b/arch/arm/dts/Makefile
+index 67dca8a669..3b93b1d491 100644
+--- a/arch/arm/dts/Makefile
++++ b/arch/arm/dts/Makefile
+@@ -522,7 +522,8 @@ dtb-$(CONFIG_MX6QP) += \
+ 	imx6qp-sabreauto.dtb \
+ 	imx6qp-sabreauto-ecspi.dtb \
+ 	imx6qp-sabreauto-gpmi-weim.dtb \
+-	imx6qp-sabresd.dtb
++	imx6qp-sabresd.dtb \
++	mx5_imx6qp.dtb
+ 
+ dtb-$(CONFIG_MX6QDL) += \
+ 	imx6dl-icore.dtb \
+@@ -538,7 +539,8 @@ dtb-$(CONFIG_MX6QDL) += \
+ 	imx6dl-sabreauto.dtb \
+ 	imx6dl-sabresd.dtb \
+ 	imx6qp-sabreauto.dtb \
+-	imx6qp-sabresd.dtb
++	imx6qp-sabresd.dtb \
++	mx5_imx6qp.dtb
+ 
+ dtb-$(CONFIG_MX6SL) += imx6sl-evk.dtb
+ 
+diff --git a/arch/arm/mach-imx/mx6/Kconfig b/arch/arm/mach-imx/mx6/Kconfig
+index 88f188e9c2..0604330409 100644
+--- a/arch/arm/mach-imx/mx6/Kconfig
++++ b/arch/arm/mach-imx/mx6/Kconfig
+@@ -699,6 +699,15 @@ endchoice
+ config SYS_SOC
+ 	default "mx6"
+ 
++config TARGET_MX5_IMX6QP
++    bool "mx5 imx6qp"
++    select DM
++    select DM_THERMAL
++    select BOARD_EARLY_INIT_F
++    select SUPPORT_SPL
++    imply CMD_DM
++    select MX6QP
++
+ source "board/ge/bx50v3/Kconfig"
+ source "board/advantech/dms-ba16/Kconfig"
+ source "board/aristainetos/Kconfig"
+@@ -756,5 +765,6 @@ source "board/udoo/Kconfig"
+ source "board/udoo/neo/Kconfig"
+ source "board/wandboard/Kconfig"
+ source "board/warp/Kconfig"
++source "board/hostmobility/mx5_imx6qp/Kconfig"
+ 
+ endif
+-- 
+2.17.1
+

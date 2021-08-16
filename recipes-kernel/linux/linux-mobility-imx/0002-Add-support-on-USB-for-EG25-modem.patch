@@ -1,0 +1,244 @@
+From a63d4a92ed374c7e86ebeb32a8b52af13d150a03 Mon Sep 17 00:00:00 2001
+From: rikardo <rikard.olander@hostmobility.com>
+Date: Mon, 16 Aug 2021 13:46:07 +0200
+Subject: [PATCH 2/7] Add support on USB for EG25 modem
+
+---
+ drivers/net/usb/qmi_wwan.c    | 39 ++++++++++++++++++++++++++++++++++-
+ drivers/usb/class/cdc-acm.c   | 13 +++++++++++-
+ drivers/usb/serial/option.c   | 24 +++++++++++++++++++++
+ drivers/usb/serial/qcserial.c |  2 --
+ drivers/usb/serial/usb_wwan.c | 21 +++++++++++++++++++
+ 5 files changed, 95 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/net/usb/qmi_wwan.c b/drivers/net/usb/qmi_wwan.c
+index 9195f3476b1d..ef98fa736ce0 100644
+--- a/drivers/net/usb/qmi_wwan.c
++++ b/drivers/net/usb/qmi_wwan.c
+@@ -115,6 +115,22 @@ static const struct net_device_ops qmimux_netdev_ops = {
+ 	.ndo_start_xmit = qmimux_start_xmit,
+ };
+ 
++#include <linux/etherdevice.h>
++struct sk_buff *qmi_wwan_tx_fixup(struct usbnet *dev, struct sk_buff *skb, gfp_t flags)
++{
++	if (dev->udev->descriptor.idVendor != cpu_to_le16(0x2C7C))
++		return skb;
++	// Skip Ethernet header from message
++	if (skb_pull(skb, ETH_HLEN)) {
++		return skb;
++	} else {
++		dev_err(&dev->intf->dev, "Packet Dropped ");
++	}
++	// Filter the packet out, release it
++	dev_kfree_skb_any(skb);
++	return NULL;
++}
++
+ static void qmimux_setup(struct net_device *dev)
+ {
+ 	dev->header_ops      = NULL;  /* No header */
+@@ -866,6 +882,28 @@ static const struct driver_info	qmi_wwan_info_quirk_dtr = {
+ 	QMI_FIXED_INTF(vend, prod, 0)
+ 
+ static const struct usb_device_id products[] = {
++#ifndef QMI_FIXED_INTF
++/* map QMI/wwan function by a fixed interface number */
++#define QMI_FIXED_INTF(vend, prod, num) \
++	.match_flags = USB_DEVICE_ID_MATCH_DEVICE |
++	USB_DEVICE_ID_MATCH_INT_INFO, \
++	.idVendor = vend, \
++	.idProduct = prod, \
++	.bInterfaceClass = 0xff, \
++	.bInterfaceSubClass = 0xff, \
++	.bInterfaceProtocol = 0xff, \
++	.driver_info = (unsigned long)&qmi_wwan_force_int##num,
++#endif
++	{ QMI_FIXED_INTF(0x05C6, 0x9003, 4) }, /* Quectel UC20 */
++	{ QMI_FIXED_INTF(0x05C6, 0x9008, 4) }, /* Quectel EG25 */
++	{ QMI_FIXED_INTF(0x2C7C, 0x0125, 4) }, /* Quectel EC25 */
++	{ QMI_FIXED_INTF(0x2C7C, 0x0121, 4) }, /* Quectel EC21 */
++	{ QMI_FIXED_INTF(0x05C6, 0x9215, 4) }, /* Quectel EC20 */
++	{ QMI_FIXED_INTF(0x2C7C, 0x0191, 4) }, /* Quectel EG91 */
++	{ QMI_FIXED_INTF(0x2C7C, 0x0195, 4) }, /* Quectel EG95 */
++	{ QMI_FIXED_INTF(0x2C7C, 0x0306, 4) }, /* Quectel EG06/EP06/EM06 */
++	{ QMI_FIXED_INTF(0x2C7C, 0x0296, 4) }, /* Quectel BG96 */
++	{ QMI_FIXED_INTF(0x2C7C, 0x0435, 4) }, /* Quectel AG35 */
+ 	/* 1. CDC ECM like devices match on the control interface */
+ 	{	/* Huawei E392, E398 and possibly others sharing both device id and more... */
+ 		USB_VENDOR_AND_INTERFACE_INFO(HUAWEI_VENDOR_ID, USB_CLASS_VENDOR_SPEC, 1, 9),
+@@ -1305,7 +1343,6 @@ static const struct usb_device_id products[] = {
+ 	{QMI_GOBI_DEVICE(0x05c6, 0x9225)},	/* Sony Gobi 2000 Modem device (N0279, VU730) */
+ 	{QMI_GOBI_DEVICE(0x05c6, 0x9245)},	/* Samsung Gobi 2000 Modem device (VL176) */
+ 	{QMI_GOBI_DEVICE(0x03f0, 0x251d)},	/* HP Gobi 2000 Modem device (VP412) */
+-	{QMI_GOBI_DEVICE(0x05c6, 0x9215)},	/* Acer Gobi 2000 Modem device (VP413) */
+ 	{QMI_FIXED_INTF(0x05c6, 0x9215, 4)},	/* Quectel EC20 Mini PCIe */
+ 	{QMI_GOBI_DEVICE(0x05c6, 0x9265)},	/* Asus Gobi 2000 Modem device (VR305) */
+ 	{QMI_GOBI_DEVICE(0x05c6, 0x9235)},	/* Top Global Gobi 2000 Modem device (VR306) */
+diff --git a/drivers/usb/class/cdc-acm.c b/drivers/usb/class/cdc-acm.c
+index 32da5a4182ac..70deabd0c2d5 100644
+--- a/drivers/usb/class/cdc-acm.c
++++ b/drivers/usb/class/cdc-acm.c
+@@ -976,7 +976,7 @@ static int wait_serial_change(struct acm *acm, unsigned long arg)
+ 		}
+ 	} while (!rv);
+ 
+-	
++
+ 
+ 	return rv;
+ }
+@@ -1409,6 +1409,10 @@ static int acm_probe(struct usb_interface *intf,
+ 			usb_fill_bulk_urb(snd->urb, usb_dev, acm->out,
+ 				NULL, acm->writesize, acm_write_bulk, snd);
+ 		snd->urb->transfer_flags |= URB_NO_TRANSFER_DMA_MAP;
++		/* Quectel zero packet fix */
++		if (usb_dev->descriptor.idVendor == 0x1519 && usb_dev->descriptor.idProduct == 0x0020)
++			snd->urb->transfer_flags |= URB_ZERO_PACKET;
++
+ 		if (quirks & SEND_ZERO_PACKET)
+ 			snd->urb->transfer_flags |= URB_ZERO_PACKET;
+ 		snd->instance = acm;
+@@ -1485,6 +1489,13 @@ static int acm_probe(struct usb_interface *intf,
+ 		usb_clear_halt(usb_dev, acm->out);
+ 	}
+ 
++	if((usb_dev->descriptor.idVendor == 0x1519) && (usb_dev->descriptor.idProduct == 0x0020))
++	{
++		pm_runtime_set_autosuspend_delay(&usb_dev->dev, 3000);
++		usb_enable_autosuspend(usb_dev);
++		device_init_wakeup(&usb_dev->dev, 1); //usb remote wakeup
++	}
++
+ 	return 0;
+ alloc_fail6:
+ 	if (acm->country_codes) {
+diff --git a/drivers/usb/serial/option.c b/drivers/usb/serial/option.c
+index d8c474b386a8..5bba76337f4f 100644
+--- a/drivers/usb/serial/option.c
++++ b/drivers/usb/serial/option.c
+@@ -235,6 +235,7 @@ static void option_instat_callback(struct urb *urb);
+ /* These Quectel products use Qualcomm's vendor ID */
+ #define QUECTEL_PRODUCT_UC20			0x9003
+ #define QUECTEL_PRODUCT_UC15			0x9090
++#define QUECTEL_PRODUCT_EG25			0x9008
+ /* These u-blox products use Qualcomm's vendor ID */
+ #define UBLOX_PRODUCT_R410M			0x90b2
+ /* These Yuga products use Qualcomm's vendor ID */
+@@ -247,6 +248,7 @@ static void option_instat_callback(struct urb *urb);
+ #define QUECTEL_PRODUCT_BG96			0x0296
+ #define QUECTEL_PRODUCT_EP06			0x0306
+ #define QUECTEL_PRODUCT_EM12			0x0512
++#define QUECTEL_PRODUCT_EG25			0x0125
+ 
+ #define CMOTECH_VENDOR_ID			0x16d8
+ #define CMOTECH_PRODUCT_6001			0x6001
+@@ -567,6 +569,17 @@ static void option_instat_callback(struct urb *urb);
+ 
+ 
+ static const struct usb_device_id option_ids[] = {
++	{ USB_DEVICE(QUALCOMM_VENDOR_ID, 0x9090) }, /* Quectel UC15 */
++	{ USB_DEVICE(QUALCOMM_VENDOR_ID, 0x9003) }, /* Quectel UC20 */
++	{ USB_DEVICE(QUECTEL_VENDOR_ID, 0x0125) }, /* Quectel EC25 */
++	{ USB_DEVICE(QUECTEL_VENDOR_ID, 0x0121) }, /* Quectel EC21 */
++	{ USB_DEVICE(QUALCOMM_VENDOR_ID, QUECTEL_PRODUCT_EG25) }, /* Quectel EG20 */
++	{ USB_DEVICE(QUALCOMM_VENDOR_ID, 0x9215) }, /* Quectel EC25 */
++	{ USB_DEVICE(QUECTEL_VENDOR_ID, 0x0191) }, /* Quectel EG91 */
++	{ USB_DEVICE(QUECTEL_VENDOR_ID, 0x0195) }, /* Quectel EG95 */
++	{ USB_DEVICE(QUECTEL_VENDOR_ID, 0x0306) }, /* Quectel EG06/EP06/EM06 */
++	{ USB_DEVICE(QUECTEL_VENDOR_ID, 0x0296) }, /* Quectel BG96 */
++	{ USB_DEVICE(QUECTEL_VENDOR_ID, 0x0435) }, /* Quectel AG35 */
+ 	{ USB_DEVICE(OPTION_VENDOR_ID, OPTION_PRODUCT_COLT) },
+ 	{ USB_DEVICE(OPTION_VENDOR_ID, OPTION_PRODUCT_RICOLA) },
+ 	{ USB_DEVICE(OPTION_VENDOR_ID, OPTION_PRODUCT_RICOLA_LIGHT) },
+@@ -1084,6 +1097,8 @@ static const struct usb_device_id option_ids[] = {
+ 	  .driver_info = RSVD(4) },
+ 	{ USB_DEVICE(QUECTEL_VENDOR_ID, QUECTEL_PRODUCT_EC25),
+ 	  .driver_info = RSVD(4) },
++	{ USB_DEVICE(QUECTEL_VENDOR_ID, QUECTEL_PRODUCT_EG25),
++	  .driver_info = RSVD(4) },
+ 	{ USB_DEVICE(QUECTEL_VENDOR_ID, QUECTEL_PRODUCT_BG96),
+ 	  .driver_info = RSVD(4) },
+ 	{ USB_DEVICE_AND_INTERFACE_INFO(QUECTEL_VENDOR_ID, QUECTEL_PRODUCT_EP06, 0xff, 0xff, 0xff),
+@@ -2002,6 +2017,7 @@ static struct usb_serial_driver option_1port_device = {
+ #ifdef CONFIG_PM
+ 	.suspend           = usb_wwan_suspend,
+ 	.resume            = usb_wwan_resume,
++	.reset_resume      = usb_wwan_resume,
+ #endif
+ };
+ 
+@@ -2037,6 +2053,14 @@ static int option_probe(struct usb_serial *serial,
+ 	if (device_flags & NUMEP2 && iface_desc->bNumEndpoints != 2)
+ 		return -ENODEV;
+ 
++	/*
++	 * Quectel EC25/EG25/EC21/EG91/EG95/EG06/EP06/EM06/BG96/AG35's
++	 * interface 4 can be used as USB network device
++	 */
++	if (serial->dev->descriptor.idVendor == cpu_to_le16(QUECTEL_VENDOR_ID)
++	    && serial->interface->cur_altsetting->desc.bInterfaceNumber >= 4)
++		return -ENODEV;
++
+ 	/* Store the device flags so we can use them during attach. */
+ 	usb_set_serial_data(serial, (void *)device_flags);
+ 
+diff --git a/drivers/usb/serial/qcserial.c b/drivers/usb/serial/qcserial.c
+index 613f91add03d..8fe5f8bc67ea 100644
+--- a/drivers/usb/serial/qcserial.c
++++ b/drivers/usb/serial/qcserial.c
+@@ -63,7 +63,6 @@ static const struct usb_device_id id_table[] = {
+ 	{DEVICE_G1K(0x05c6, 0x9202)},	/* Generic Gobi Modem device */
+ 	{DEVICE_G1K(0x05c6, 0x9203)},	/* Generic Gobi Modem device */
+ 	{DEVICE_G1K(0x05c6, 0x9222)},	/* Generic Gobi Modem device */
+-	{DEVICE_G1K(0x05c6, 0x9008)},	/* Generic Gobi QDL device */
+ 	{DEVICE_G1K(0x05c6, 0x9009)},	/* Generic Gobi Modem device */
+ 	{DEVICE_G1K(0x05c6, 0x9201)},	/* Generic Gobi QDL device */
+ 	{DEVICE_G1K(0x05c6, 0x9221)},	/* Generic Gobi QDL device */
+@@ -88,7 +87,6 @@ static const struct usb_device_id id_table[] = {
+ 	{USB_DEVICE(0x03f0, 0x241d)},	/* HP Gobi 2000 QDL device (VP412) */
+ 	{USB_DEVICE(0x03f0, 0x251d)},	/* HP Gobi 2000 Modem device (VP412) */
+ 	{USB_DEVICE(0x05c6, 0x9214)},	/* Acer Gobi 2000 QDL device (VP413) */
+-	{USB_DEVICE(0x05c6, 0x9215)},	/* Acer Gobi 2000 Modem device (VP413) */
+ 	{USB_DEVICE(0x05c6, 0x9264)},	/* Asus Gobi 2000 QDL device (VR305) */
+ 	{USB_DEVICE(0x05c6, 0x9265)},	/* Asus Gobi 2000 Modem device (VR305) */
+ 	{USB_DEVICE(0x05c6, 0x9234)},	/* Top Global Gobi 2000 QDL device (VR306) */
+diff --git a/drivers/usb/serial/usb_wwan.c b/drivers/usb/serial/usb_wwan.c
+index 912472f26e4f..c9446f9e3b2c 100644
+--- a/drivers/usb/serial/usb_wwan.c
++++ b/drivers/usb/serial/usb_wwan.c
+@@ -496,10 +496,31 @@ static struct urb *usb_wwan_setup_urb(struct usb_serial_port *port,
+ 	if (!urb)
+ 		return NULL;
+ 
++	if (dir == USB_DIR_OUT) {
++		struct usb_device_descriptor *desc = &serial->dev->descriptor;
++
++		if (desc->idVendor == cpu_to_le16(0x2C7C))
++			urb->transfer_flags |= URB_ZERO_PACKET;
++	}
++
+ 	usb_fill_bulk_urb(urb, serial->dev,
+ 			  usb_sndbulkpipe(serial->dev, endpoint) | dir,
+ 			  buf, len, callback, ctx);
+ 
++	if (dir == USB_DIR_OUT) {
++		struct usb_device_descriptor *desc = &serial->dev->descriptor;
++		if (desc->idVendor == cpu_to_le16(0x2C7C))
++			urb->transfer_flags |= URB_ZERO_PACKET;
++		if (desc->idVendor == cpu_to_le16(0x05C6) && desc->idProduct == cpu_to_le16(0x9090))
++			urb->transfer_flags |= URB_ZERO_PACKET;
++		if (desc->idVendor == cpu_to_le16(0x05C6) && desc->idProduct == cpu_to_le16(0x9003))
++			urb->transfer_flags |= URB_ZERO_PACKET;
++		if (desc->idVendor == cpu_to_le16(0x05C6) && desc->idProduct == cpu_to_le16(0x9215))
++			urb->transfer_flags |= URB_ZERO_PACKET;
++		if (desc->idVendor == cpu_to_le16(0x2C7C))
++			urb->transfer_flags |= URB_ZERO_PACKET;
++	}
++
+ 	return urb;
+ }
+ 
+-- 
+2.17.1
+

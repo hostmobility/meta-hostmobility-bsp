@@ -1,0 +1,26 @@
+From 5f18f3689a3ebf9d80790db3969426c47b98d084 Mon Sep 17 00:00:00 2001
+From: rikardo <rikard.olander@hostmobility.com>
+Date: Mon, 16 Aug 2021 14:12:00 +0200
+Subject: [PATCH 4/7] Add imx6qp-mx5.dtb to makfile
+
+---
+ arch/arm/boot/dts/Makefile | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm/boot/dts/Makefile b/arch/arm/boot/dts/Makefile
+index f701986529d6..02b75b6e031b 100644
+--- a/arch/arm/boot/dts/Makefile
++++ b/arch/arm/boot/dts/Makefile
+@@ -566,7 +566,8 @@ dtb-$(CONFIG_SOC_IMX6Q) += \
+ 	imx6qp-sabresd-hdcp.dtb \
+ 	imx6qp-sabresd-ldo.dtb \
+ 	imx6qp-sabresd-ldo-pcie-cert.dtb \
+-	imx6qp-zii-rdu2.dtb
++	imx6qp-zii-rdu2.dtb \
++	imx6qp-mx5.dtb
+ dtb-$(CONFIG_SOC_IMX6SL) += \
+ 	imx6sl-evk.dtb \
+ 	imx6sl-evk-btwifi.dtb \
+-- 
+2.17.1
+

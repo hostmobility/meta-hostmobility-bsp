@@ -13,7 +13,7 @@ LINUX_VERSION ?= "4.19.35"
 LINUX_VERSION_EXTENSION_append = "-imx"
 
 SRC_URI = "\
-    git://git@gitlab.com/hostmobility/linux-mx5;name=linuxkernel;branch=${LINUXBRANCH};protocol=ssh;nocheckout=1 \
+    git://source.codeaurora.org/external/imx/linux-imx;name=linuxkernel;branch=${LINUXBRANCH};protocol=ssh;nocheckout=1 \
     git://git@gitlab.com/hostmobility/gpio-overlay;name=gpiooverlay;protocol=ssh;destsuffix=git/drivers/gpio/gpio-overlay \
     git://git@gitlab.com/hostmobility/ncv7751-gpio-driver;name=ncv7751;protocol=ssh;destsuffix=git/drivers/gpio/ncv7751-gpio-driver \
     git://git@gitlab.com/hostmobility/modem_controller;name=modemcontroller;protocol=ssh;destsuffix=git/drivers/gpio/modem_controller \
@@ -21,12 +21,19 @@ SRC_URI = "\
     file://0001-Compiler-Attributes-add-support-for-__copy-gcc-9.patch \
     file://0002-include-linux-module.h-copy-__init-__exit-attrs-to-i.patch \
     file://0001-perf-Make-perf-able-to-build-with-latest-libbfd.patch \
+    file://0001-Add-regulator-node-name-for-imx6qdl.dtsi.patch \
+    file://0002-Add-support-on-USB-for-EG25-modem.patch \
+    file://0003-Add-stability-fix-for-tlv320aic3x-codec-driver.patch \
+    file://0004-Add-imx6qp-mx5.dtb-to-makfile.patch \
+    file://0005-Add-mx5-pt-defconfig.patch \
+    file://0006-Add-device-tree-for-mx5-pt.patch \
+    file://0007-Remove-dma-on-spi-HC-Ignore-dma-for-now-use-pio.patch \
 "
 
-LINUXBRANCH = "mx5_prototype3"
+LINUXBRANCH = "imx_4.19.35_1.0.0"
 COCPUBRANCH = "prototype3"
 SRCREV_FORMAT = "linuxkernel_gpiooverlay_ncv7751_modemcontroller_mx5cocpu"
-SRCREV_linuxkernel = "${AUTOREV}"
+SRCREV_linuxkernel = "e4452f4458e4272345aa773e726107cb74ef2974"
 SRCREV_gpiooverlay = "${AUTOREV}" 
 SRCREV_ncv7751 = "${AUTOREV}"
 SRCREV_modemcontroller = "${AUTOREV}"

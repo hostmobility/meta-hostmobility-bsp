@@ -1,0 +1,32 @@
+From c28ade9ffc7d91a9ca7b19001e78720aea8c7107 Mon Sep 17 00:00:00 2001
+From: rikardo <rikard.olander@hostmobility.com>
+Date: Mon, 16 Aug 2021 14:11:02 +0200
+Subject: [PATCH 3/7] Add stability fix for tlv320aic3x codec driver
+
+---
+ sound/soc/codecs/tlv320aic3x.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/sound/soc/codecs/tlv320aic3x.c b/sound/soc/codecs/tlv320aic3x.c
+index 6a271e6e6b8f..5b79f41627c2 100644
+--- a/sound/soc/codecs/tlv320aic3x.c
++++ b/sound/soc/codecs/tlv320aic3x.c
+@@ -1880,6 +1880,7 @@ static int aic3x_i2c_probe(struct i2c_client *i2c,
+ 	if (ret != 0)
+ 		goto err_gpio;
+ 
++	INIT_LIST_HEAD(&aic3x->list);
+ 	list_add(&aic3x->list, &reset_list);
+ 
+ 	return 0;
+@@ -1895,6 +1896,7 @@ static int aic3x_i2c_probe(struct i2c_client *i2c,
+ static int aic3x_i2c_remove(struct i2c_client *client)
+ {
+ 	struct aic3x_priv *aic3x = i2c_get_clientdata(client);
++	list_del(&aic3x->list);
+ 
+ 	if (gpio_is_valid(aic3x->gpio_reset) &&
+ 	    !aic3x_is_shared_reset(aic3x)) {
+-- 
+2.17.1
+

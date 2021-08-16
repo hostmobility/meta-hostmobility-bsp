@@ -1,6 +1,6 @@
-From 8aa2354843eee52e40ee3ea6b0866dede816aa62 Mon Sep 17 00:00:00 2001
+From aba82e726e0e5583c98fee174e3d2aa7cc114758 Mon Sep 17 00:00:00 2001
 From: rikardo <rikard.olander@hostmobility.com>
-Date: Fri, 13 Aug 2021 10:51:58 +0200
+Date: Mon, 16 Aug 2021 08:36:16 +0200
 Subject: [PATCH 3/4] Add mx5 uboot and spl implementation
 
 ---
@@ -11,10 +11,10 @@ Subject: [PATCH 3/4] Add mx5 uboot and spl implementation
  board/hostmobility/mx5_imx6qp/Makefile     |   7 +
  board/hostmobility/mx5_imx6qp/enet.c       | 119 +++++
  board/hostmobility/mx5_imx6qp/enet.h       |  11 +
- board/hostmobility/mx5_imx6qp/mx5_imx6qp.c | 560 +++++++++++++++++++++
+ board/hostmobility/mx5_imx6qp/mx5_imx6qp.c | 551 +++++++++++++++++++++
  include/configs/mx5_imx6_common.h          | 101 ++++
  include/configs/mx5_imx6qp.h               |  26 +
- 10 files changed, 1037 insertions(+)
+ 10 files changed, 1028 insertions(+)
  create mode 100644 board/hostmobility/common/Makefile
  create mode 100644 board/hostmobility/common/pfuze.c
  create mode 100644 board/hostmobility/common/pfuze.h
@@ -420,10 +420,10 @@ index 0000000000..2a1574fb03
 +void setup_fec(void);
 diff --git a/board/hostmobility/mx5_imx6qp/mx5_imx6qp.c b/board/hostmobility/mx5_imx6qp/mx5_imx6qp.c
 new file mode 100644
-index 0000000000..9fbff36d9f
+index 0000000000..2b8eb53e6c
 --- /dev/null
 +++ b/board/hostmobility/mx5_imx6qp/mx5_imx6qp.c
-@@ -0,0 +1,560 @@
+@@ -0,0 +1,551 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
 + * Copyright (C) 2012-2016 Freescale Semiconductor, Inc.
@@ -483,6 +483,7 @@ index 0000000000..9fbff36d9f
 +
 +/* Mx5 co-cpu i2c register*/
 +#define MX5_CO_CPU_ADDRESS 0x46
++#define MX5_CO_CPU_ADDR_LEN 2 // 16bit index
 +#define MX5_CO_CPU_REGISTER_MEMORY_INDEX 0x01
 +#define MX5_CO_CPU_READ_BYTE 1
 +
@@ -814,10 +815,10 @@ index 0000000000..9fbff36d9f
 +0x020e05b0, 0x00000030,
 +0x020e0524, 0x00000030,
 +0x020e051c, 0x00000030,
-+0x020e0534, 0x00018200,
-+0x020e0538, 0x00008000,
-+0x020e053c, 0x00018200,
-+0x020e0540, 0x00018200,
++0x020e0534, 0x00018200, 
++0x020e0538, 0x00008000, 
++0x020e053c, 0x00018200, 
++0x020e0540, 0x00018200, 
 +0x020e0774, 0x00020000,
 +0x020e0784, 0x00000030,
 +0x020e0788, 0x00000030,
@@ -858,9 +859,9 @@ index 0000000000..9fbff36d9f
 +0x00bb0008, 0x00000003,
 +0x00bb000c, 0xA891E41A,
 +0x00bb0038, 0x00000544,
-+0x00bb0014, 0x00000040,
-+0x00bb0028, 0x00000020,
-+0x00bb002c, 0x00000020,
++0x00bb0014, 0x00000040, 
++0x00bb0028, 0x00000020, 
++0x00bb002c, 0x00000020, 
 +0x021b001c, 0x02088032,
 +0x021b001c, 0x00008033,
 +0x021b001c, 0x00408031,
@@ -891,23 +892,13 @@ index 0000000000..9fbff36d9f
 +	i2c_init(CONFIG_SYS_I2C_SPEED, 0);
 +	if (i2c_probe(MX5_CO_CPU_ADDRESS) != 0)
 +	{
-+
 +		return 0xff;
 +	}
-+	//printf("i2c_probe:%u\n", i);
-+	/*Exaple conifiguration that should be changed.*/
 +	for (retry = 0; retry < 10; ++retry) {
-+		if (i2c_read(MX5_CO_CPU_ADDRESS, MX5_CO_CPU_REGISTER_MEMORY_INDEX, MX5_CO_CPU_READ_BYTE, &buf, MX5_CO_CPU_READ_BYTE) != 0)
++		if (i2c_read(MX5_CO_CPU_ADDRESS, MX5_CO_CPU_REGISTER_MEMORY_INDEX, MX5_CO_CPU_ADDR_LEN, &buf, MX5_CO_CPU_READ_BYTE) != 0)
 +		{
 +			return 0xff;
-+		} else 
-+		{
-+			//get the actual value fom eeprom address that was sent in response.
-+			if (i2c_read(MX5_CO_CPU_ADDRESS, buf, MX5_CO_CPU_READ_BYTE, &buf, MX5_CO_CPU_READ_BYTE) != 0)
-+			{
-+				return 0xff;
-+			}
-+
++		} else {
 +			return buf;
 +		}
 +		printf("Retry to read from co cpu address, value:%x\n", buf);
@@ -936,7 +927,7 @@ index 0000000000..9fbff36d9f
 +	switch (memory_variant_number)
 +	{
 +	case 1:
-+		ddr_init(calibration_table_id_1, ARRAY_SIZE(mx5_r2c_dcd_table));
++		ddr_init(calibration_table_id_1, ARRAY_SIZE(calibration_table_id_1));
 +		break;
 +
 +	/*fall back to mx5_universal_table if i2c does not work*/
@@ -1125,4 +1116,3 @@ index 0000000000..4c0e6d1b62
 +#endif                         /* __IM5_IMX6QP_CONFIG_H */
 -- 
 2.17.1
-

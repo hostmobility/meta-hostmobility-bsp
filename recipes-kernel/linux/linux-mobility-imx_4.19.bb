@@ -2,7 +2,7 @@
 
 SUMMARY = "Host Mobility BSP Linux kernel for MX-5 products"
 
-inherit kernel
+inherit kernel-yocto kernel
 require recipes-kernel/linux/linux-yocto.inc
 
 LIC_FILES_CHKSUM = "file://COPYING;md5=bbea815ee2795b2f4230826c0c6b8814"
@@ -14,6 +14,7 @@ LINUX_VERSION_EXTENSION_append = "-imx"
 
 SRC_URI = "\
     git://source.codeaurora.org/external/imx/linux-imx;name=linuxkernel;branch=${LINUXBRANCH};protocol=ssh;nocheckout=1 \
+    file://defconfig \
     git://git@gitlab.com/hostmobility/gpio-overlay;name=gpiooverlay;protocol=ssh;destsuffix=git/drivers/gpio/gpio-overlay \
     git://git@gitlab.com/hostmobility/ncv7751-gpio-driver;name=ncv7751;protocol=ssh;destsuffix=git/drivers/gpio/ncv7751-gpio-driver \
     git://git@gitlab.com/hostmobility/modem_controller;name=modemcontroller;protocol=ssh;destsuffix=git/drivers/gpio/modem_controller \
@@ -25,7 +26,6 @@ SRC_URI = "\
     file://0002-Add-support-on-USB-for-EG25-modem.patch \
     file://0003-Add-stability-fix-for-tlv320aic3x-codec-driver.patch \
     file://0004-Add-imx6qp-mx5.dtb-to-makfile.patch \
-    file://0005-Add-mx5-pt-defconfig.patch \
     file://0006-Add-device-tree-for-mx5-pt.patch \
     file://0007-Remove-dma-on-spi-HC-Ignore-dma-for-now-use-pio.patch \
 "
@@ -42,11 +42,6 @@ SRCREV_mx5cocpu = "${AUTOREV}"
 PV = "${LINUX_VERSION}+git${SRCPV}"
 
 KCONFIG_MODE="--alldefconfig"
-do_configure_prepend () {
-    cd ${S}
-    export KBUILD_OUTPUT=${B}
-    oe_runmake ${KERNEL_DEFCONFIG}
-}
 
 COMPATIBLE_MACHINE = "mx5-pt"
 KBUILD_DEFCONFIG ?= "${KERNEL_DEFCONFIG}"

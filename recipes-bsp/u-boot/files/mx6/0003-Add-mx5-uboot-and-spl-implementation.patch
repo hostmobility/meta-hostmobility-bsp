@@ -1,0 +1,1118 @@
+From aba82e726e0e5583c98fee174e3d2aa7cc114758 Mon Sep 17 00:00:00 2001
+From: rikardo <rikard.olander@hostmobility.com>
+Date: Mon, 16 Aug 2021 08:36:16 +0200
+Subject: [PATCH 3/4] Add mx5 uboot and spl implementation
+
+---
+ board/hostmobility/common/Makefile         |   8 +
+ board/hostmobility/common/pfuze.c          | 173 +++++++
+ board/hostmobility/common/pfuze.h          |  17 +
+ board/hostmobility/mx5_imx6qp/Kconfig      |  15 +
+ board/hostmobility/mx5_imx6qp/Makefile     |   7 +
+ board/hostmobility/mx5_imx6qp/enet.c       | 119 +++++
+ board/hostmobility/mx5_imx6qp/enet.h       |  11 +
+ board/hostmobility/mx5_imx6qp/mx5_imx6qp.c | 551 +++++++++++++++++++++
+ include/configs/mx5_imx6_common.h          | 101 ++++
+ include/configs/mx5_imx6qp.h               |  26 +
+ 10 files changed, 1028 insertions(+)
+ create mode 100644 board/hostmobility/common/Makefile
+ create mode 100644 board/hostmobility/common/pfuze.c
+ create mode 100644 board/hostmobility/common/pfuze.h
+ create mode 100644 board/hostmobility/mx5_imx6qp/Kconfig
+ create mode 100644 board/hostmobility/mx5_imx6qp/Makefile
+ create mode 100644 board/hostmobility/mx5_imx6qp/enet.c
+ create mode 100644 board/hostmobility/mx5_imx6qp/enet.h
+ create mode 100644 board/hostmobility/mx5_imx6qp/mx5_imx6qp.c
+ create mode 100644 include/configs/mx5_imx6_common.h
+ create mode 100644 include/configs/mx5_imx6qp.h
+
+diff --git a/board/hostmobility/common/Makefile b/board/hostmobility/common/Makefile
+new file mode 100644
+index 0000000000..76f04b026b
+--- /dev/null
++++ b/board/hostmobility/common/Makefile
+@@ -0,0 +1,8 @@
++# SPDX-License-Identifier: GPL-2.0+
++#
++# (C) Copyright 2006
++# Wolfgang Denk, DENX Software Engineering, wd@denx.de.
++
++MINIMAL=
++
++obj-$(CONFIG_$(SPL_)DM_PMIC_PFUZE100)	+= pfuze.o
+diff --git a/board/hostmobility/common/pfuze.c b/board/hostmobility/common/pfuze.c
+new file mode 100644
+index 0000000000..03ebe4e7b5
+--- /dev/null
++++ b/board/hostmobility/common/pfuze.c
+@@ -0,0 +1,173 @@
++// SPDX-License-Identifier: GPL-2.0+
++/*
++ * Copyright 2014 Freescale Semiconductor, Inc.
++ */
++
++#include <common.h>
++#include <errno.h>
++#include <power/pmic.h>
++#include <power/pfuze100_pmic.h>
++
++#ifndef CONFIG_DM_PMIC_PFUZE100
++int pfuze_mode_init(struct pmic *p, u32 mode)
++{
++	unsigned char offset, i, switch_num;
++	u32 id;
++	int ret;
++
++	pmic_reg_read(p, PFUZE100_DEVICEID, &id);
++	id = id & 0xf;
++
++	if (id == 0) {
++		switch_num = 6;
++		offset = PFUZE100_SW1CMODE;
++	} else if (id == 1) {
++		switch_num = 4;
++		offset = PFUZE100_SW2MODE;
++	} else {
++		printf("Not supported, id=%d\n", id);
++		return -EINVAL;
++	}
++
++	ret = pmic_reg_write(p, PFUZE100_SW1ABMODE, mode);
++	if (ret < 0) {
++		printf("Set SW1AB mode error!\n");
++		return ret;
++	}
++
++	for (i = 0; i < switch_num - 1; i++) {
++		ret = pmic_reg_write(p, offset + i * SWITCH_SIZE, mode);
++		if (ret < 0) {
++			printf("Set switch 0x%x mode error!\n",
++			       offset + i * SWITCH_SIZE);
++			return ret;
++		}
++	}
++
++	return ret;
++}
++
++struct pmic *pfuze_common_init(unsigned char i2cbus)
++{
++	struct pmic *p;
++	int ret;
++	unsigned int reg;
++
++	ret = power_pfuze100_init(i2cbus);
++	if (ret)
++		return NULL;
++
++	p = pmic_get("PFUZE100");
++	ret = pmic_probe(p);
++	if (ret)
++		return NULL;
++
++	pmic_reg_read(p, PFUZE100_DEVICEID, &reg);
++	printf("PMIC:  PFUZE100 ID=0x%02x\n", reg);
++
++	/* Set SW1AB stanby volage to 0.975V */
++	pmic_reg_read(p, PFUZE100_SW1ABSTBY, &reg);
++	reg &= ~SW1x_STBY_MASK;
++	reg |= SW1x_0_975V;
++	pmic_reg_write(p, PFUZE100_SW1ABSTBY, reg);
++
++	/* Set SW1AB/VDDARM step ramp up time from 16us to 4us/25mV */
++	pmic_reg_read(p, PFUZE100_SW1ABCONF, &reg);
++	reg &= ~SW1xCONF_DVSSPEED_MASK;
++	reg |= SW1xCONF_DVSSPEED_4US;
++	pmic_reg_write(p, PFUZE100_SW1ABCONF, reg);
++
++	/* Set SW1C standby voltage to 0.975V */
++	pmic_reg_read(p, PFUZE100_SW1CSTBY, &reg);
++	reg &= ~SW1x_STBY_MASK;
++	reg |= SW1x_0_975V;
++	pmic_reg_write(p, PFUZE100_SW1CSTBY, reg);
++
++	/* Set SW1C/VDDSOC step ramp up time from 16us to 4us/25mV */
++	pmic_reg_read(p, PFUZE100_SW1CCONF, &reg);
++	reg &= ~SW1xCONF_DVSSPEED_MASK;
++	reg |= SW1xCONF_DVSSPEED_4US;
++	pmic_reg_write(p, PFUZE100_SW1CCONF, reg);
++
++	return p;
++}
++#else
++int pfuze_mode_init(struct udevice *dev, u32 mode)
++{
++	unsigned char offset, i, switch_num;
++	u32 id;
++	int ret;
++
++	id = pmic_reg_read(dev, PFUZE100_DEVICEID);
++	id = id & 0xf;
++
++	if (id == 0) {
++		switch_num = 6;
++		offset = PFUZE100_SW1CMODE;
++	} else if (id == 1) {
++		switch_num = 4;
++		offset = PFUZE100_SW2MODE;
++	} else {
++		printf("Not supported, id=%d\n", id);
++		return -EINVAL;
++	}
++
++	ret = pmic_reg_write(dev, PFUZE100_SW1ABMODE, mode);
++	if (ret < 0) {
++		printf("Set SW1AB mode error!\n");
++		return ret;
++	}
++
++	for (i = 0; i < switch_num - 1; i++) {
++		ret = pmic_reg_write(dev, offset + i * SWITCH_SIZE, mode);
++		if (ret < 0) {
++			printf("Set switch 0x%x mode error!\n",
++			       offset + i * SWITCH_SIZE);
++			return ret;
++		}
++	}
++
++	return ret;
++}
++
++struct udevice *pfuze_common_init(void)
++{
++	struct udevice *dev;
++	int ret;
++	unsigned int reg, dev_id, rev_id;
++
++	ret = pmic_get("pfuze100", &dev);
++	if (ret == -ENODEV)
++		return NULL;
++
++	dev_id = pmic_reg_read(dev, PFUZE100_DEVICEID);
++	rev_id = pmic_reg_read(dev, PFUZE100_REVID);
++	printf("PMIC: PFUZE100! DEV_ID=0x%x REV_ID=0x%x\n", dev_id, rev_id);
++
++	/* Set SW1AB stanby volage to 0.975V */
++	reg = pmic_reg_read(dev, PFUZE100_SW1ABSTBY);
++	reg &= ~SW1x_STBY_MASK;
++	reg |= SW1x_0_975V;
++	pmic_reg_write(dev, PFUZE100_SW1ABSTBY, reg);
++
++	/* Set SW1AB/VDDARM step ramp up time from 16us to 4us/25mV */
++	reg = pmic_reg_read(dev, PFUZE100_SW1ABCONF);
++	reg &= ~SW1xCONF_DVSSPEED_MASK;
++	reg |= SW1xCONF_DVSSPEED_4US;
++	pmic_reg_write(dev, PFUZE100_SW1ABCONF, reg);
++
++	/* Set SW1C standby voltage to 0.975V */
++	reg = pmic_reg_read(dev, PFUZE100_SW1CSTBY);
++	reg &= ~SW1x_STBY_MASK;
++	reg |= SW1x_0_975V;
++	pmic_reg_write(dev, PFUZE100_SW1CSTBY, reg);
++
++	/* Set SW1C/VDDSOC step ramp up time from 16us to 4us/25mV */
++	reg = pmic_reg_read(dev, PFUZE100_SW1CCONF);
++	reg &= ~SW1xCONF_DVSSPEED_MASK;
++	reg |= SW1xCONF_DVSSPEED_4US;
++	pmic_reg_write(dev, PFUZE100_SW1CCONF, reg);
++
++	return dev;
++}
++#endif
+diff --git a/board/hostmobility/common/pfuze.h b/board/hostmobility/common/pfuze.h
+new file mode 100644
+index 0000000000..45b49afaeb
+--- /dev/null
++++ b/board/hostmobility/common/pfuze.h
+@@ -0,0 +1,17 @@
++/* SPDX-License-Identifier: GPL-2.0+ */
++/*
++ * Copyright 2014 Freescale Semiconductor, Inc.
++ */
++
++#ifndef __PFUZE_BOARD_HELPER__
++#define __PFUZE_BOARD_HELPER__
++
++#ifdef CONFIG_DM_PMIC_PFUZE100
++struct udevice *pfuze_common_init(void);
++int pfuze_mode_init(struct udevice *dev, u32 mode);
++#else
++struct pmic *pfuze_common_init(unsigned char i2cbus);
++int pfuze_mode_init(struct pmic *p, u32 mode);
++#endif
++
++#endif
+diff --git a/board/hostmobility/mx5_imx6qp/Kconfig b/board/hostmobility/mx5_imx6qp/Kconfig
+new file mode 100644
+index 0000000000..c981c90f61
+--- /dev/null
++++ b/board/hostmobility/mx5_imx6qp/Kconfig
+@@ -0,0 +1,15 @@
++if TARGET_MX5_IMX6QP
++
++config SYS_BOARD
++	default "mx5_imx6qp"
++
++config SYS_VENDOR
++	default "hostmobility"
++
++config SYS_CONFIG_NAME
++	default "mx5_imx6qp"
++
++config SYS_TEXT_BASE
++    default 0x17800000
++
++endif
+diff --git a/board/hostmobility/mx5_imx6qp/Makefile b/board/hostmobility/mx5_imx6qp/Makefile
+new file mode 100644
+index 0000000000..10cd397355
+--- /dev/null
++++ b/board/hostmobility/mx5_imx6qp/Makefile
+@@ -0,0 +1,7 @@
++# SPDX-License-Identifier: GPL-2.0+
++#
++# Copyright (C) 2007, Guennadi Liakhovetski <lg@denx.de>
++#
++# (C) Copyright 2011 Freescale Semiconductor, Inc.
++
++obj-y  := mx5_imx6qp.o enet.o
+diff --git a/board/hostmobility/mx5_imx6qp/enet.c b/board/hostmobility/mx5_imx6qp/enet.c
+new file mode 100644
+index 0000000000..0cbd01407a
+--- /dev/null
++++ b/board/hostmobility/mx5_imx6qp/enet.c
+@@ -0,0 +1,119 @@
++// SPDX-License-Identifier: GPL-2.0+
++/*
++ * Copyright (C) 2012-2016 Freescale Semiconductor, Inc.
++ * Copyright 2017-2018 NXP
++ * Based on
++ *	board/freescale/mx6sabresd/mx6sabresd.c
++ *
++ * Author: Fredrik Nordström <fredrik.nordstrom@evidente.se>
++ */
++
++#include <asm/arch/clock.h>
++#include <asm/arch/mx6-pins.h>
++#include <asm/arch/sys_proto.h>
++#include <asm/gpio.h>
++#include <miiphy.h>
++#include <netdev.h>
++
++#define ENET_PAD_CTRL  (PAD_CTL_PUS_100K_UP |			\
++PAD_CTL_SPEED_MED | PAD_CTL_DSE_40ohm | PAD_CTL_HYS)
++
++static iomux_v3_cfg_t const enet_pads[] = {
++	IOMUX_PADS(PAD_ENET_MDIO__ENET_MDIO	| MUX_PAD_CTRL(ENET_PAD_CTRL)),
++	IOMUX_PADS(PAD_ENET_MDC__ENET_MDC	| MUX_PAD_CTRL(ENET_PAD_CTRL)),
++	IOMUX_PADS(PAD_RGMII_TXC__RGMII_TXC	| MUX_PAD_CTRL(ENET_PAD_CTRL)),
++	IOMUX_PADS(PAD_RGMII_TD0__RGMII_TD0	| MUX_PAD_CTRL(ENET_PAD_CTRL)),
++	IOMUX_PADS(PAD_RGMII_TD1__RGMII_TD1	| MUX_PAD_CTRL(ENET_PAD_CTRL)),
++	IOMUX_PADS(PAD_RGMII_TD2__RGMII_TD2	| MUX_PAD_CTRL(ENET_PAD_CTRL)),
++	IOMUX_PADS(PAD_RGMII_TD3__RGMII_TD3	| MUX_PAD_CTRL(ENET_PAD_CTRL)),
++	IOMUX_PADS(PAD_RGMII_TX_CTL__RGMII_TX_CTL |
++		MUX_PAD_CTRL(ENET_PAD_CTRL)),
++	IOMUX_PADS(PAD_ENET_REF_CLK__ENET_TX_CLK |
++		MUX_PAD_CTRL(ENET_PAD_CTRL)),
++	IOMUX_PADS(PAD_RGMII_RXC__RGMII_RXC	| MUX_PAD_CTRL(ENET_PAD_CTRL)),
++	IOMUX_PADS(PAD_RGMII_RD0__RGMII_RD0	| MUX_PAD_CTRL(ENET_PAD_CTRL)),
++	IOMUX_PADS(PAD_RGMII_RD1__RGMII_RD1	| MUX_PAD_CTRL(ENET_PAD_CTRL)),
++	IOMUX_PADS(PAD_RGMII_RD2__RGMII_RD2	| MUX_PAD_CTRL(ENET_PAD_CTRL)),
++	IOMUX_PADS(PAD_RGMII_RD3__RGMII_RD3	| MUX_PAD_CTRL(ENET_PAD_CTRL)),
++	IOMUX_PADS(PAD_RGMII_RX_CTL__RGMII_RX_CTL |
++		MUX_PAD_CTRL(ENET_PAD_CTRL)),
++	/* AR8031 PHY Reset */
++	IOMUX_PADS(PAD_ENET_CRS_DV__GPIO1_IO25	| MUX_PAD_CTRL(NO_PAD_CTRL)),
++};
++
++static void fec_phy_reset(void)
++{
++	/* Reset AR8031 PHY */
++	gpio_request(IMX_GPIO_NR(1, 25), "ENET PHY Reset");
++	gpio_direction_output(IMX_GPIO_NR(1, 25), 0);
++	mdelay(10);
++	gpio_set_value(IMX_GPIO_NR(1, 25), 1);
++	udelay(100);
++}
++
++static void setup_iomux_enet(void)
++{
++	SETUP_IOMUX_PADS(enet_pads);
++	fec_phy_reset();
++}
++
++static int ar8031_phy_fixup(struct phy_device *phydev)
++{
++	unsigned short val;
++
++	/* To enable AR8031 output a 125MHz clk from CLK_25M */
++	if (!is_mx6dqp()) {
++		phy_write(phydev, MDIO_DEVAD_NONE, 0xd, 0x7);
++		phy_write(phydev, MDIO_DEVAD_NONE, 0xe, 0x8016);
++		phy_write(phydev, MDIO_DEVAD_NONE, 0xd, 0x4007);
++
++		val = phy_read(phydev, MDIO_DEVAD_NONE, 0xe);
++		val &= 0xffe3;
++		val |= 0x18;
++		phy_write(phydev, MDIO_DEVAD_NONE, 0xe, val);
++	}
++
++	/* set the IO voltage to 1.8v */
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x1d, 0x1f);
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x1e, 0x8);
++
++	/* introduce tx clock delay */
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x1d, 0x5);
++	val = phy_read(phydev, MDIO_DEVAD_NONE, 0x1e);
++	val |= 0x0100;
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x1e, val);
++
++	return 0;
++}
++
++int board_phy_config(struct phy_device *phydev)
++{
++	ar8031_phy_fixup(phydev);
++
++	if (phydev->drv->config)
++		phydev->drv->config(phydev);
++
++	return 0;
++}
++
++void setup_fec(void)
++{
++	if (is_mx6dqp()) {
++		int ret;
++
++		/* select ENET MAC0 TX clock from PLL */
++		imx_iomux_set_gpr_register(5, 9, 1, 1);
++		ret = enable_fec_anatop_clock(0, ENET_125MHZ);
++		if (ret)
++			printf("Error fec anatop clock settings!\n");
++	}
++
++	fec_phy_reset();
++}
++
++int board_eth_init(bd_t *bis)
++{
++	setup_iomux_enet();
++	enable_enet_clk(1);
++	return cpu_eth_init(bis);
++}
+diff --git a/board/hostmobility/mx5_imx6qp/enet.h b/board/hostmobility/mx5_imx6qp/enet.h
+new file mode 100644
+index 0000000000..2a1574fb03
+--- /dev/null
++++ b/board/hostmobility/mx5_imx6qp/enet.h
+@@ -0,0 +1,11 @@
++/* SPDX-License-Identifier: GPL-2.0+ */
++/*
++ * Copyright (C) 2012-2016 Freescale Semiconductor, Inc.
++ * Copyright 2017-2018 NXP
++ * Based on
++ *	board/freescale/mx6sabresd/mx6sabresd.c
++ *
++ * Author: Fredrik Nordström <fredrik.nordstrom@evidente.se>
++ */
++
++void setup_fec(void);
+diff --git a/board/hostmobility/mx5_imx6qp/mx5_imx6qp.c b/board/hostmobility/mx5_imx6qp/mx5_imx6qp.c
+new file mode 100644
+index 0000000000..2b8eb53e6c
+--- /dev/null
++++ b/board/hostmobility/mx5_imx6qp/mx5_imx6qp.c
+@@ -0,0 +1,551 @@
++// SPDX-License-Identifier: GPL-2.0+
++/*
++ * Copyright (C) 2012-2016 Freescale Semiconductor, Inc.
++ * Copyright 2017-2018 NXP
++ * Copyright 2019 Host Mobility
++ * Based on
++ *	board/freescale/mx6sabresd/mx6sabresd.c
++ *
++ * Author: Henning Colliander <henning.colliander@evidente.se>
++ * Author: Rikard Olander <rikard.olander@hostmobility.com>
++ */
++
++#include <asm/arch/mx6-pins.h>
++#include <asm/arch/sys_proto.h>
++#include <power/pmic.h>
++#include <power/pfuze100_pmic.h>
++#include <asm/arch/clock.h>
++#include <common.h>
++#include <dm.h>
++#include <environment.h>
++#include <asm/arch/imx-regs.h>
++#include <asm/arch/iomux.h>
++#include <asm/arch/mx6-pins.h>
++#include <asm/arch/mx6-ddr.h>
++#include <asm/bootm.h>
++#include <asm/gpio.h>
++#include <asm/io.h>
++#include <asm/mach-imx/iomux-v3.h>
++#include <asm/mach-imx/boot_mode.h>
++#include <dm/platform_data/serial_mxc.h>
++#include <dm/platdata.h>
++#include <fsl_esdhc.h>
++#include <input.h>
++#include <imx_thermal.h>
++#include <linux/errno.h>
++#include <malloc.h>
++#include <mmc.h>
++#include <miiphy.h>
++#include <netdev.h>
++#include <asm/mach-imx/mxc_i2c.h>
++#include <i2c.h>
++
++#include "../common/pfuze.h"
++#include "enet.h"
++#include <led.h>
++
++
++DECLARE_GLOBAL_DATA_PTR;
++
++#define UART_PAD_CTRL  (PAD_CTL_PUS_100K_UP |\
++		PAD_CTL_SPEED_MED | PAD_CTL_DSE_40ohm |\
++		PAD_CTL_SRE_FAST  | PAD_CTL_HYS)
++
++#define I2C_PAD_CTRL	(PAD_CTL_PUS_100K_UP |			\
++	PAD_CTL_SPEED_MED | PAD_CTL_DSE_40ohm | PAD_CTL_HYS |	\
++	PAD_CTL_ODE | PAD_CTL_SRE_FAST)
++
++/* Mx5 co-cpu i2c register*/
++#define MX5_CO_CPU_ADDRESS 0x46
++#define MX5_CO_CPU_ADDR_LEN 2 // 16bit index
++#define MX5_CO_CPU_REGISTER_MEMORY_INDEX 0x01
++#define MX5_CO_CPU_READ_BYTE 1
++
++static iomux_v3_cfg_t const uart1_pads[] = {
++	IOMUX_PADS(PAD_CSI0_DAT10__UART1_TX_DATA | MUX_PAD_CTRL(UART_PAD_CTRL)),
++	IOMUX_PADS(PAD_CSI0_DAT11__UART1_RX_DATA | MUX_PAD_CTRL(UART_PAD_CTRL)),
++};
++#ifdef CONFIG_SPL_I2C_SUPPORT
++struct i2c_pads_info i2c_pad_info_bus3 = {
++	.scl = {
++		.i2c_mode = MX6_PAD_GPIO_3__I2C3_SCL | MUX_PAD_CTRL(I2C_PAD_CTRL),
++		.gpio_mode = MX6_PAD_GPIO_3__GPIO1_IO03 | MUX_PAD_CTRL(I2C_PAD_CTRL),
++		.gp = IMX_GPIO_NR(1, 3)
++	},
++	.sda = {
++		.i2c_mode = MX6_PAD_GPIO_6__I2C3_SDA | MUX_PAD_CTRL(I2C_PAD_CTRL),
++		.gpio_mode = MX6_PAD_GPIO_6__GPIO1_IO06 | MUX_PAD_CTRL(I2C_PAD_CTRL),
++		.gp = IMX_GPIO_NR(1, 6)
++	}
++};
++#endif
++static void setup_iomux_uart(void)
++{
++	SETUP_IOMUX_PADS(uart1_pads);
++}
++
++int board_early_init_f(void)
++{
++	setup_iomux_uart();
++
++	#ifdef CONFIG_SPL_I2C_SUPPORT
++	setup_i2c(2, CONFIG_SYS_I2C_SPEED, 0x7f, &i2c_pad_info_bus3);
++	#endif
++
++	return 0;
++}
++
++int dram_init(void)
++{
++	gd->ram_size = imx_ddr_size();
++	return 0;
++}
++
++int board_init(void)
++{
++	if (IS_ENABLED(CONFIG_LED))
++		led_default_state();
++
++	#ifdef CONFIG_FEC_MXC
++	  setup_fec();
++	#endif
++
++	return 0;
++}
++#ifndef CONFIG_SPL_BUILD
++#ifdef CONFIG_LDO_BYPASS_CHECK
++#if defined(CONFIG_DM_PMIC_PFUZE100)
++ void ldo_mode_set(int ldo_bypass)
++ {
++       int is_400M;
++       unsigned char vddarm;
++       struct udevice *dev;
++       int ret;
++
++       ret = pmic_get("pfuze100", &dev);
++       if (ret == -ENODEV) {
++               printf("No PMIC found!\n");
++               return;
++       }
++
++       /* increase VDDARM/VDDSOC to support 1.2G chip */
++       if (check_1_2G()) {
++               ldo_bypass = 0; /* ldo_enable on 1.2G chip */
++               printf("1.2G chip, increase VDDARM_IN/VDDSOC_IN\n");
++               if (is_mx6dqp()) {
++                       /* increase VDDARM to 1.425V */
++                       pmic_clrsetbits(dev, PFUZE100_SW2VOL, 0x3f, 0x29);
++               } else {
++                       /* increase VDDARM to 1.425V */
++                       pmic_clrsetbits(dev, PFUZE100_SW1ABVOL, 0x3f, 0x2d);
++               }
++               /* increase VDDSOC to 1.425V */
++               pmic_clrsetbits(dev, PFUZE100_SW1CVOL, 0x3f, 0x2d);
++       }
++       /* switch to ldo_bypass mode , boot on 800Mhz */
++       if (ldo_bypass) {
++               prep_anatop_bypass();
++               if (is_mx6dqp()) {
++                       /* decrease VDDARM for 400Mhz DQP:1.1V*/
++                       pmic_clrsetbits(dev, PFUZE100_SW2VOL, 0x3f, 0x1c);
++               } else {
++                       /* decrease VDDARM for 400Mhz DQ:1.1V, DL:1.275V */
++                       if (is_mx6dl())
++                               pmic_clrsetbits(dev, PFUZE100_SW1ABVOL, 0x3f, 0x27);
++                       else
++                               pmic_clrsetbits(dev, PFUZE100_SW1ABVOL, 0x3f, 0x20);
++               }
++               /* increase VDDSOC to 1.3V */
++               pmic_clrsetbits(dev, PFUZE100_SW1CVOL, 0x3f, 0x28);
++
++               /*
++                * MX6Q/DQP:
++                * VDDARM:1.15V@800M; VDDSOC:1.175V@800M
++                * VDDARM:0.975V@400M; VDDSOC:1.175V@400M
++                * MX6DL:
++                * VDDARM:1.175V@800M; VDDSOC:1.175V@800M
++                * VDDARM:1.15V@400M; VDDSOC:1.175V@400M
++                */
++               is_400M = set_anatop_bypass(2);
++               if (is_mx6dqp()) {
++                       if (is_400M)
++                               pmic_clrsetbits(dev, PFUZE100_SW2VOL, 0x3f, 0x17);
++                       else
++                               pmic_clrsetbits(dev, PFUZE100_SW2VOL, 0x3f, 0x1e);
++               }
++
++               if (is_400M) {
++                       if (is_mx6dl())
++                               vddarm = 0x22;
++                       else
++                               vddarm = 0x1b;
++               } else {
++                       if (is_mx6dl())
++                               vddarm = 0x23;
++                       else
++                               vddarm = 0x22;
++               }
++               pmic_clrsetbits(dev, PFUZE100_SW1ABVOL, 0x3f, vddarm);
++
++               /* decrease VDDSOC to 1.175V */
++               pmic_clrsetbits(dev, PFUZE100_SW1CVOL, 0x3f, 0x23);
++
++               finish_anatop_bypass();
++               printf("switch to ldo_bypass mode!\n");
++       }
++ }
++#endif
++#endif
++ 
++#if defined(CONFIG_DM_PMIC_PFUZE100)
++int power_init_board(void)
++{
++       struct udevice *dev;
++       int ret;
++
++       dev = pfuze_common_init();
++       if (!dev) {
++		return -ENODEV;
++       }
++       ret = pfuze_mode_init(dev, APS_APS);
++       if (ret < 0) {
++               return ret;
++       }
++
++	/* Turn off VGEN1-3 and 5-6 voltage, not needed but leave the voltage level the same as default.*/
++       pmic_clrsetbits(dev, PFUZE100_VGEN1VOL, LDO_EN, LDO_MODE_OFF);
++       pmic_clrsetbits(dev, PFUZE100_VGEN2VOL, LDO_EN, LDO_MODE_OFF);
++       pmic_clrsetbits(dev, PFUZE100_VGEN3VOL, LDO_EN, LDO_MODE_OFF);
++       pmic_clrsetbits(dev, PFUZE100_VGEN5VOL, LDO_EN, LDO_MODE_OFF);
++       pmic_clrsetbits(dev, PFUZE100_VGEN6VOL, LDO_EN, LDO_MODE_OFF);
++
++       /*Set VGEN4 set to 3V0*/
++       pmic_clrsetbits(dev, PFUZE100_VGEN4VOL, LDO_VOL_MASK, (LDOB_3_00V | LDO_EN ) );
++
++
++       /* set SW1C standby voltage 1.075V*/
++       pmic_clrsetbits(dev, PFUZE100_SW1CSTBY, SW1x_NORMAL_MASK, SW1x_1_075V);
++
++       /* set SW1C/VDDSOC step ramp up time to from 16us to 4us/25mV */
++       pmic_clrsetbits(dev, PFUZE100_SW1CCONF, SW1xCONF_DVSSPEED_MASK, SW1xCONF_DVSSPEED_4US);
++
++       /* set SW2/VDDARM standby voltage 0.975V*/
++       /* 0x7f bits 6:0 for sw2 not 5:0 3F. Correct no define for this SW2X_0_975V (23) */
++       pmic_clrsetbits(dev, PFUZE100_SW2STBY, 0x7f, 0x17);
++
++       /* set SW2/VDDARM step ramp up time to from 16us to 4us/25mV */
++       pmic_clrsetbits(dev, PFUZE100_SW2CONF, SW1xCONF_DVSSPEED_16US, SW1xCONF_DVSSPEED_4US);
++
++
++       return 0;
++}
++#endif
++#endif
++
++#if defined(CONFIG_OF_LIBFDT) && defined(CONFIG_OF_BOARD_SETUP)
++int ft_board_setup(void *blob, bd_t *bd)
++{
++	/*Add fdt_setprop, like hw rev,serial number, mac address etc*/
++	return 0;
++}
++#endif
++
++#ifdef CONFIG_SPL_BUILD
++#include <spl.h>
++#include <linux/libfdt.h>
++#include "asm/arch/mx6q-ddr.h"
++#include "asm/arch/iomux.h"
++#include "asm/arch/crm_regs.h"
++
++#ifdef CONFIG_SPL_OS_BOOT
++int spl_start_uboot(void)
++{
++	return 0;
++}
++#endif
++
++static void ccgr_init(void)
++{
++	struct mxc_ccm_reg *ccm = (struct mxc_ccm_reg *)CCM_BASE_ADDR;
++
++	writel(0x00C03F3F, &ccm->CCGR0);
++	writel(0x0030FC0F, &ccm->CCGR1);
++	writel(0x0FFFC000, &ccm->CCGR2);
++	writel(0x3FF00000, &ccm->CCGR3);
++	writel(0x00FFF300, &ccm->CCGR4);
++	writel(0x0F0000C3, &ccm->CCGR5);
++	writel(0x000000FF, &ccm->CCGR6);
++}
++
++/* For R2C it will be 64MB ram(16 bit bus with, row 13,col 9) to boot up uboot,
++ but it should be enough to setup board data 
++ to boot one of many variants listed bellow.*/
++static int mx5_universal_table[] = {
++0x020e0798, 0x000C0000,
++0x020e0758, 0x00000000,
++0x020e0588, 0x00000030,
++0x020e0594, 0x00000030,
++0x020e056c, 0x00000030,
++0x020e0578, 0x00000030,
++0x020e074c, 0x00000030,
++0x020e057c, 0x00000030,
++0x020e058c, 0x00000000,
++0x020e059c, 0x00000030,
++0x020e05a0, 0x00000030,
++0x020e078c, 0x00000030,
++0x020e0750, 0x00020000,
++0x020e05a8, 0x00000030,
++0x020e05b0, 0x00000030,
++0x020e0524, 0x00000030,
++0x020e051c, 0x00000030,
++0x020e0518, 0x00000030,
++0x020e050c, 0x00000030,
++0x020e05b8, 0x00000030,
++0x020e05c0, 0x00000030,
++0x020e0774, 0x00020000,
++0x020e0784, 0x00000030,
++0x020e0788, 0x00000030,
++0x020e0794, 0x00000030,
++0x020e079c, 0x00000030,
++0x020e07a0, 0x00000030,
++0x020e07a4, 0x00000030,
++0x020e07a8, 0x00000030,
++0x020e0748, 0x00000030,
++0x020e05ac, 0x00000030,
++0x020e05b4, 0x00000030,
++0x020e0528, 0x00000030,
++0x020e0520, 0x00000030,
++0x020e0514, 0x00000030,
++0x020e0510, 0x00000030,
++0x020e05bc, 0x00000030,
++0x020e05c4, 0x00000030,
++0x021b0800, 0xa1390003,
++0x021b080c, 0x001C0018,
++0x021b0810, 0x001F001F,
++0x021b083c, 0x43100324,
++0x021b0840, 0x00000000,
++0x021b0848, 0x40403A3A,
++0x021b0850, 0x4040322E,
++0x021b081c, 0x33333333,
++0x021b0820, 0x33333333,
++0x021b0824, 0x33333333,
++0x021b0828, 0x33333333,
++0x021b481c, 0x33333333,
++0x021b4820, 0x33333333,
++0x021b4824, 0x33333333,
++0x021b4828, 0x33333333,
++0x021b08c0, 0x24921492,
++0x021b48c0, 0x24921492,
++0x021b08b8, 0x00000800,
++0x021b48b8, 0x00000800,
++0x021b0004, 0x00020036,
++0x021b0008, 0x24444040,
++0x021b000c, 0x545979A4,
++0x021b0010, 0xDB530F64,
++0x021b0014, 0x01FF00DD,
++0x021b0018, 0x00001740,
++0x021b001c, 0x00008000,
++0x021b002c, 0x000026d2,
++0x021b0030, 0x00591023,
++0x021b0040, 0x0000000F,
++0x021b0000, 0x82080000,
++0x021b001c, 0x04088032,
++0x021b001c, 0x00008033,
++0x021b001c, 0x00048031,
++0x021b001c, 0x19308030,
++0x021b001c, 0x04008040,
++0x021b0020, 0x00005800,
++0x021b0818, 0x00011117,
++0x021b4818, 0x00011117,
++0x021b0004, 0x00025576,
++0x021b0404, 0x00011006,
++0x021b001c, 0x00000000,
++};
++		
++// Manufacturer:	Micron		
++// Device Part Number:	MT41K256M16TW-107 IT		
++// Clock Freq.: 	528MHz		
++// Density per CS in Gb: 	4		
++// Chip Selects used:	1		
++// Number of Banks:	8		
++// Row address:    	15		
++// Column address: 	10		
++// Data bus width	16 (fixed manual handling from 32 bit)	
++static int calibration_table_id_1[] = {
++0x020e0798, 0x000C0000,
++0x020e0758, 0x00000000,
++0x020e0588, 0x00000030,
++0x020e0594, 0x00000030,
++0x020e056c, 0x00000030,
++0x020e0578, 0x00000030,
++0x020e074c, 0x00000030,
++0x020e057c, 0x00000030,
++0x020e058c, 0x00000000,
++0x020e059c, 0x00000030,
++0x020e05a0, 0x00000030,
++0x020e078c, 0x00000030,
++0x020e0750, 0x00020000,
++0x020e05a8, 0x00000030,
++0x020e05b0, 0x00000030,
++0x020e0524, 0x00000030,
++0x020e051c, 0x00000030,
++0x020e0534, 0x00018200, 
++0x020e0538, 0x00008000, 
++0x020e053c, 0x00018200, 
++0x020e0540, 0x00018200, 
++0x020e0774, 0x00020000,
++0x020e0784, 0x00000030,
++0x020e0788, 0x00000030,
++0x020e0794, 0x00000030,
++0x020e079c, 0x00000030,
++0x020e05ac, 0x00000030,
++0x020e05b4, 0x00000030,
++0x020e0528, 0x00000030,
++0x020e0520, 0x00000030,
++0x021b001c, 0x00008000,
++0x021b0800, 0xA1390003,
++0x021b080c, 0x001E0015,
++0x021b0810, 0x001F001F,
++0x021b083c, 0x051C0534,
++0x021b0840, 0x00000000,
++0x021b0848, 0x40403638,
++0x021b0850, 0x40404244,
++0x021b081c, 0x33333333,
++0x021b0820, 0x33333333,
++0x021b0824, 0x33333333,
++0x021b0828, 0x33333333,
++0x021b08c0, 0x24912489,
++0x021b48c0, 0x24914452,
++0x021b08b8, 0x00000800,
++0x021b0004, 0x00020036,
++0x021b0008, 0x24444040,
++0x021b000c, 0x545979A4,
++0x021b0010, 0xDB530F64,
++0x021b0014, 0x01FF00DB,
++0x021b0018, 0x00011740,
++0x021b001c, 0x00008000,
++0x021b002c, 0x000026D2,
++0x021b0030, 0x00591023,
++0x021b0040, 0x00000017,
++0x021b0400, 0x14420000,
++0x021b0000, 0x84180000,
++0x021b0890, 0x00400c58,
++0x00bb0008, 0x00000003,
++0x00bb000c, 0xA891E41A,
++0x00bb0038, 0x00000544,
++0x00bb0014, 0x00000040, 
++0x00bb0028, 0x00000020, 
++0x00bb002c, 0x00000020, 
++0x021b001c, 0x02088032,
++0x021b001c, 0x00008033,
++0x021b001c, 0x00408031,
++0x021b001c, 0x19408030,
++0x021b001c, 0x04008040,
++0x021b0020, 0x00005800,
++0x021b0818, 0x00011117,
++0x021b0004, 0x00025576,
++0x021b0404, 0x00011006,
++0x021b001c, 0x00000000,
++};
++
++static void ddr_init(int *table, int size)
++{
++	int i;
++
++	for (i = 0; i < size / 2 ; i++)
++		writel(table[2 * i + 1], table[2 * i]);
++}
++
++// return value for ram configuration, false value 1.
++uint8_t spl_i2c_get_cpu_identity(void)
++{
++	uchar retry;
++	uchar buf;
++	#ifdef CONFIG_SPL_I2C_SUPPORT
++
++	i2c_init(CONFIG_SYS_I2C_SPEED, 0);
++	if (i2c_probe(MX5_CO_CPU_ADDRESS) != 0)
++	{
++		return 0xff;
++	}
++	for (retry = 0; retry < 10; ++retry) {
++		if (i2c_read(MX5_CO_CPU_ADDRESS, MX5_CO_CPU_REGISTER_MEMORY_INDEX, MX5_CO_CPU_ADDR_LEN, &buf, MX5_CO_CPU_READ_BYTE) != 0)
++		{
++			return 0xff;
++		} else {
++			return buf;
++		}
++		printf("Retry to read from co cpu address, value:%x\n", buf);
++		if (retry == 10)
++		{
++			break;
++		}
++		udelay(500);
++	}
++	#endif
++	return 0xff;
++}
++
++static void spl_dram_init(void)
++{
++
++	uint8_t memory_variant_number;
++
++	memory_variant_number = spl_i2c_get_cpu_identity();
++	
++	if ( memory_variant_number ==  0xff || memory_variant_number ==  0x00 ) {
++		ddr_init(mx5_universal_table, ARRAY_SIZE(mx5_universal_table));
++	}
++	// debug print to remove..
++	printf("read from co cpu address, value:%x\n", memory_variant_number);
++	switch (memory_variant_number)
++	{
++	case 1:
++		ddr_init(calibration_table_id_1, ARRAY_SIZE(calibration_table_id_1));
++		break;
++
++	/*fall back to mx5_universal_table if i2c does not work*/
++	case 0:
++	case 0xff:
++	default:
++		ddr_init(mx5_universal_table, ARRAY_SIZE(mx5_universal_table));
++		break;
++}
++}
++
++void board_init_f(ulong dummy)
++{
++	/* setup AIPS and disable watchdog */
++	arch_cpu_init();
++
++	ccgr_init();
++	
++	gpr_init();
++	printf("SPL boot!\n");
++	/* iomux and setup of uart pins and setup of i2c */
++	board_early_init_f();
++
++	/* setup GP timer */
++	timer_init();
++
++#ifdef CONFIG_SPL_SERIAL_SUPPORT
++	/* UART clocks enabled and gd valid - init serial console */
++	preloader_console_init();
++#endif
++
++	/* DDR initialization */
++	spl_dram_init();
++
++	/* Clear the BSS. */
++	memset(__bss_start, 0, __bss_end - __bss_start);
++
++	/* load/boot image from boot device */
++	board_init_r(NULL, 0);
++
++}
++
++void reset_cpu(ulong addr)
++{
++}
++
++#endif
+diff --git a/include/configs/mx5_imx6_common.h b/include/configs/mx5_imx6_common.h
+new file mode 100644
+index 0000000000..193cab5bee
+--- /dev/null
++++ b/include/configs/mx5_imx6_common.h
+@@ -0,0 +1,101 @@
++/* SPDX-License-Identifier: GPL-2.0+ */
++/*
++ * Copyright (C) 2012 Freescale Semiconductor, Inc.
++ * Copyright 2018-2019 NXP
++ * Based on
++ *	include/configs/mx6sabresd_common.h
++ *
++ * Configuration settings for the Host Mobility Mx 5 board.
++ */
++
++#ifndef __MX5_IMX6_COMMON_CONFIG_H
++#define __MX5_IMX6_COMMON_CONFIG_H
++
++#include "mx6_common.h"
++#include "imx_env.h"
++#ifdef CONFIG_SPL
++#include "imx6_spl.h"
++#endif
++
++#define CONFIG_IMX_THERMAL
++#define CONFIG_MXC_UART
++
++/* Size of malloc() pool */
++#define CONFIG_SYS_MALLOC_LEN		(16 * SZ_1M)
++
++/* MMC Configs */
++#define CONFIG_FSL_USDHC
++#define CONFIG_SYS_FSL_USDHC_NUM	2
++#define CONFIG_SYS_FSL_ESDHC_ADDR   0
++
++/* Physical Memory Map */
++#define PHYS_SDRAM                     MMDC0_ARB_BASE_ADDR
++#define CONFIG_SYS_SDRAM_BASE          PHYS_SDRAM
++#define CONFIG_SYS_INIT_RAM_ADDR       IRAM_BASE_ADDR
++#define CONFIG_SYS_INIT_RAM_SIZE       IRAM_SIZE
++
++#define CONFIG_SYS_INIT_SP_OFFSET \
++	(CONFIG_SYS_INIT_RAM_SIZE - GENERATED_GBL_DATA_SIZE)
++#define CONFIG_SYS_INIT_SP_ADDR \
++	(CONFIG_SYS_INIT_RAM_ADDR + CONFIG_SYS_INIT_SP_OFFSET)
++
++/* Environment organization */
++#define CONFIG_ENV_SIZE			(8 * 1024)
++
++#define CONFIG_USBD_HS
++
++#ifdef CONFIG_SPL_BUILD
++	#define CONFIG_SYS_I2C
++#endif
++
++#define CONFIG_SYS_I2C_MXC
++#define CONFIG_SYS_I2C_MXC_I2C3		/* enable I2C bus 3 */
++#define CONFIG_SYS_I2C_SPEED		100000
++
++#define CONFIG_SYS_MMC_ENV_DEV		2	/* SDHC3 */
++#define CONFIG_SYS_MMC_ENV_PART		1       /* user partition */
++#define CONFIG_MMCROOT			"/dev/mmcblk2p2"  /* SDHC3 */
++#define CONSOLE_DEV			"ttymxc0"
++
++#define MFG_NAND_PARTITION ""
++
++#define CONFIG_MFG_ENV_SETTINGS \
++	CONFIG_MFG_ENV_SETTINGS_DEFAULT \
++	"initrd_addr=0x12C00000\0" \
++	"initrd_high=0xffffffff\0" \
++	"emmc_dev=2\0"\
++	"sd_dev=1\0" \
++	"weim_uboot=0x08001000\0"\
++	"weim_base=0x08000000\0"\
++	"spi_bus=1\0"\
++	"spi_uboot=0x400\0" \
++	"mtdparts=" MFG_NAND_PARTITION \
++	"\0"\
++
++#define CONFIG_EXTRA_ENV_SETTINGS \
++	"image=zImage\0" \
++	"fdt_file=imx6qp-mx5.dtb\0"  \
++	"fdt_addr=0x18000000\0" \
++	"console=" CONSOLE_DEV "\0" \
++	"fdt_high=0xffffffff\0"	  \
++	"initrd_addr=0x12C00000\0" \
++	"initrd_high=0xffffffff\0" \
++	"mmcdev=" __stringify(CONFIG_SYS_MMC_ENV_DEV) "\0" \
++	"mmcpart=1\0" \
++	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
++	"mmcargs=setenv bootargs console=${console},${baudrate} ${smp} " \
++		"root=${mmcroot}\0" \
++	"loadimage=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${image}\0" \
++	"loadfdt=fatload mmc ${mmcdev}:${mmcpart} ${fdt_addr} ${fdt_file}\0" \
++	"mmcboot=echo Booting from mmc ...; " \
++		"run mmcargs; " \
++		"bootz ${loadaddr} - ${fdt_addr};\0" \
++	"ums=mmc dev 2 && mmc partconf 2 1 0 0 && ums 0 mmc 2"
++
++#define CONFIG_BOOTCOMMAND \
++	"mmc dev ${mmcdev};" \
++	"run loadimage;" \
++	"run loadfdt;" \
++	"run mmcboot; " \
++
++#endif                         /* __MX5_IMX6_COMMON_CONFIG_H */
+diff --git a/include/configs/mx5_imx6qp.h b/include/configs/mx5_imx6qp.h
+new file mode 100644
+index 0000000000..4c0e6d1b62
+--- /dev/null
++++ b/include/configs/mx5_imx6qp.h
+@@ -0,0 +1,26 @@
++/* SPDX-License-Identifier: GPL-2.0+ */
++/*
++ * Copyright (C) 2012 Freescale Semiconductor, Inc.
++ * Copyright 2017-2018 NXP
++ *
++ * Configuration settings for the Freescale i.MX6Q SabreSD board.
++ */
++
++#ifndef __MX5_IMX6QP_CONFIG_H
++#define __MX5_IMX6QP_CONFIG_H
++
++#define CONFIG_MXC_UART_BASE	UART1_BASE
++#define PHYS_SDRAM_SIZE		(2u * 1024 * 1024 * 1024)
++
++#include "mx5_imx6_common.h"
++
++/* USB Configs */
++#ifdef CONFIG_CMD_USB
++#define CONFIG_EHCI_HCD_INIT_AFTER_RESET
++#define CONFIG_MXC_USB_PORTSC		(PORT_PTS_UTMI | PORT_PTS_PTW)
++#define CONFIG_MXC_USB_FLAGS		0
++#endif
++
++#define CONSOLE_DEV		"ttymxc0"
++
++#endif                         /* __IM5_IMX6QP_CONFIG_H */
+-- 
+2.17.1

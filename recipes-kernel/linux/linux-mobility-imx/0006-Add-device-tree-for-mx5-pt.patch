@@ -651,7 +651,7 @@ index 000000000000..2c569f6723c6
 +			};
 +			/*Display power, controlled by reg_hdmi*/
 +			swbst_reg: swbst {
-+				vin-supply = <&reg_stm32_4v>;
++				regulator-always-on;
 +				regulator-min-microvolt = <5000000>;
 +				regulator-max-microvolt = <5150000>;
 +				regulator-state-mem {

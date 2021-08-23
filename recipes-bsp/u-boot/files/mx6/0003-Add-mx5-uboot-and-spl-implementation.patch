@@ -1,20 +1,21 @@
-From aba82e726e0e5583c98fee174e3d2aa7cc114758 Mon Sep 17 00:00:00 2001
+From ef5da1ef14d7d0f0321b073b92a67da99c0031ae Mon Sep 17 00:00:00 2001
 From: rikardo <rikard.olander@hostmobility.com>
-Date: Mon, 16 Aug 2021 08:36:16 +0200
+Date: Mon, 23 Aug 2021 15:40:58 +0200
 Subject: [PATCH 3/4] Add mx5 uboot and spl implementation
+
 
 ---
  board/hostmobility/common/Makefile         |   8 +
- board/hostmobility/common/pfuze.c          | 173 +++++++
+ board/hostmobility/common/pfuze.c          | 173 ++++++
  board/hostmobility/common/pfuze.h          |  17 +
  board/hostmobility/mx5_imx6qp/Kconfig      |  15 +
  board/hostmobility/mx5_imx6qp/Makefile     |   7 +
- board/hostmobility/mx5_imx6qp/enet.c       | 119 +++++
+ board/hostmobility/mx5_imx6qp/enet.c       | 119 ++++
  board/hostmobility/mx5_imx6qp/enet.h       |  11 +
- board/hostmobility/mx5_imx6qp/mx5_imx6qp.c | 551 +++++++++++++++++++++
+ board/hostmobility/mx5_imx6qp/mx5_imx6qp.c | 629 +++++++++++++++++++++
  include/configs/mx5_imx6_common.h          | 101 ++++
  include/configs/mx5_imx6qp.h               |  26 +
- 10 files changed, 1028 insertions(+)
+ 10 files changed, 1106 insertions(+)
  create mode 100644 board/hostmobility/common/Makefile
  create mode 100644 board/hostmobility/common/pfuze.c
  create mode 100644 board/hostmobility/common/pfuze.h
@@ -420,10 +421,10 @@ index 0000000000..2a1574fb03
 +void setup_fec(void);
 diff --git a/board/hostmobility/mx5_imx6qp/mx5_imx6qp.c b/board/hostmobility/mx5_imx6qp/mx5_imx6qp.c
 new file mode 100644
-index 0000000000..2b8eb53e6c
+index 0000000000..b4bf6e6d45
 --- /dev/null
 +++ b/board/hostmobility/mx5_imx6qp/mx5_imx6qp.c
-@@ -0,0 +1,551 @@
+@@ -0,0 +1,629 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
 + * Copyright (C) 2012-2016 Freescale Semiconductor, Inc.
@@ -476,6 +477,18 @@ index 0000000000..2b8eb53e6c
 +#define UART_PAD_CTRL  (PAD_CTL_PUS_100K_UP |\
 +		PAD_CTL_SPEED_MED | PAD_CTL_DSE_40ohm |\
 +		PAD_CTL_SRE_FAST  | PAD_CTL_HYS)
++
++#define USDHC_PAD_CTRL (PAD_CTL_PUS_47K_UP |			\
++	PAD_CTL_SPEED_LOW | PAD_CTL_DSE_80ohm |			\
++	PAD_CTL_SRE_FAST  | PAD_CTL_HYS)
++
++#define USDHC_PAD_CTRL2 (PAD_CTL_PUS_22K_UP |			\
++	PAD_CTL_SPEED_LOW | PAD_CTL_DSE_34ohm |			\
++	PAD_CTL_SRE_FAST  | PAD_CTL_HYS)
++
++#define WEAK_PULLUP	(PAD_CTL_PUS_100K_UP |			\
++	PAD_CTL_SPEED_MED | PAD_CTL_DSE_40ohm | PAD_CTL_HYS |	\
++	PAD_CTL_SRE_SLOW)
 +
 +#define I2C_PAD_CTRL	(PAD_CTL_PUS_100K_UP |			\
 +	PAD_CTL_SPEED_MED | PAD_CTL_DSE_40ohm | PAD_CTL_HYS |	\
@@ -682,6 +695,74 @@ index 0000000000..2b8eb53e6c
 +#include "asm/arch/mx6q-ddr.h"
 +#include "asm/arch/iomux.h"
 +#include "asm/arch/crm_regs.h"
++
++/* use the following sequence: eMMC, SD */
++struct fsl_esdhc_cfg usdhc_cfg[CONFIG_SYS_FSL_USDHC_NUM] = {
++	{USDHC3_BASE_ADDR},
++	{USDHC2_BASE_ADDR},
++};
++
++static iomux_v3_cfg_t const usdhc2_pads[] = {
++MX6_PAD_SD2_CLK__SD2_CLK    | MUX_PAD_CTRL(USDHC_PAD_CTRL2),
++	MX6_PAD_SD2_CMD__SD2_CMD    | MUX_PAD_CTRL(USDHC_PAD_CTRL2),
++	MX6_PAD_SD2_DAT0__SD2_DATA0 | MUX_PAD_CTRL(USDHC_PAD_CTRL2),
++	MX6_PAD_SD2_DAT1__SD2_DATA1 | MUX_PAD_CTRL(USDHC_PAD_CTRL2),
++	MX6_PAD_SD2_DAT2__SD2_DATA2 | MUX_PAD_CTRL(USDHC_PAD_CTRL2),
++	MX6_PAD_SD2_DAT3__SD2_DATA3 | MUX_PAD_CTRL(USDHC_PAD_CTRL2),
++	MX6_PAD_GPIO_17__GPIO7_IO12  | MUX_PAD_CTRL(NO_PAD_CTRL), /* CD */
++};
++
++static iomux_v3_cfg_t const usdhc3_pads[] = {	
++	MX6_PAD_SD3_CLK__SD3_CLK    | MUX_PAD_CTRL(USDHC_PAD_CTRL),
++	MX6_PAD_SD3_CMD__SD3_CMD    | MUX_PAD_CTRL(USDHC_PAD_CTRL),
++	MX6_PAD_SD3_DAT0__SD3_DATA0 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
++	MX6_PAD_SD3_DAT1__SD3_DATA1 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
++	MX6_PAD_SD3_DAT2__SD3_DATA2 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
++	MX6_PAD_SD3_DAT3__SD3_DATA3 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
++	MX6_PAD_SD3_DAT4__SD3_DATA4 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
++	MX6_PAD_SD3_DAT5__SD3_DATA5 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
++	MX6_PAD_SD3_DAT6__SD3_DATA6 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
++	MX6_PAD_SD3_DAT7__SD3_DATA7 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
++	MX6_PAD_SD3_RST__SD3_RESET | MUX_PAD_CTRL(WEAK_PULLUP),
++};
++
++int board_mmc_init(bd_t *bis)
++{
++	s32 status = 0;
++	u32 index = 0;
++
++	usdhc_cfg[0].sdhc_clk = mxc_get_clock(MXC_ESDHC3_CLK);
++	usdhc_cfg[1].sdhc_clk = mxc_get_clock(MXC_ESDHC2_CLK);
++
++	usdhc_cfg[0].max_bus_width = 8;
++	usdhc_cfg[1].max_bus_width = 4;
++
++	for (index = 0; index < CONFIG_SYS_FSL_USDHC_NUM; ++index) {
++		switch (index) {
++		case 0:
++			imx_iomux_v3_setup_multiple_pads(
++				usdhc3_pads, ARRAY_SIZE(usdhc3_pads));
++			break;
++		case 1:
++			imx_iomux_v3_setup_multiple_pads(
++				usdhc2_pads, ARRAY_SIZE(usdhc2_pads));
++			break;
++		default:
++			printf("Warning: you configured more USDHC controllers (%d) then supported by the board (%d)\n",
++			       index + 1, CONFIG_SYS_FSL_USDHC_NUM);
++			return status;
++		}
++
++		status |= fsl_esdhc_initialize(bis, &usdhc_cfg[index]);
++	}
++
++	return status;
++}
++
++int board_mmc_getcd(struct mmc *mmc)
++{
++	return 1;
++}
 +
 +#ifdef CONFIG_SPL_OS_BOOT
 +int spl_start_uboot(void)
@@ -895,10 +976,8 @@ index 0000000000..2b8eb53e6c
 +		return 0xff;
 +	}
 +	for (retry = 0; retry < 10; ++retry) {
-+		if (i2c_read(MX5_CO_CPU_ADDRESS, MX5_CO_CPU_REGISTER_MEMORY_INDEX, MX5_CO_CPU_ADDR_LEN, &buf, MX5_CO_CPU_READ_BYTE) != 0)
++		if (i2c_read(MX5_CO_CPU_ADDRESS, MX5_CO_CPU_REGISTER_MEMORY_INDEX, MX5_CO_CPU_ADDR_LEN, &buf, MX5_CO_CPU_READ_BYTE) == 0)
 +		{
-+			return 0xff;
-+		} else {
 +			return buf;
 +		}
 +		printf("Retry to read from co cpu address, value:%x\n", buf);

@@ -1,0 +1,25 @@
+From 021ae3409a2eb1edec1fccb4eb2ac377d46225a1 Mon Sep 17 00:00:00 2001
+From: Mattias Busck <mattias.busck@hostmobility.com>
+Date: Mon, 23 Aug 2021 15:09:55 +0200
+Subject: [PATCH 1/1] Let U-Boot know that MMC2 is SD-card
+
+SPL: MMC2 selects read of proper u-boot from SDcard instead of eMMC.
+---
+ arch/arm/mach-imx/spl.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/arch/arm/mach-imx/spl.c b/arch/arm/mach-imx/spl.c
+index e43452058f..bc74625ff6 100644
+--- a/arch/arm/mach-imx/spl.c
++++ b/arch/arm/mach-imx/spl.c
+@@ -84,7 +84,7 @@ u32 spl_boot_device(void)
+ 	/* SD/eSD: 8.5.3, Table 8-15  */
+ 	case IMX6_BMODE_SD:
+ 	case IMX6_BMODE_ESD:
+-		return BOOT_DEVICE_MMC1;
++		return BOOT_DEVICE_MMC2;
+ 	/* MMC/eMMC: 8.5.3 */
+ 	case IMX6_BMODE_MMC:
+ 	case IMX6_BMODE_EMMC:
+-- 
+2.17.1

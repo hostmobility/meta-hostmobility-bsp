@@ -29,6 +29,7 @@ SRC_URI_append_mx6 = " \
     file://0002-Add-mx5-device-tree-files.patch\
     file://0003-Add-mx5-uboot-and-spl-implementation.patch \
     file://0004-Modify-Makfile-and-kconfig-to-include-mx5-dtb-and-board-target.patch \
+    file://0005-Let-U-Boot-know-that-MMC2-is-SD-card \
 " 
 
 S = "${WORKDIR}/git"

@@ -14,11 +14,8 @@ LINUX_VERSION_EXTENSION_append = "-imx"
 
 SRC_URI = "\
     git://source.codeaurora.org/external/imx/linux-imx;name=linuxkernel;branch=${LINUXBRANCH};protocol=ssh;nocheckout=1 \
-    file://defconfig \
-    git://git@gitlab.com/hostmobility/gpio-overlay;name=gpiooverlay;protocol=ssh;destsuffix=git/drivers/gpio/gpio-overlay \
-    git://git@gitlab.com/hostmobility/ncv7751-gpio-driver;name=ncv7751;protocol=ssh;destsuffix=git/drivers/gpio/ncv7751-gpio-driver \
-    git://git@gitlab.com/hostmobility/modem_controller;name=modemcontroller;protocol=ssh;destsuffix=git/drivers/gpio/modem_controller \
-    git://git@gitlab.com/hostmobility/mx5-cocpu;name=mx5cocpu;branch=${COCPUBRANCH};protocol=ssh;destsuffix=git/drivers/platform/mx5cocpu \
+    file://defconfig \    
+    git://git@github.com/hostmobility/hm-commercial.git;name=hmcommercial;subpath=drivers;protocol=ssh;destsuffix=git/drivers \
     file://0001-Compiler-Attributes-add-support-for-__copy-gcc-9.patch \
     file://0002-include-linux-module.h-copy-__init-__exit-attrs-to-i.patch \
     file://0001-perf-Make-perf-able-to-build-with-latest-libbfd.patch \
@@ -31,13 +28,11 @@ SRC_URI = "\
 "
 
 LINUXBRANCH = "imx_4.19.35_1.0.0"
-COCPUBRANCH = "prototype3"
-SRCREV_FORMAT = "linuxkernel_gpiooverlay_ncv7751_modemcontroller_mx5cocpu"
+
+SRCREV_FORMAT = "linuxkernel_hmcommercial"
+
 SRCREV_linuxkernel = "e4452f4458e4272345aa773e726107cb74ef2974"
-SRCREV_gpiooverlay = "${AUTOREV}" 
-SRCREV_ncv7751 = "${AUTOREV}"
-SRCREV_modemcontroller = "${AUTOREV}"
-SRCREV_mx5cocpu = "${AUTOREV}"
+SRCREV_hmcommercial = "ad5f1558ebe8f00e7cdd8f5185552266924a573e"
 
 PV = "${LINUX_VERSION}+git${SRCPV}"
 
@@ -52,9 +47,9 @@ do_patch_append() {
     echo 'obj-$(CONFIG_GPIO_NCV7751) += ncv7751-gpio-driver/gpio-ncv7751.o' >> '${S}/drivers/gpio/Makefile'
     echo 'obj-$(CONFIG_MX5_GPIO_OVERLAY) += gpio-overlay/gpio-overlay.o' >> '${S}/drivers/gpio/Makefile'
     echo 'obj-$(CONFIG_MX5_MODEM_DRIVER) += modem_controller/modem_controller.o' >> '${S}/drivers/gpio/Makefile'
-    echo 'obj-$(CONFIG_MX5_COCPU) += mx5cocpu/Linux-Driver/' >> '${S}/drivers/platform/Makefile'
+    echo 'obj-$(CONFIG_MX5_COCPU) += mx5pt_cocpu_driver/' >> '${S}/drivers/platform/Makefile'
 
-    echo 'source "drivers/platform/mx5cocpu/Linux-Driver/Kconfig"' >>'${S}/drivers/platform/Kconfig'
+    echo 'source "drivers/platform/mx5pt_cocpu_driver/Kconfig"' >>'${S}/drivers/platform/Kconfig'
     echo 'source "drivers/gpio/gpio-overlay/Kconfig"' >>'${S}/drivers/gpio/Kconfig'
     echo 'source "drivers/gpio/ncv7751-gpio-driver/Kconfig"' >>'${S}/drivers/gpio/Kconfig'
     echo 'source "drivers/gpio/modem_controller/Kconfig"' >>'${S}/drivers/gpio/Kconfig'

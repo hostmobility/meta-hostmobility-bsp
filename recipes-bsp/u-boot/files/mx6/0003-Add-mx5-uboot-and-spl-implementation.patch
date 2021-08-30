@@ -1059,7 +1059,7 @@ new file mode 100644
 index 0000000000..193cab5bee
 --- /dev/null
 +++ b/include/configs/mx5_imx6_common.h
-@@ -0,0 +1,101 @@
+@@ -0,0 +1,106 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
 + * Copyright (C) 2012 Freescale Semiconductor, Inc.
@@ -1149,12 +1149,17 @@ index 0000000000..193cab5bee
 +		"root=${mmcroot}\0" \
 +	"loadimage=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${image}\0" \
 +	"loadfdt=fatload mmc ${mmcdev}:${mmcpart} ${fdt_addr} ${fdt_file}\0" \
++	"flash_wanted=i2c dev 2 && setexpr p ${loadaddr} + 4 && mw ${p} 1 && i2c read 0x46 2.2 1 ${loadaddr} && cmp.b ${loadaddr} ${p} 1\0" \
++	"flash_script_name=flashmx5.scr\0" \
++	"flash_script_addr=0x10700000\0" \
++	"try_flash=usb start; if fatload usb 0 ${flash_script_addr} ${flash_script_name} ; then source ${flash_script_addr}; else echo UPDATE ERROR: no ${flash_script_name} on first USB device.;fi\0" \
 +	"mmcboot=echo Booting from mmc ...; " \
 +		"run mmcargs; " \
 +		"bootz ${loadaddr} - ${fdt_addr};\0" \
 +	"ums=mmc dev 2 && mmc partconf 2 1 0 0 && ums 0 mmc 2"
 +
 +#define CONFIG_BOOTCOMMAND \
++	"run flash_wanted && run try_flash; " \
 +	"mmc dev ${mmcdev};" \
 +	"run loadimage;" \
 +	"run loadfdt;" \

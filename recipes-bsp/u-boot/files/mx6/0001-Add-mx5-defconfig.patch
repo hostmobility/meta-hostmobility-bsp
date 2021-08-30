@@ -13,7 +13,7 @@ new file mode 100644
 index 0000000000..def79d7954
 --- /dev/null
 +++ b/configs/mx5_imx6qp_defconfig
-@@ -0,0 +1,91 @@
+@@ -0,0 +1,92 @@
 +CONFIG_ARM=y
 +# CONFIG_SPL_SYS_THUMB_BUILD is not set
 +CONFIG_ARCH_MX6=y
@@ -62,6 +62,7 @@ index 0000000000..def79d7954
 +CONFIG_CMD_EXT4_WRITE=y
 +CONFIG_CMD_FAT=y
 +CONFIG_CMD_FS_GENERIC=y
++CONFIG_CMD_UNZIP=y
 +CONFIG_EFI_PARTITION=y
 +CONFIG_OF_CONTROL=y
 +CONFIG_DEFAULT_DEVICE_TREE="mx5_imx6qp"

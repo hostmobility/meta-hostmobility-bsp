@@ -706,11 +706,11 @@ index 000000000000..2c569f6723c6
 +				regulator-max-microvolt = <2500000>;
 +				regulator-always-on;
 +			};
-+			/*Not used on next board*/
 +			vgen6_reg: vgen6 {
 +				vin-supply = <&reg_stm32_3v3>;
 +				regulator-min-microvolt = <1800000>;
-+				regulator-max-microvolt = <3300000>;
++				regulator-max-microvolt = <2700000>;
++				regulator-always-on;
 +			};
 +		};
 +	};

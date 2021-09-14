@@ -366,10 +366,10 @@ index 0000000000..6b21db0a4b
 +				regulator-min-microvolt = <2500000>;
 +				regulator-max-microvolt = <2500000>;
 +			};
-+			/*Not used on next board*/
 +			vgen6_reg: vgen6 {
 +				regulator-min-microvolt = <1800000>;
-+				regulator-max-microvolt = <3300000>;
++				regulator-max-microvolt = <2700000>;
++				regulator-always-on;
 +			};
 +		};
 +	};

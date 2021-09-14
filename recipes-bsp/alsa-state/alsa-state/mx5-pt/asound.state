@@ -2,8 +2,8 @@ state.Audiotlv320aic3 {
 	control.1 {
 		iface MIXER
 		name 'PCM Playback Volume'
-		value.0 127
-		value.1 127
+		value.0 76
+		value.1 76
 		comment {
 			access 'read write'
 			type INTEGER
@@ -234,8 +234,8 @@ state.Audiotlv320aic3 {
 	control.17 {
 		iface MIXER
 		name 'HP DAC Playback Volume'
-		value.0 0
-		value.1 0
+		value.0 71
+		value.1 71
 		comment {
 			access 'read write'
 			type INTEGER

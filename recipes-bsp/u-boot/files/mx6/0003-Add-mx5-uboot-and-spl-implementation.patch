@@ -1,21 +1,20 @@
-From ef5da1ef14d7d0f0321b073b92a67da99c0031ae Mon Sep 17 00:00:00 2001
+From f6c048efc0a16414ae6d75bdf1e549ec2b5fe0ca Mon Sep 17 00:00:00 2001
 From: rikardo <rikard.olander@hostmobility.com>
-Date: Mon, 23 Aug 2021 15:40:58 +0200
+Date: Mon, 30 Aug 2021 13:21:11 +0200
 Subject: [PATCH 3/4] Add mx5 uboot and spl implementation
-
 
 ---
  board/hostmobility/common/Makefile         |   8 +
- board/hostmobility/common/pfuze.c          | 173 ++++++
+ board/hostmobility/common/pfuze.c          | 173 +++++
  board/hostmobility/common/pfuze.h          |  17 +
  board/hostmobility/mx5_imx6qp/Kconfig      |  15 +
  board/hostmobility/mx5_imx6qp/Makefile     |   7 +
  board/hostmobility/mx5_imx6qp/enet.c       | 119 ++++
  board/hostmobility/mx5_imx6qp/enet.h       |  11 +
- board/hostmobility/mx5_imx6qp/mx5_imx6qp.c | 629 +++++++++++++++++++++
- include/configs/mx5_imx6_common.h          | 101 ++++
+ board/hostmobility/mx5_imx6qp/mx5_imx6qp.c | 746 +++++++++++++++++++++
+ include/configs/mx5_imx6_common.h          | 101 +++
  include/configs/mx5_imx6qp.h               |  26 +
- 10 files changed, 1106 insertions(+)
+ 10 files changed, 1223 insertions(+)
  create mode 100644 board/hostmobility/common/Makefile
  create mode 100644 board/hostmobility/common/pfuze.c
  create mode 100644 board/hostmobility/common/pfuze.h
@@ -421,10 +420,10 @@ index 0000000000..2a1574fb03
 +void setup_fec(void);
 diff --git a/board/hostmobility/mx5_imx6qp/mx5_imx6qp.c b/board/hostmobility/mx5_imx6qp/mx5_imx6qp.c
 new file mode 100644
-index 0000000000..b4bf6e6d45
+index 0000000000..9a814db305
 --- /dev/null
 +++ b/board/hostmobility/mx5_imx6qp/mx5_imx6qp.c
-@@ -0,0 +1,629 @@
+@@ -0,0 +1,746 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
 + * Copyright (C) 2012-2016 Freescale Semiconductor, Inc.
@@ -955,6 +954,120 @@ index 0000000000..b4bf6e6d45
 +0x021b001c, 0x00000000,
 +};
 +
++// Manufacturer:	ISSI
++// Device Part Number:	IS43TR16512BL-107MBLI
++// Clock Freq.: 	528MHz
++// Density per CS in Gb: 	8
++// Chip Selects used:	1
++// Number of Banks:	8
++// Row address:      15
++// Column address: 	10
++// Data bus width	64
++static int calibration_table_id_2[] = {
++0x020e0798, 0x000C0000,
++0x020e0758, 0x00000000,
++0x020e0588, 0x00020030,
++0x020e0594, 0x00020030,
++0x020e056c, 0x00020030,
++0x020e0578, 0x00020030,
++0x020e074c, 0x00000030,
++0x020e057c, 0x00020030,
++0x020e058c, 0x00000000,
++0x020e059c, 0x00003030,
++0x020e05a0, 0x00003030,
++0x020e078c, 0x00000030,
++0x020e0750, 0x00020000,
++0x020e05a8, 0x00000030,
++0x020e05b0, 0x00000030,
++0x020e0524, 0x00000030,
++0x020e051c, 0x00000030,
++0x020e0518, 0x00000030,
++0x020e050c, 0x00000030,
++0x020e05b8, 0x00000030,
++0x020e05c0, 0x00000030,
++0x020e0534, 0x00018200,
++0x020e0538, 0x00008000,
++0x020e053c, 0x00018200,
++0x020e0540, 0x00018200,
++0x020e0544, 0x00018200,
++0x020e0548, 0x00018200,
++0x020e054c, 0x00018200,
++0x020e0550, 0x00018200,
++0x020e0774, 0x00020000,
++0x020e0784, 0x00000030,
++0x020e0788, 0x00000030,
++0x020e0794, 0x00000030,
++0x020e079c, 0x00000030,
++0x020e07a0, 0x00000030,
++0x020e07a4, 0x00000030,
++0x020e07a8, 0x00000030,
++0x020e0748, 0x00000030,
++0x020e05ac, 0x00020030,
++0x020e05b4, 0x00020030,
++0x020e0528, 0x00020030,
++0x020e0520, 0x00020030,
++0x020e0514, 0x00020030,
++0x020e0510, 0x00020030,
++0x020e05bc, 0x00020030,
++0x020e05c4, 0x00020030,
++0x021b001c, 0x00008000,
++0x021b0800, 0xa1390003,
++0x021b080c, 0x00280019,
++0x021b0810, 0x002C002E,
++0x021b480c, 0x0026002F,
++0x021b4810, 0x000C0026,
++0x021b083c, 0x42140224,
++0x021b0840, 0x02140210,
++0x021b483c, 0x42180228,
++0x021b4840, 0x021C017C,
++0x021b0848, 0x4034363A,
++0x021b4848, 0x3C363442,
++0x021b0850, 0x383C3C3A,
++0x021b4850, 0x4236403C,
++0x021b081c, 0x33333333,
++0x021b0820, 0x33333333,
++0x021b0824, 0x33333333,
++0x021b0828, 0x33333333,
++0x021b481c, 0x33333333,
++0x021b4820, 0x33333333,
++0x021b4824, 0x33333333,
++0x021b4828, 0x33333333,
++0x021b08c0, 0x24912489,
++0x021b48c0, 0x24914452,
++0x021b08b8, 0x00000800,
++0x021b48b8, 0x00000800,
++0x021b0004, 0x00020036,
++0x021b0008, 0x09444040,
++0x021b000c, 0x898E79a4,
++0x021b0010, 0xDB538F64,
++0x021b0014, 0x01FF00DD,
++0x021b0018, 0x00011740,
++0x021b001c, 0x00008000,
++0x021b002c, 0x0f9f26d2,
++0x021b0030, 0x008E1023,
++0x021b0040, 0x0000007f,
++0x021b0400, 0x14420000,
++0x021b0000, 0x851a0000,
++0x021b0890, 0x00400c58,
++0x00bb0008, 0x00000000,
++0x00bb000c, 0x2891E41A,
++0x00bb0038, 0x000005B4,
++0x00bb0014, 0x00000040,
++0x00bb0028, 0x00000020,
++0x00bb002c, 0x00000020,
++0x021b001c, 0x04088032,
++0x021b001c, 0x00008033,
++0x021b001c, 0x00428031,
++0x021b001c, 0x19308030,
++0x021b001c, 0x04008040,
++0x021b0020, 0x00003800,
++0x021b0818, 0x00022227,
++0x021b4818, 0x00022227,
++0x021b0004, 0x00025576,
++0x021b0404, 0x00011006,
++0x021b001c, 0x00000000,
++};
++
 +static void ddr_init(int *table, int size)
 +{
 +	int i;
@@ -1007,6 +1120,9 @@ index 0000000000..b4bf6e6d45
 +	{
 +	case 1:
 +		ddr_init(calibration_table_id_1, ARRAY_SIZE(calibration_table_id_1));
++		break;
++	case 2:
++		ddr_init(calibration_table_id_2, ARRAY_SIZE(calibration_table_id_2));
 +		break;
 +
 +	/*fall back to mx5_universal_table if i2c does not work*/
@@ -1184,7 +1300,7 @@ index 0000000000..4c0e6d1b62
 +#define __MX5_IMX6QP_CONFIG_H
 +
 +#define CONFIG_MXC_UART_BASE	UART1_BASE
-+#define PHYS_SDRAM_SIZE		(2u * 1024 * 1024 * 1024)
++#define PHYS_SDRAM_SIZE		(4u * 1024 * 1024 * 1024)
 +
 +#include "mx5_imx6_common.h"
 +

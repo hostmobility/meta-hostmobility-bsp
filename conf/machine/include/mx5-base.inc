@@ -16,6 +16,8 @@ RDEPENDS_${KERNEL_PACKAGE_NAME}-base = ""
 PREFERRED_PROVIDER_u-boot = "u-boot-hostmobility"
 PREFERRED_PROVIDER_virtual/bootloader = "u-boot-hostmobility"
 PREFERRED_PROVIDER_u-boot-fw-utils ?= "libubootenv"
+PREFERRED_PROVIDER_j1708-lib = "j1708-lib_2.0.0"
+PREFERRED_PROVIDER_j1708-test = "j1708-test_2.0.0"
 
 UBOOT_BINARY ?= "u-boot-dtb.${UBOOT_SUFFIX}"
 UBOOT_MAKE_TARGET = "all"

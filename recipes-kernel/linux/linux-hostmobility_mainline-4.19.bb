@@ -20,8 +20,8 @@ S = "${WORKDIR}/linux-${PV}"
 GENERIC_PATCHES = " \
 "
 MACHINE_PATCHES = " \
+    file://defconfig \
     file://0001-Add-device-tree-files-for-t30.patch \
-    file://0002-Add-defconfig-file-for-t30.patch \
     file://0003-Add-mx4_pic-and-can-xcvr-to-spidev.patch \
     file://0004-Add-support-for-thermal-throttling.patch \
     file://0005-Add-support-for-flexray-device-driver.patch \
@@ -61,20 +61,9 @@ config_script () {
     echo "dummy" > /dev/null
 }
 
-do_configure_prepend () {
-    cd ${S}
-    export KBUILD_OUTPUT=${B}
-    oe_runmake ${KERNEL_DEFCONFIG}
+KCONFIG_MODE="--alldefconfig"
 
-    #maybe change some configuration
-    config_script
-
-    #Add Toradex BSP Version as LOCALVERSION
-    sed -i -e /CONFIG_LOCALVERSION/d ${B}/.config
-    echo "CONFIG_LOCALVERSION=\"${LOCALVERSION}\"" >> ${B}/.config
-
-    cd - > /dev/null
-}
+KBUILD_DEFCONFIG ?= "${KERNEL_DEFCONFIG}"
 
 do_uboot_mkimage_prepend() {
     cd ${B}

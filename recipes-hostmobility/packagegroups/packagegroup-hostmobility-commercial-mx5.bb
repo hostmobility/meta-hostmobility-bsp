@@ -11,5 +11,5 @@ ALLOW_EMPTY_${PN} = "1"
 
 RDEPENDS_${PN} += "\
     mx5-platform-version \
-    ${@bb.utils.contains('MACHINE_FEATURES', 'j1708', 'j1708-lib', '', d)} \
+    ${@bb.utils.contains('MACHINE_FEATURES', 'j1708', 'j1708-lib j1708-test', '', d)} \
 "

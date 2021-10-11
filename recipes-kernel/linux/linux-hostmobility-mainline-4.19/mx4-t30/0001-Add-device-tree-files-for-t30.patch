@@ -17,7 +17,7 @@ new file mode 100644
 index 000000000000..99a71870840f
 --- /dev/null
 +++ b/arch/arm/boot/dts/tegra30-mx4-t30.dts
-@@ -0,0 +1,249 @@
+@@ -0,0 +1,308 @@
 +/dts-v1/;
 +
 +#include "tegra30-mx4-t30.dtsi"
@@ -102,6 +102,65 @@ index 000000000000..99a71870840f
 +	       	interrupts = <TEGRA_GPIO(O, 5) GPIO_ACTIVE_HIGH>;
 +	        gpios = <&gpio TEGRA_GPIO(V, 1) GPIO_ACTIVE_HIGH>;
 +	       	spi-cpha;
++		interrupt-controller;
++		gpio-controller;
++		gpio-line-names = 
++			"digital-out-1-source",
++			"digital-out-2-source",
++			"digital-out-3-source",
++			"digital-out-4-source",
++			"digital-out-5-source",
++			"digital-out-6-sink",
++			"digital-out-7-sink",
++			"digital-out-1-sink",
++			"digital-out-2-sink",
++			"digital-out-3-sink",
++			"digital-out-4-sink",
++			"digital-out-5-sink",
++			"digital-out-6-source",
++			"digital-out-7-source",
++			"digital-out-en",
++			"digital-out-1",
++			"digital-out-2",
++			"digital-out-3",
++			"digital-out-4",
++			"digital-out-5 / 4-20mA",
++			"digital-out-6",
++			"vref",
++			"5V",
++			"3.3V",
++			"LIN sleep",
++			"LIN2 sleep",
++			"5V out",
++		/* Inputs */
++			"digital-in-1 / sc",
++			"digital-in-2 / sc",
++			"digital-in-3 / sc",
++			"digital-in-4 / sc",
++			"digital-in-5 / sc",
++			"digital-in-6",
++			"modem sync",
++			"modem ring",
++			"modem current ind",
++			"modem power ind",
++			"start switch",
++			"CAN-WAKEUP",
++			"MUX-IN-1",
++			"MUX-IN-2",
++			"CAN0-WAKEUP",
++			"CAN1-WAKEUP",
++			"CAN2-WAKEUP",
++			"CAN3-WAKEUP",
++			"CAN4-WAKEUP",
++			"CAN5-WAKEUP",
++			"MUX-OUT-1",
++			"MUX-OUT-2",
++			"LIN enabled",
++			"LIN2 enabled",
++			"digital-in-7",
++			"digital-in-8",
++			"digital-out-7",
++			"digital-out-8";
 +		};
 +
 +   	mx4_pic: spi@1 {
@@ -272,7 +331,7 @@ new file mode 100644
 index 000000000000..68d83e7defe6
 --- /dev/null
 +++ b/arch/arm/boot/dts/tegra30-mx4-t30.dtsi
-@@ -0,0 +1,1222 @@
+@@ -0,0 +1,1254 @@
 +// SPDX-License-Identifier: GPL-2.0
 +#include <dt-bindings/input/input.h>
 +#include <dt-bindings/interrupt-controller/arm-gic.h>
@@ -592,7 +651,7 @@ index 000000000000..68d83e7defe6
 +			ulpi_data5_po6 {
 +				nvidia,pins = "ulpi_data5_po6";
 +				nvidia,function = "uarta";
-+				nvidia,pull = <TEGRA_PIN_PULL_NONE>; /* No pull in board-mx4-t30-pinmux.c */
++				nvidia,pull = <TEGRA_PIN_PULL_UP>; /* Open drain output indicates antenna overcurrent */
 +				nvidia,tristate = <TEGRA_PIN_DISABLE>;
 +				nvidia,enable-input = <TEGRA_PIN_ENABLE>;
 +			};
@@ -752,7 +811,7 @@ index 000000000000..68d83e7defe6
 +			gen2_i2c_sda_pt6 {
 +				nvidia,pins =	"gen2_i2c_sda_pt6";
 +				nvidia,function = "gmi";
-+				nvidia,pull = <TEGRA_PIN_PULL_NONE>;
++				nvidia,pull = <TEGRA_PIN_PULL_UP>;
 +				nvidia,tristate = <TEGRA_PIN_DISABLE>;
 +				nvidia,enable-input = <TEGRA_PIN_ENABLE>;
 +			};
@@ -808,7 +867,7 @@ index 000000000000..68d83e7defe6
 +			pv2 {
 +				nvidia,pins = "pv2";
 +				nvidia,function = "rsvd2";
-+				nvidia,pull = <TEGRA_PIN_PULL_DOWN>;
++				nvidia,pull = <TEGRA_PIN_PULL_NONE>;
 +				nvidia,tristate = <TEGRA_PIN_DISABLE>;
 +				nvidia,enable-input = <TEGRA_PIN_ENABLE>;
 +			};
@@ -872,7 +931,7 @@ index 000000000000..68d83e7defe6
 +				nvidia,tristate = <TEGRA_PIN_DISABLE>;
 +				nvidia,enable-input = <TEGRA_PIN_ENABLE>;
 +			};
-+			spi2_cs1_n_pw2 { /* MODEM-WAKEUP qqq PULL_UP?*/
++			spi2_cs1_n_pw2 { /* MODEM-WAKEUP active low*/
 +				nvidia,pins = "spi2_cs1_n_pw2";
 +				nvidia,function = "spi2";
 +				nvidia,pull = <TEGRA_PIN_PULL_UP>;
@@ -1401,7 +1460,39 @@ index 000000000000..68d83e7defe6
 +
 +&gpio {
 +
-+	// gpio-line-names = 
++	gpio-line-names = 
++	"", "MD01", "MA17", "MA18", "rsv_PPS-IN", "rsv_FR-DIG-IN", "CAN2-INT-R", "", // 0 A
++	"LIN-RS232-RX", "", "WIFI-LED-RED", "", "", "CAN1-INT-R", "", "", // 8 B
++	"USBH-VBUS-EN", "", "LIN-2-RS232-TX", "LIN-2-RS232-RX", "I2C_SCL", "I2C_SDA", "", "", // 16 C
++	"", "", "", "SSP-FRM", "SSP-TXD", "rsv_WL_SDIO_CMD", "", "", // 24 D
++	"", "", "", "", "", "", "", "SSP-CAN-CS-D1", // 32  (39 is output pe7, CAN_XCVR_CS1) E
++	"", "CAN_XCVR_CS2", "", "", "", "", "", "", // 40  (41 is output pf1, CAN_XCVR_CS2) F
++	"MD00", "MD01", "MD02", "MD03", "MD04", "MD05", "MD06", "MD07", // 48 G
++	"ETH2-WAKE", "", "", "", "", "", "FR-ETH-WAKE", "nFR-RST", // 56 H
++	"nWE", "nOE", "", "", "", "", "", "", // 64 I
++	"", "SSP-CAN-CS-D0", "", "", "", "BT_HCI_TX", "BT_HCI_RX", "LIN-RS232-TX", // 72 (73 is output pj1, CAN_XCVR_CS0) J
++	"ALE", "", "nCS", "", "ACC-INT1", "USBC-ID", "", "", // 80 (84 is interrupt, pk4, mma8452) K
++	"rsv_WL_SDIO_D0", "rsv_WL_SDIO_D1", "rsv_WL_SDIO_D2", "rsv_WL_SDIO_D3", "", "", "", "", // 88 L
++	"", "", "rsv_SSP-CAN-FRM", "rsv_SSP-CAN-CLK", "rsv_SSP-CAN-RXD", "rsv_SSP-CAN-TXD", "FR-DIG-IN", "PPS-IN", // 96 M
++	"CAN3-INT-R", "CAN4-INT-R", "CAN5-INT-R", "CAN6-INT-R", "", "", "WIFI-LED-GREEN", "", //104 N
++	"WLAN-EN", "FF-TXD", "FF-RXD", "", "", "DATA-READY-PIC", "XANTSHORT", "", // 112 power==WLAN_EN=P0,0 O
++	"", "", "", "", "", "", "", "MA16", // 120 P
++	"", "", "", "", "", "", "", "", // 128 Q
++	"", "", "", "", "", "", "", "", // 136 R
++	"", "", "SDIO_CLK", "SDIO_CMD", "SDIO_DAT0", "SDIO_DAT1", "SDIO_DAT2", "SDIO_DAT3", // 144 S
++	"rsv_WL_SDIO_CLK", "EN_MIC_GND", "", "", "rsv_WLAN-CD", "INPUT-VOLTAGE-LOW", "rsv_SDIO_CD", "", // 152 T
++	"DATA_RDY_INT_SPARE", "", "BT_HCI_RTS", "BT_HCI_CTS", "", "ACC-INT2", "", "", // 160 (165 is interrupt, pu5, mma8452) U
++	"", "WAKE-UP-CPU", "WLAN-CD", "", "", "", "", "", // 168 V
++	"", "SSP-CAN-CS-D0", "MODEM-WAKEUP", "USBC-OC", "", "", "FR-UART1-RX", "FR-UART1-TX", // 176 W
++	"SSP-CAN-TXD", "SSP-CAN-RXD", "SSP-CAN-CLK", "SSP-CAN-FRM", "", "", "", "", // 184  (187 is output px3, CAN_XCVR_FRM) X
++	"SSP-TXD", "SSP-RXD", "SSP-CLK", "SSP-FRM", "WL_SDIO_D3", "WL_SDIO_D2", "WL_SDIO_D1", "WL_SDIO_D0", // 192 Y
++	"WL_SDIO_CLK", "WL_SDIO_CMD", "RTC-INT", "", "", "", "", "", // 200 Z
++	"", "", "", "", "", "", "", "", // 208 AA
++	"SDIO_DAT0-nouse", "SDIO_DAT1-nouse", "SDIO_DAT2-nouse", "SDIO_DAT3-nouse", "CPU-PCM-FSC", "CPU-PCM-IN", "CPU-PCM-OUT", "CPU-PCM-CLK", // 216 BB
++	"rsv_SDIO_CLK", "rsv_SDIO_CMD", "", "", "", "", "BT-EN", "", // 224 CCSDIO_DAT0 CC
++	"LAN_RESET", "", "LAN_V_BUS", "", "", "", "", "WL_IRQ", // 232 DD
++	"", "", "", "", "", "", "", "", 
++	"", "", "", "", "", "", "", ""; 
 +	
 +	/* (in-module) */
 +	lan-reset-n {

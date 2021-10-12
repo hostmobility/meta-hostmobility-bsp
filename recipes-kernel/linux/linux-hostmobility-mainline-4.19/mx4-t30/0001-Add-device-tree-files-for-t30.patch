@@ -17,7 +17,7 @@ new file mode 100644
 index 000000000000..99a71870840f
 --- /dev/null
 +++ b/arch/arm/boot/dts/tegra30-mx4-t30.dts
-@@ -0,0 +1,308 @@
+@@ -0,0 +1,307 @@
 +/dts-v1/;
 +
 +#include "tegra30-mx4-t30.dtsi"
@@ -132,7 +132,6 @@ index 000000000000..99a71870840f
 +			"LIN sleep",
 +			"LIN2 sleep",
 +			"5V out",
-+		/* Inputs */
 +			"digital-in-1 / sc",
 +			"digital-in-2 / sc",
 +			"digital-in-3 / sc",

@@ -185,11 +185,11 @@ index 000000000000..99a71870840f
 +	};
 +	/*wake up cpu from sleep, same as mx4_io_spi*/
 +	
-+	/*Sd card, same as colibri eval but other cd-gpio*/
++	/*Sd card */
 +	sdhci@78000200 {
 +		status = "okay";
 +		bus-width = <4>;
-+		cd-gpios = <&gpio TEGRA_GPIO(T, 6) GPIO_ACTIVE_HIGH>;
++		cd-gpios = <&gpio TEGRA_GPIO(T, 6) GPIO_ACTIVE_LOW>;
 +	};
 +
 +	sdhci@78000000 {

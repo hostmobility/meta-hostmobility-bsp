@@ -1,8 +1,6 @@
 DESCRIPTION = "udev rule for FR-MCU ethernet interface"
 SECTION = "udev"
-LICENSE = "MIT"
-LIC_FILES_CHKSUM = "file://${COREBASE}/LICENSE;md5=4d92cd373abda3937c2bc47fbc49d690"
-
+LICENSE = "CLOSED"
 SRC_URI = "file://fr-mcu.rules"
 
 do_install() {

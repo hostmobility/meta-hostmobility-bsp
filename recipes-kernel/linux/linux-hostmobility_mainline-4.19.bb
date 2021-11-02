@@ -12,7 +12,6 @@ include conf/tdx_version.conf
 LINUX_VERSION ?= "4.19.66"
 
 LOCALVERSION = "-${PR}"
-PR = "${TDX_VER_ITEM}"
 
 PV = "${LINUX_VERSION}"
 S = "${WORKDIR}/linux-${PV}"

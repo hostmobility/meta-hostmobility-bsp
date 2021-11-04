@@ -8,7 +8,7 @@ require conf/machine/include/soc-family.inc
 DEFAULTTUNE = "armv7athf-neon"
 require conf/machine/include/tune-cortexa9.inc
 
-EXTRA_IMAGEDEPENDS += "u-boot"
+#EXTRA_IMAGEDEPENDS += "u-boot"
 
 PREFERRED_PROVIDER_virtual/kernel = "linux-hostmobility"
 

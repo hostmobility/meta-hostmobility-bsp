@@ -25,4 +25,4 @@ WKS_FILE_DEPENDS ?= " \
     e2fsprogs-native \
     bmap-tools-native \
 "
-
+BBMASK += "recipes-connectivity/iproute2/iproute2_3.15.0.bb"

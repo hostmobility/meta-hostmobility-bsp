@@ -1,6 +1,8 @@
 SUMMARY = "mx4-test"
 DESCRIPTION = "Collection of scripts useful when testing stuff on MX-4"
 
+INSANE_SKIP_${PN} = "ldflags"
+
 SUBPATH = "test/"
 
 require recipes-commercial/common/revision.inc

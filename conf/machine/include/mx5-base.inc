@@ -43,6 +43,5 @@ MACHINE_EXTRA_RDEPENDS_append = " \
 KERNEL_MODULE_AUTOLOAD += "cryptodev-module"
 # fix u-boot-fw-utils \ using libubootenv if we need fw_setenv?
 
-BBMASK +=  "recipes-core/fs-init/fs-init.bbappend"
 BBMASK +=  "recipes-core/usb-rndis-systemd/usb-rndis-systemd.bbappend"
 BBMASK += "recipes-connectivity/iproute2/iproute2_3.15.0.bb"

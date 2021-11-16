@@ -1,4 +1,0 @@
-#when a host connects over rndis, give the rnids0 NIC a IP address and up it
-SUBSYSTEM=="android_usb", ATTR{state}=="CONFIGURED", RUN+="/bin/sh -c '/sbin/ifconfig rndis0 192.168.13.10/24 ; /bin/systemctl --no-block start usb-rndis-dhcp.service; /opt/hm/./setup_rndis_led.sh' "
-
-SUBSYSTEM=="android_usb", ATTR{state}=="DISCONNECTED", RUN+="/bin/systemctl stop usb-rndis-dhcp.service"

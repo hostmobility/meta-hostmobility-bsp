@@ -1,7 +1,6 @@
 MACHINE_EXTRA_RDEPENDS_append = " \
     kernel-modules \
     u-boot-hostmobility-fw-utils \
-    usb-rndis-systemd \
     ${@bb.utils.contains('LICENSE_FLAGS_WHITELIST', 'closed', \
                           'packagegroup-hostmobility-commercial', '', d)} \
     ${@bb.utils.contains('MACHINE_FEATURES', 'wifi', \

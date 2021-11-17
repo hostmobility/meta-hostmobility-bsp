@@ -20,9 +20,6 @@ MACHINE_EXTRA_RDEPENDS_append_tegra3 = " \
     packagegroup-hostmobility-flexray-utils \
 "
 
-MACHINE_EXTRA_RDEPENDS_append_vf = " \
-    usb-suspend-resume \
-"
 
 CORE_IMAGE_EXTRA_INSTALL += " \
     kernel-module-pic \

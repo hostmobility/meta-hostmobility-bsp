@@ -19,7 +19,9 @@ PREFERRED_PROVIDER_u-boot-fw-utils ?= "u-boot-hostmobility-fw-utils"
 UBOOT_BINARY ?= "u-boot-nand.imx"
 UBOOT_MAKE_TARGET = "u-boot-nand.imx"
 
-IMAGE_FSTYPES = "sdcard.gz tar.xz ubifs"
+EXTRA_IMAGEDEPENDS += "u-boot"
+
+IMAGE_FSTYPES = "tar.xz ubifs"
 
 # Enable free --space-fixup (-F) by default, this allows DFU updates
 MKUBIFS_ARGS = " -c 8112 -e 124KiB -m 2KiB -F"

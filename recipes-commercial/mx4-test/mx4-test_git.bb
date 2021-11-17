@@ -3,6 +3,8 @@ DESCRIPTION = "Collection of scripts useful when testing stuff on MX-4"
 
 SUBPATH = "test/"
 
+INSANE_SKIP_${PN} += "ldflags"
+
 require recipes-commercial/common/revision.inc
 
 RDEPENDS_${PN} = "bash"

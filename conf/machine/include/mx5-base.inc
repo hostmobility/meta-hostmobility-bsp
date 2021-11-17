@@ -16,6 +16,8 @@ RDEPENDS_${KERNEL_PACKAGE_NAME}-base = ""
 PREFERRED_PROVIDER_u-boot = "u-boot-hostmobility"
 PREFERRED_PROVIDER_virtual/bootloader = "u-boot-hostmobility"
 PREFERRED_PROVIDER_u-boot-fw-utils ?= "libubootenv"
+PREFERRED_PROVIDER_j1708-lib = "j1708-lib_2.0.0"
+PREFERRED_PROVIDER_j1708-test = "j1708-test_2.0.0"
 
 UBOOT_BINARY ?= "u-boot-dtb.${UBOOT_SUFFIX}"
 UBOOT_MAKE_TARGET = "all"
@@ -43,5 +45,6 @@ MACHINE_EXTRA_RDEPENDS_append = " \
 KERNEL_MODULE_AUTOLOAD += "cryptodev-module"
 # fix u-boot-fw-utils \ using libubootenv if we need fw_setenv?
 
-BBMASK +=  "recipes-core/usb-rndis-systemd/usb-rndis-systemd.bbappend"
+
+BBMASK +=  "recipes-core/fs-init/fs-init.bbappend"
 BBMASK += "recipes-connectivity/iproute2/iproute2_3.15.0.bb"

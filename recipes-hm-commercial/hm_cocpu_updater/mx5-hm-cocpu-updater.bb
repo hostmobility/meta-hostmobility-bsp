@@ -24,7 +24,7 @@ do_install() {
     install -m 744 ${S}/update_cocpu_firmware.sh ${D}${bindir}/update_cocpu_firmware.sh
 }
 
-FILES_${PN} = "
+FILES_${PN} = " \
   ${bindir}/hm_cocpu_updater \
   ${bindir}/update_cocpu_firmware.sh \
  "

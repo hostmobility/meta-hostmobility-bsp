@@ -23,7 +23,7 @@ MACHINE_PATCHES_mx4-hostcom = " \
 "
 
 MACHINE_PATCHES_mx4-c61 = " \
-        file://0001-add-device-tree-forc61-v61.patch \
+    file://0001-add-device-tree-for-c61-v61.patch \
         file://defconfig \
 "
 

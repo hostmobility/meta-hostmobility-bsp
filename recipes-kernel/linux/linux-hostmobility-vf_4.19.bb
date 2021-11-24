@@ -5,6 +5,8 @@ LICENSE = "GPLv2"
 
 LIC_FILES_CHKSUM = "file://COPYING;md5=bbea815ee2795b2f4230826c0c6b8814"
 
+FILESEXTRAPATHS_prepend := "${THISDIR}/linux-mobility-imx:"
+
 inherit kernel siteinfo
 
 COMPATIBLE_MACHINE = "(mx4-c61|mx4-hostcom)"
@@ -16,15 +18,16 @@ PV = "${LINUX_VERSION}"
 S = "${WORKDIR}/linux-${PV}"
 
 GENERIC_PATCHES = " \
+    file://0002-Add-support-on-USB-for-EG25-modem.patch \
 "
 MACHINE_PATCHES_mx4-hostcom = " \
-        file://0001-add-hostcom-device-tree.patch \
-        file://defconfig \
+    file://0001-add-hostcom-device-tree.patch \
+    file://defconfig \
 "
 
 MACHINE_PATCHES_mx4-c61 = " \
     file://0001-add-device-tree-for-c61-v61.patch \
-        file://defconfig \
+    file://defconfig \
 "
 
 SRC_URI = " \

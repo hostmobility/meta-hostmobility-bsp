@@ -42,8 +42,8 @@ index 000000000000..b9fbdde71bc1
 +	aliases {
 +		mxcfb0 = &mxcfb1;
 +		mxcfb1 = &mxcfb2;
-+		eth0 = &ethernet0;
-+		eth1 = &ethernet1;
++		ethernet0 = &eth0;
++		ethernet1 = &eth1;
 +	};
 +
 +	chosen {
@@ -456,7 +456,7 @@ index 000000000000..b9fbdde71bc1
 +			<&clks IMX6QDL_CLK_PLL2_PFD0_352M>;
 +};
 +
-+ethernet0: &fec {
++eth0: &fec {
 +	phy-supply = <&reg_eth_3v3>;
 +	local-mac-address = [00 00 00 00 00 00];
 +	pinctrl-names = "default";
@@ -806,7 +806,7 @@ index 000000000000..b9fbdde71bc1
 +			reg =<1>;
 +
 +		};
-+		ethernet1: ethernet2@2 {
++		eth1: eth1@2 {
 +			reg =<2>;
 +			local-mac-address = [00 00 00 00 00 00];
 +			//pad-supply = <&vgen1_reg>;

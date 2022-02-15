@@ -28,4 +28,4 @@ UBI_VOLNAME = "rootfs"
 
 SERIAL_CONSOLE ?= "115200 ttyLP0"
 
-BBMASK += "recipes-bsp/u-boot/u-boot-hostmobility_2019.04.bb"
+BBMASK += "recipes-bsp/u-boot/u-boot-hostmobility_2021.04.bb"

@@ -26,7 +26,7 @@ SERIAL_CONSOLE = "115200 ttyS0"
 
 IMAGE_FSTYPES ?= "tar.xz"
 
-BBMASK += "recipes-bsp/u-boot/u-boot-hostmobility_2019.04.bb"
+BBMASK += "recipes-bsp/u-boot/u-boot-hostmobility_2021.04.bb"
 
 IMAGE_FSTYPES = "tar.xz"
 # wic support

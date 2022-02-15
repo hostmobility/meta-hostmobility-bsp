@@ -1,33 +1,45 @@
-From 103a7c2035470c58adaa93b942fea1d44f821dca Mon Sep 17 00:00:00 2001
+From 31368a1036b594fbedf54a569b0924d3a26c2ae2 Mon Sep 17 00:00:00 2001
 From: rikardo <rikard.olander@hostmobility.com>
-Date: Fri, 28 Jan 2022 10:09:29 +0100
-Date: Mon, 30 Aug 2021 13:21:11 +0200
-Subject: [PATCH 3/4] Add mx5 uboot and spl implementation
-
+Date: Tue, 15 Feb 2022 11:11:28 +0100
+Subject: [PATCH 1/1] Add mx5 uboot and spl implementation
 
 ---
+ board/freescale/common/pfuze.c             |   6 +
  board/hostmobility/common/Makefile         |   8 +
  board/hostmobility/common/pfuze.c          | 173 ++++
  board/hostmobility/common/pfuze.h          |  17 +
  board/hostmobility/mx5_imx6qp/Kconfig      |  15 +
  board/hostmobility/mx5_imx6qp/Makefile     |   7 +
- board/hostmobility/mx5_imx6qp/enet.c       | 121 +++
- board/hostmobility/mx5_imx6qp/enet.h       |  11 +
- board/hostmobility/mx5_imx6qp/mx5_imx6qp.c | 902 +++++++++++++++++++++
- include/configs/mx5_imx6_common.h          | 106 +++
+ board/hostmobility/mx5_imx6qp/mx5_imx6qp.c | 943 +++++++++++++++++++++
+ include/configs/mx5_imx6_common.h          | 104 +++
  include/configs/mx5_imx6qp.h               |  26 +
- 10 files changed, 1386 insertions(+)
+ 9 files changed, 1299 insertions(+)
  create mode 100644 board/hostmobility/common/Makefile
  create mode 100644 board/hostmobility/common/pfuze.c
  create mode 100644 board/hostmobility/common/pfuze.h
  create mode 100644 board/hostmobility/mx5_imx6qp/Kconfig
  create mode 100644 board/hostmobility/mx5_imx6qp/Makefile
- create mode 100644 board/hostmobility/mx5_imx6qp/enet.c
- create mode 100644 board/hostmobility/mx5_imx6qp/enet.h
  create mode 100644 board/hostmobility/mx5_imx6qp/mx5_imx6qp.c
  create mode 100644 include/configs/mx5_imx6_common.h
  create mode 100644 include/configs/mx5_imx6qp.h
 
+diff --git a/board/freescale/common/pfuze.c b/board/freescale/common/pfuze.c
+index 6dca22960b..5af0b4c819 100644
+--- a/board/freescale/common/pfuze.c
++++ b/board/freescale/common/pfuze.c
+@@ -89,6 +89,12 @@ struct pmic *pfuze_common_init(unsigned char i2cbus)
+ 	reg |= SW1xCONF_DVSSPEED_4US;
+ 	pmic_reg_write(p, PFUZE100_SW1CCONF, reg);
+ 
++	/* set SW2/VDDARM standby voltage 0.975V*/
++	/* 0x7f bits 6:0 for sw2 not 5:0 3F. Correct no define for this SW2X_0_975V (23) */
++	pmic_clrsetbits(dev, PFUZE100_SW2STBY, 0x7f, 0x17);
++
++	/* set SW2/VDDARM step ramp up time to from 16us to 4us/25mV */
++	pmic_clrsetbits(dev, PFUZE100_SW2CONF, SW1xCONF_DVSSPEED_16US, SW1xCONF_DVSSPEED_4US);
+ 	return p;
+ }
+ #else
 diff --git a/board/hostmobility/common/Makefile b/board/hostmobility/common/Makefile
 new file mode 100644
 index 0000000000..76f04b026b
@@ -44,7 +56,7 @@ index 0000000000..76f04b026b
 +obj-$(CONFIG_$(SPL_)DM_PMIC_PFUZE100)	+= pfuze.o
 diff --git a/board/hostmobility/common/pfuze.c b/board/hostmobility/common/pfuze.c
 new file mode 100644
-index 0000000000..03ebe4e7b5
+index 0000000000..6dca22960b
 --- /dev/null
 +++ b/board/hostmobility/common/pfuze.c
 @@ -0,0 +1,173 @@
@@ -186,7 +198,7 @@ index 0000000000..03ebe4e7b5
 +	int ret;
 +	unsigned int reg, dev_id, rev_id;
 +
-+	ret = pmic_get("pfuze100", &dev);
++	ret = pmic_get("pfuze100@8", &dev);
 +	if (ret == -ENODEV)
 +		return NULL;
 +
@@ -267,7 +279,7 @@ index 0000000000..c981c90f61
 +endif
 diff --git a/board/hostmobility/mx5_imx6qp/Makefile b/board/hostmobility/mx5_imx6qp/Makefile
 new file mode 100644
-index 0000000000..10cd397355
+index 0000000000..6d9bc43045
 --- /dev/null
 +++ b/board/hostmobility/mx5_imx6qp/Makefile
 @@ -0,0 +1,7 @@
@@ -277,157 +289,13 @@ index 0000000000..10cd397355
 +#
 +# (C) Copyright 2011 Freescale Semiconductor, Inc.
 +
-+obj-y  := mx5_imx6qp.o enet.o
-diff --git a/board/hostmobility/mx5_imx6qp/enet.c b/board/hostmobility/mx5_imx6qp/enet.c
-new file mode 100644
-index 0000000000..9221f9e402
---- /dev/null
-+++ b/board/hostmobility/mx5_imx6qp/enet.c
-@@ -0,0 +1,121 @@
-+// SPDX-License-Identifier: GPL-2.0+
-+/*
-+ * Copyright (C) 2012-2016 Freescale Semiconductor, Inc.
-+ * Copyright 2017-2018 NXP
-+ * Based on
-+ *	board/freescale/mx6sabresd/mx6sabresd.c
-+ *
-+ * Author: Fredrik Nordström <fredrik.nordstrom@evidente.se>
-+ */
-+
-+#include <asm/arch/clock.h>
-+#include <asm/arch/mx6-pins.h>
-+#include <asm/arch/sys_proto.h>
-+#include <asm/gpio.h>
-+#include <miiphy.h>
-+#include <netdev.h>
-+#include <linux/delay.h>
-+
-+
-+#define ENET_PAD_CTRL  (PAD_CTL_PUS_100K_UP |			\
-+PAD_CTL_SPEED_MED | PAD_CTL_DSE_40ohm | PAD_CTL_HYS)
-+
-+static iomux_v3_cfg_t const enet_pads[] = {
-+	IOMUX_PADS(PAD_ENET_MDIO__ENET_MDIO	| MUX_PAD_CTRL(ENET_PAD_CTRL)),
-+	IOMUX_PADS(PAD_ENET_MDC__ENET_MDC	| MUX_PAD_CTRL(ENET_PAD_CTRL)),
-+	IOMUX_PADS(PAD_RGMII_TXC__RGMII_TXC	| MUX_PAD_CTRL(ENET_PAD_CTRL)),
-+	IOMUX_PADS(PAD_RGMII_TD0__RGMII_TD0	| MUX_PAD_CTRL(ENET_PAD_CTRL)),
-+	IOMUX_PADS(PAD_RGMII_TD1__RGMII_TD1	| MUX_PAD_CTRL(ENET_PAD_CTRL)),
-+	IOMUX_PADS(PAD_RGMII_TD2__RGMII_TD2	| MUX_PAD_CTRL(ENET_PAD_CTRL)),
-+	IOMUX_PADS(PAD_RGMII_TD3__RGMII_TD3	| MUX_PAD_CTRL(ENET_PAD_CTRL)),
-+	IOMUX_PADS(PAD_RGMII_TX_CTL__RGMII_TX_CTL |
-+		MUX_PAD_CTRL(ENET_PAD_CTRL)),
-+	IOMUX_PADS(PAD_ENET_REF_CLK__ENET_TX_CLK |
-+		MUX_PAD_CTRL(ENET_PAD_CTRL)),
-+	IOMUX_PADS(PAD_RGMII_RXC__RGMII_RXC	| MUX_PAD_CTRL(ENET_PAD_CTRL)),
-+	IOMUX_PADS(PAD_RGMII_RD0__RGMII_RD0	| MUX_PAD_CTRL(ENET_PAD_CTRL)),
-+	IOMUX_PADS(PAD_RGMII_RD1__RGMII_RD1	| MUX_PAD_CTRL(ENET_PAD_CTRL)),
-+	IOMUX_PADS(PAD_RGMII_RD2__RGMII_RD2	| MUX_PAD_CTRL(ENET_PAD_CTRL)),
-+	IOMUX_PADS(PAD_RGMII_RD3__RGMII_RD3	| MUX_PAD_CTRL(ENET_PAD_CTRL)),
-+	IOMUX_PADS(PAD_RGMII_RX_CTL__RGMII_RX_CTL |
-+		MUX_PAD_CTRL(ENET_PAD_CTRL)),
-+	/* AR8031 PHY Reset */
-+	IOMUX_PADS(PAD_ENET_CRS_DV__GPIO1_IO25	| MUX_PAD_CTRL(NO_PAD_CTRL)),
-+};
-+
-+static void fec_phy_reset(void)
-+{
-+	/* Reset AR8031 PHY */
-+	gpio_request(IMX_GPIO_NR(1, 25), "ENET PHY Reset");
-+	gpio_direction_output(IMX_GPIO_NR(1, 25), 0);
-+	mdelay(10);
-+	gpio_set_value(IMX_GPIO_NR(1, 25), 1);
-+	udelay(100);
-+}
-+
-+static void setup_iomux_enet(void)
-+{
-+	SETUP_IOMUX_PADS(enet_pads);
-+	fec_phy_reset();
-+}
-+
-+static int ar8031_phy_fixup(struct phy_device *phydev)
-+{
-+	unsigned short val;
-+
-+	/* To enable AR8031 output a 125MHz clk from CLK_25M */
-+	if (!is_mx6dqp()) {
-+		phy_write(phydev, MDIO_DEVAD_NONE, 0xd, 0x7);
-+		phy_write(phydev, MDIO_DEVAD_NONE, 0xe, 0x8016);
-+		phy_write(phydev, MDIO_DEVAD_NONE, 0xd, 0x4007);
-+
-+		val = phy_read(phydev, MDIO_DEVAD_NONE, 0xe);
-+		val &= 0xffe3;
-+		val |= 0x18;
-+		phy_write(phydev, MDIO_DEVAD_NONE, 0xe, val);
-+	}
-+
-+	/* set the IO voltage to 1.8v */
-+	phy_write(phydev, MDIO_DEVAD_NONE, 0x1d, 0x1f);
-+	phy_write(phydev, MDIO_DEVAD_NONE, 0x1e, 0x8);
-+
-+	/* introduce tx clock delay */
-+	phy_write(phydev, MDIO_DEVAD_NONE, 0x1d, 0x5);
-+	val = phy_read(phydev, MDIO_DEVAD_NONE, 0x1e);
-+	val |= 0x0100;
-+	phy_write(phydev, MDIO_DEVAD_NONE, 0x1e, val);
-+
-+	return 0;
-+}
-+
-+int board_phy_config(struct phy_device *phydev)
-+{
-+	ar8031_phy_fixup(phydev);
-+
-+	if (phydev->drv->config)
-+		phydev->drv->config(phydev);
-+
-+	return 0;
-+}
-+
-+void setup_fec(void)
-+{
-+	if (is_mx6dqp()) {
-+		int ret;
-+
-+		/* select ENET MAC0 TX clock from PLL */
-+		imx_iomux_set_gpr_register(5, 9, 1, 1);
-+		ret = enable_fec_anatop_clock(0, ENET_125MHZ);
-+		if (ret)
-+			printf("Error fec anatop clock settings!\n");
-+	}
-+
-+	fec_phy_reset();
-+}
-+
-+int board_eth_init(bd_t *bis)
-+{
-+	setup_iomux_enet();
-+	enable_enet_clk(1);
-+	return cpu_eth_init(bis);
-+}
-diff --git a/board/hostmobility/mx5_imx6qp/enet.h b/board/hostmobility/mx5_imx6qp/enet.h
-new file mode 100644
-index 0000000000..2a1574fb03
---- /dev/null
-+++ b/board/hostmobility/mx5_imx6qp/enet.h
-@@ -0,0 +1,11 @@
-+/* SPDX-License-Identifier: GPL-2.0+ */
-+/*
-+ * Copyright (C) 2012-2016 Freescale Semiconductor, Inc.
-+ * Copyright 2017-2018 NXP
-+ * Based on
-+ *	board/freescale/mx6sabresd/mx6sabresd.c
-+ *
-+ * Author: Fredrik Nordström <fredrik.nordstrom@evidente.se>
-+ */
-+
-+void setup_fec(void);
++obj-y  := mx5_imx6qp.o
 diff --git a/board/hostmobility/mx5_imx6qp/mx5_imx6qp.c b/board/hostmobility/mx5_imx6qp/mx5_imx6qp.c
 new file mode 100644
-index 0000000000..03689f61c5
+index 0000000000..8f7cc983b9
 --- /dev/null
 +++ b/board/hostmobility/mx5_imx6qp/mx5_imx6qp.c
-@@ -0,0 +1,902 @@
+@@ -0,0 +1,943 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
 + * Copyright (C) 2012-2016 Freescale Semiconductor, Inc.
@@ -440,38 +308,40 @@ index 0000000000..03689f61c5
 + * Author: Rikard Olander <rikard.olander@hostmobility.com>
 + */
 +
-+#include <asm/arch/mx6-pins.h>
-+#include <asm/arch/sys_proto.h>
-+#include <power/pmic.h>
-+#include <power/pfuze100_pmic.h>
++#include <image.h>
++#include <init.h>
++#include <net.h>
 +#include <asm/arch/clock.h>
-+#include <common.h>
-+#include <dm.h>
-+#include <environment.h>
 +#include <asm/arch/imx-regs.h>
 +#include <asm/arch/iomux.h>
 +#include <asm/arch/mx6-pins.h>
-+#include <asm/arch/mx6-ddr.h>
-+#include <asm/bootm.h>
++#include <asm/global_data.h>
++#include <asm/mach-imx/spi.h>
++#include <env.h>
++#include <linux/errno.h>
++#include <linux/delay.h>
 +#include <asm/gpio.h>
-+#include <asm/io.h>
++#include <asm/mach-imx/mxc_i2c.h>
 +#include <asm/mach-imx/iomux-v3.h>
 +#include <asm/mach-imx/boot_mode.h>
-+#include <dm/platform_data/serial_mxc.h>
-+#include <dm/platdata.h>
-+#include <fsl_esdhc.h>
-+#include <input.h>
-+#include <imx_thermal.h>
-+#include <linux/errno.h>
-+#include <malloc.h>
 +#include <mmc.h>
 +#include <miiphy.h>
-+#include <netdev.h>
-+#include <asm/mach-imx/mxc_i2c.h>
-+#include <i2c.h>
 +
++#include <asm/arch/crm_regs.h>
++#include <asm/io.h>
++#include <asm/arch/sys_proto.h>
++#include <input.h>
++
++#include <power/pmic.h>
++#include <power/pfuze100_pmic.h>
++
++#include <asm/arch/mx6-ddr.h>
++#include <power/regulator.h>
++
++#include <fsl_esdhc_imx.h>
++
++#include <i2c.h>
 +#include "../common/pfuze.h"
-+#include "enet.h"
 +//#include "mx5_packet.h"
 +#include <led.h>
 +#include <search.h>
@@ -546,6 +416,58 @@ index 0000000000..03689f61c5
 +	return 0;
 +}
 +
++static int ar8031_phy_fixup(struct phy_device *phydev)
++{
++	unsigned short val;
++
++	/* To enable AR8031 ouput a 125MHz clk from CLK_25M */
++	if (!is_mx6dqp()) {
++		phy_write(phydev, MDIO_DEVAD_NONE, 0xd, 0x7);
++		phy_write(phydev, MDIO_DEVAD_NONE, 0xe, 0x8016);
++		phy_write(phydev, MDIO_DEVAD_NONE, 0xd, 0x4007);
++
++		val = phy_read(phydev, MDIO_DEVAD_NONE, 0xe);
++		val &= 0xffe3;
++		val |= 0x18;
++		phy_write(phydev, MDIO_DEVAD_NONE, 0xe, val);
++	}
++
++	/* set the IO voltage to 1.8v */
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x1d, 0x1f);
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x1e, 0x8);
++
++	/* introduce tx clock delay */
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x1d, 0x5);
++	val = phy_read(phydev, MDIO_DEVAD_NONE, 0x1e);
++	val |= 0x0100;
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x1e, val);
++
++	return 0;
++}
++
++
++int board_phy_config(struct phy_device *phydev)
++{
++	ar8031_phy_fixup(phydev);
++
++	if (phydev->drv->config)
++		phydev->drv->config(phydev);
++
++	return 0;
++}
++
++static void setup_fec(void)
++{
++	if (is_mx6dqp()) {
++		int ret;
++
++		/* select ENET MAC0 TX clock from PLL */
++		imx_iomux_set_gpr_register(5, 9, 1, 1);
++		ret = enable_fec_anatop_clock(0, ENET_125MHZ);
++		if (ret)
++		    printf("Error fec anatop clock settings!\n");
++	}
++}
 +int board_init(void)
 +{
 +	if (IS_ENABLED(CONFIG_LED))
@@ -559,87 +481,85 @@ index 0000000000..03689f61c5
 +}
 +#ifndef CONFIG_SPL_BUILD
 +#ifdef CONFIG_LDO_BYPASS_CHECK
-+#if defined(CONFIG_DM_PMIC_PFUZE100)
-+ void ldo_mode_set(int ldo_bypass)
-+ {
-+       int is_400M;
-+       unsigned char vddarm;
-+       struct udevice *dev;
-+       int ret;
++void ldo_mode_set(int ldo_bypass)
++{
++    int is_400M;
++    unsigned char vddarm;
++    struct udevice *dev;
++    int ret;
++    ret = pmic_get("pfuze100@8", &dev);
++    if (ret == -ENODEV)
++    {
++        printf("No PMIC found(pfuze100@8)!\n");
++        return;
++    }
 +
-+       ret = pmic_get("pfuze100", &dev);
-+       if (ret == -ENODEV) {
-+               printf("No PMIC found!\n");
-+               return;
-+       }
++    /* increase VDDARM/VDDSOC to support 1.2G chip */
++    if (check_1_2G()) {
++            ldo_bypass = 0; /* ldo_enable on 1.2G chip */
++            printf("1.2G chip, increase VDDARM_IN/VDDSOC_IN\n");
++            if (is_mx6dqp()) {
++                    /* increase VDDARM to 1.425V */
++                    pmic_clrsetbits(dev, PFUZE100_SW2VOL, 0x3f, 0x29);
++            } else {
++                    /* increase VDDARM to 1.425V */
++                    pmic_clrsetbits(dev, PFUZE100_SW1ABVOL, 0x3f, 0x2d);
++            }
++            /* increase VDDSOC to 1.425V */
++            pmic_clrsetbits(dev, PFUZE100_SW1CVOL, 0x3f, 0x2d);
++    }
++    /* switch to ldo_bypass mode , boot on 800Mhz */
++    if (ldo_bypass) {
++            prep_anatop_bypass();
++            if (is_mx6dqp()) {
++                    /* decrease VDDARM for 400Mhz DQP:1.1V*/
++                    pmic_clrsetbits(dev, PFUZE100_SW2VOL, 0x3f, 0x1c);
++            } else {
++                    /* decrease VDDARM for 400Mhz DQ:1.1V, DL:1.275V */
++                    if (is_mx6dl())
++                            pmic_clrsetbits(dev, PFUZE100_SW1ABVOL, 0x3f, 0x27);
++                    else
++                            pmic_clrsetbits(dev, PFUZE100_SW1ABVOL, 0x3f, 0x20);
++            }
++            /* increase VDDSOC to 1.3V */
++            pmic_clrsetbits(dev, PFUZE100_SW1CVOL, 0x3f, 0x28);
 +
-+       /* increase VDDARM/VDDSOC to support 1.2G chip */
-+       if (check_1_2G()) {
-+               ldo_bypass = 0; /* ldo_enable on 1.2G chip */
-+               printf("1.2G chip, increase VDDARM_IN/VDDSOC_IN\n");
-+               if (is_mx6dqp()) {
-+                       /* increase VDDARM to 1.425V */
-+                       pmic_clrsetbits(dev, PFUZE100_SW2VOL, 0x3f, 0x29);
-+               } else {
-+                       /* increase VDDARM to 1.425V */
-+                       pmic_clrsetbits(dev, PFUZE100_SW1ABVOL, 0x3f, 0x2d);
-+               }
-+               /* increase VDDSOC to 1.425V */
-+               pmic_clrsetbits(dev, PFUZE100_SW1CVOL, 0x3f, 0x2d);
-+       }
-+       /* switch to ldo_bypass mode , boot on 800Mhz */
-+       if (ldo_bypass) {
-+               prep_anatop_bypass();
-+               if (is_mx6dqp()) {
-+                       /* decrease VDDARM for 400Mhz DQP:1.1V*/
-+                       pmic_clrsetbits(dev, PFUZE100_SW2VOL, 0x3f, 0x1c);
-+               } else {
-+                       /* decrease VDDARM for 400Mhz DQ:1.1V, DL:1.275V */
-+                       if (is_mx6dl())
-+                               pmic_clrsetbits(dev, PFUZE100_SW1ABVOL, 0x3f, 0x27);
-+                       else
-+                               pmic_clrsetbits(dev, PFUZE100_SW1ABVOL, 0x3f, 0x20);
-+               }
-+               /* increase VDDSOC to 1.3V */
-+               pmic_clrsetbits(dev, PFUZE100_SW1CVOL, 0x3f, 0x28);
++            /*
++            * MX6Q/DQP:
++            * VDDARM:1.15V@800M; VDDSOC:1.175V@800M
++            * VDDARM:0.975V@400M; VDDSOC:1.175V@400M
++            * MX6DL:
++            * VDDARM:1.175V@800M; VDDSOC:1.175V@800M
++            * VDDARM:1.15V@400M; VDDSOC:1.175V@400M
++            */
++            is_400M = set_anatop_bypass(2);
++            if (is_mx6dqp()) {
++                    if (is_400M)
++                            pmic_clrsetbits(dev, PFUZE100_SW2VOL, 0x3f, 0x17);
++                    else
++                            pmic_clrsetbits(dev, PFUZE100_SW2VOL, 0x3f, 0x1e);
++            }
 +
-+               /*
-+                * MX6Q/DQP:
-+                * VDDARM:1.15V@800M; VDDSOC:1.175V@800M
-+                * VDDARM:0.975V@400M; VDDSOC:1.175V@400M
-+                * MX6DL:
-+                * VDDARM:1.175V@800M; VDDSOC:1.175V@800M
-+                * VDDARM:1.15V@400M; VDDSOC:1.175V@400M
-+                */
-+               is_400M = set_anatop_bypass(2);
-+               if (is_mx6dqp()) {
-+                       if (is_400M)
-+                               pmic_clrsetbits(dev, PFUZE100_SW2VOL, 0x3f, 0x17);
-+                       else
-+                               pmic_clrsetbits(dev, PFUZE100_SW2VOL, 0x3f, 0x1e);
-+               }
++            if (is_400M) {
++                    if (is_mx6dl())
++                            vddarm = 0x22;
++                    else
++                            vddarm = 0x1b;
++            } else {
++                    if (is_mx6dl())
++                            vddarm = 0x23;
++                    else
++                            vddarm = 0x22;
++            }
++            pmic_clrsetbits(dev, PFUZE100_SW1ABVOL, 0x3f, vddarm);
 +
-+               if (is_400M) {
-+                       if (is_mx6dl())
-+                               vddarm = 0x22;
-+                       else
-+                               vddarm = 0x1b;
-+               } else {
-+                       if (is_mx6dl())
-+                               vddarm = 0x23;
-+                       else
-+                               vddarm = 0x22;
-+               }
-+               pmic_clrsetbits(dev, PFUZE100_SW1ABVOL, 0x3f, vddarm);
++            /* decrease VDDSOC to 1.175V */
++            pmic_clrsetbits(dev, PFUZE100_SW1CVOL, 0x3f, 0x23);
 +
-+               /* decrease VDDSOC to 1.175V */
-+               pmic_clrsetbits(dev, PFUZE100_SW1CVOL, 0x3f, 0x23);
-+
-+               finish_anatop_bypass();
-+               printf("switch to ldo_bypass mode!\n");
-+       }
-+ }
-+#endif
++            finish_anatop_bypass();
++            printf("switch to ldo_bypass mode!\n");
++    }
++}
 +#endif
 + 
 +#if defined(CONFIG_DM_PMIC_PFUZE100)
@@ -651,13 +571,13 @@ index 0000000000..03689f61c5
 +       dev = pfuze_common_init();
 +       if (!dev) {
 +		return -ENODEV;
-+       }
++		}
++
 +       ret = pfuze_mode_init(dev, APS_APS);
 +       if (ret < 0) {
 +               return ret;
 +       }
-+
-+	/* Turn off VGEN1-3 and 5 voltage, not needed but leave the voltage level the same as default.*/
++		/* Turn off VGEN1-3 and 5 voltage, not needed but leave the voltage level the same as default.*/
 +       pmic_clrsetbits(dev, PFUZE100_VGEN1VOL, LDO_EN, LDO_MODE_OFF);
 +       pmic_clrsetbits(dev, PFUZE100_VGEN2VOL, LDO_EN, LDO_MODE_OFF);
 +       pmic_clrsetbits(dev, PFUZE100_VGEN3VOL, LDO_EN, LDO_MODE_OFF);
@@ -667,21 +587,6 @@ index 0000000000..03689f61c5
 +       pmic_clrsetbits(dev, PFUZE100_VGEN4VOL, LDO_VOL_MASK, (LDOB_3_00V | LDO_EN ) );
 +		/*Set VGEN6 to 2V7 to feed RTC battery*/
 +       pmic_clrsetbits(dev, PFUZE100_VGEN6VOL, LDO_VOL_MASK, (LDOB_2_70V | LDO_EN ));
-+
-+
-+       /* set SW1C standby voltage 1.075V*/
-+       pmic_clrsetbits(dev, PFUZE100_SW1CSTBY, SW1x_NORMAL_MASK, SW1x_1_075V);
-+
-+       /* set SW1C/VDDSOC step ramp up time to from 16us to 4us/25mV */
-+       pmic_clrsetbits(dev, PFUZE100_SW1CCONF, SW1xCONF_DVSSPEED_MASK, SW1xCONF_DVSSPEED_4US);
-+
-+       /* set SW2/VDDARM standby voltage 0.975V*/
-+       /* 0x7f bits 6:0 for sw2 not 5:0 3F. Correct no define for this SW2X_0_975V (23) */
-+       pmic_clrsetbits(dev, PFUZE100_SW2STBY, 0x7f, 0x17);
-+
-+       /* set SW2/VDDARM step ramp up time to from 16us to 4us/25mV */
-+       pmic_clrsetbits(dev, PFUZE100_SW2CONF, SW1xCONF_DVSSPEED_16US, SW1xCONF_DVSSPEED_4US);
-+
 +
 +       return 0;
 +}
@@ -739,7 +644,7 @@ index 0000000000..03689f61c5
 +				env_length = (env_length_raw[1] << 8) | env_length_raw[0];
 +				if(env_length == 0xffff)
 +				{
-+					printf("Epprom ENV parameter length is to long, max 0xffff value:%x\n", env_length);
++					printf("Eeprom ENV parameter length is to long, max 0xffff value:%x\n", env_length);
 +					return 1;
 +				}
 +				debug("Debug:Read from co cpu length, value:%x\n", env_length);
@@ -855,6 +760,8 @@ index 0000000000..03689f61c5
 +#include "asm/arch/iomux.h"
 +#include "asm/arch/crm_regs.h"
 +
++#ifdef CONFIG_FSL_ESDHC_IMX
++#if !CONFIG_IS_ENABLED(DM_MMC)
 +/* use the following sequence: eMMC, SD */
 +struct fsl_esdhc_cfg usdhc_cfg[CONFIG_SYS_FSL_USDHC_NUM] = {
 +	{USDHC3_BASE_ADDR},
@@ -885,9 +792,9 @@ index 0000000000..03689f61c5
 +	MX6_PAD_SD3_RST__SD3_RESET | MUX_PAD_CTRL(WEAK_PULLUP),
 +};
 +
-+int board_mmc_init(bd_t *bis)
++int board_mmc_init(struct bd_info *bis)
 +{
-+	s32 status = 0;
++
 +	u32 index = 0;
 +
 +	usdhc_cfg[0].sdhc_clk = mxc_get_clock(MXC_ESDHC3_CLK);
@@ -909,19 +816,20 @@ index 0000000000..03689f61c5
 +		default:
 +			printf("Warning: you configured more USDHC controllers (%d) then supported by the board (%d)\n",
 +			       index + 1, CONFIG_SYS_FSL_USDHC_NUM);
-+			return status;
++			return 0;
 +		}
-+
-+		status |= fsl_esdhc_initialize(bis, &usdhc_cfg[index]);
++	if (fsl_esdhc_initialize(bis, &usdhc_cfg[index]))
++			printf("Warning: failed to initialize mmc dev %d\n", index);
 +	}
-+
-+	return status;
++	return 0;
 +}
 +
 +int board_mmc_getcd(struct mmc *mmc)
 +{
 +	return 1;
 +}
++#endif
++#endif
 +
 +#ifdef CONFIG_SPL_OS_BOOT
 +int spl_start_uboot(void)
@@ -1296,6 +1204,7 @@ index 0000000000..03689f61c5
 +
 +void board_init_f(ulong dummy)
 +{
++	//printf("SPL boot early!\n");
 +	/* setup AIPS and disable watchdog */
 +	arch_cpu_init();
 +
@@ -1332,10 +1241,10 @@ index 0000000000..03689f61c5
 +#endif
 diff --git a/include/configs/mx5_imx6_common.h b/include/configs/mx5_imx6_common.h
 new file mode 100644
-index 0000000000..5d53cde2d1
+index 0000000000..3f8ffa3540
 --- /dev/null
 +++ b/include/configs/mx5_imx6_common.h
-@@ -0,0 +1,106 @@
+@@ -0,0 +1,104 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
 + * Copyright (C) 2012 Freescale Semiconductor, Inc.
@@ -1355,14 +1264,13 @@ index 0000000000..5d53cde2d1
 +#include "imx6_spl.h"
 +#endif
 +
-+#define CONFIG_IMX_THERMAL
 +#define CONFIG_MXC_UART
 +
 +/* Size of malloc() pool */
 +#define CONFIG_SYS_MALLOC_LEN		(16 * SZ_1M)
 +
 +/* MMC Configs */
-+#define CONFIG_FSL_USDHC
++//#define CONFIG_FSL_USDHC
 +#define CONFIG_SYS_FSL_USDHC_NUM	2
 +#define CONFIG_SYS_FSL_ESDHC_ADDR   0
 +
@@ -1378,20 +1286,19 @@ index 0000000000..5d53cde2d1
 +	(CONFIG_SYS_INIT_RAM_ADDR + CONFIG_SYS_INIT_SP_OFFSET)
 +
 +/* Environment organization */
-+#define CONFIG_ENV_SIZE			(8 * 1024)
 +
 +#define CONFIG_USBD_HS
 +
 +#ifdef CONFIG_SPL_BUILD
 +	#define CONFIG_SYS_I2C
++
 +#endif
 +
-+#define CONFIG_SYS_I2C_MXC
-+#define CONFIG_SYS_I2C_MXC_I2C3		/* enable I2C bus 3 */
++#ifdef CONFIG_SPL_BUILD
++#define CONFIG_SPL_DRIVERS_MISC_SUPPORT
++#endif
 +#define CONFIG_SYS_I2C_SPEED		100000
 +
-+#define CONFIG_SYS_MMC_ENV_DEV		2	/* SDHC3 */
-+#define CONFIG_SYS_MMC_ENV_PART		1       /* user partition */
 +#define CONFIG_MMCROOT			"/dev/mmcblk2p2"  /* SDHC3 */
 +#define CONSOLE_DEV			"ttymxc0"
 +

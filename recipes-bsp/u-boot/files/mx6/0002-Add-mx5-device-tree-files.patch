@@ -1,21 +1,21 @@
-From ab5c87ea8a241232cef5030e8b9dacb6984f15d0 Mon Sep 17 00:00:00 2001
+From 844cdfd569cd603d35858113fd2ee73a30c65d89 Mon Sep 17 00:00:00 2001
 From: rikardo <rikard.olander@hostmobility.com>
-Date: Fri, 13 Aug 2021 10:51:27 +0200
+Date: Tue, 15 Feb 2022 09:34:44 +0100
 Subject: [PATCH 2/4] Add mx5 device tree files
 
 ---
- arch/arm/dts/mx5_imx6qdl.dtsi | 663 ++++++++++++++++++++++++++++++++++
+ arch/arm/dts/mx5_imx6qdl.dtsi | 655 ++++++++++++++++++++++++++++++++++
  arch/arm/dts/mx5_imx6qp.dts   |  54 +++
- 2 files changed, 717 insertions(+)
+ 2 files changed, 709 insertions(+)
  create mode 100644 arch/arm/dts/mx5_imx6qdl.dtsi
  create mode 100644 arch/arm/dts/mx5_imx6qp.dts
 
 diff --git a/arch/arm/dts/mx5_imx6qdl.dtsi b/arch/arm/dts/mx5_imx6qdl.dtsi
 new file mode 100644
-index 0000000000..6b21db0a4b
+index 0000000000..e5104534a3
 --- /dev/null
 +++ b/arch/arm/dts/mx5_imx6qdl.dtsi
-@@ -0,0 +1,663 @@
+@@ -0,0 +1,655 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +//
 +// Copyright 2012 Freescale Semiconductor, Inc.
@@ -267,10 +267,8 @@ index 0000000000..6b21db0a4b
 +
 +&i2c3 {
 +	clock-frequency = <100000>;
-+	pinctrl-names = "default", "gpio";
++	pinctrl-names = "default";
 +	pinctrl-0 = <&pinctrl_i2c3>;
-+	scl-gpios = <&gpio1 3 GPIO_ACTIVE_HIGH>;
-+	sda-gpios = <&gpio1 6 GPIO_ACTIVE_HIGH>;
 +	status = "okay";
 +
 +	/*RTC*/
@@ -279,7 +277,7 @@ index 0000000000..6b21db0a4b
 +		reg = <0x51>;
 +	};
 +
-+	pmic: pfuze100@08 {
++	pmic: pfuze100@8 {
 +		compatible = "fsl,pfuze100";
 +		reg = <0x08>;
 +		fsl,pfuze-support-disable-sw;
@@ -347,13 +345,13 @@ index 0000000000..6b21db0a4b
 +			};
 +			/*Not used on next board*/
 +			vgen2_reg: vgen2 {
-+				regulator-min-microvolt = <800000>;
-+				regulator-max-microvolt = <1550000>;
++				regulator-min-microvolt = <0>;
++				regulator-max-microvolt = <0>;
 +			};
 +			/*Not used on next board*/
 +			vgen3_reg: vgen3 {
-+				regulator-min-microvolt = <1800000>;
-+				regulator-max-microvolt = <3300000>;
++				regulator-min-microvolt = <0>;
++				regulator-max-microvolt = <0>;
 +			};
 +			/*VDDHIGH*/
 +			vgen4_reg: vgen4 {
@@ -361,14 +359,16 @@ index 0000000000..6b21db0a4b
 +				regulator-max-microvolt = <3100000>;
 +				regulator-always-on;
 +			};
-+			/*LEDs smitt-trigger 2.5V always on*/
++			/*Not used on next board*/
 +			vgen5_reg: vgen5 {
-+				regulator-min-microvolt = <2500000>;
-+				regulator-max-microvolt = <2500000>;
++				regulator-min-microvolt = <0>;
++				regulator-max-microvolt = <0>;
 +			};
++
++			/* 2V7 to feed RTC battery */
 +			vgen6_reg: vgen6 {
-+				regulator-min-microvolt = <1800000>;
-+				regulator-max-microvolt = <2700000>;
++				regulator-min-microvolt = <2600000>;
++				regulator-max-microvolt = <2800000>;
 +				regulator-always-on;
 +			};
 +		};
@@ -383,14 +383,6 @@ index 0000000000..6b21db0a4b
 +	pinctrl-names = "default";
 +	pinctrl-0 = <&pinctrl_ecspi2>, <&pinctrl_ecspi2_cs>;
 +	status = "okay";
-+
-+	flash: w25q80@0 {
-+		#address-cells = <1>;
-+		#size-cells = <1>;
-+		compatible = "winbond,w25q80", "jedec,spi-nor";
-+		spi-max-frequency = <4000000>;
-+		reg = <0>;
-+	};
 +
 +    spidev@1 { //SPI to STM32
 +        compatible = "hostmobility, mx5-driver";

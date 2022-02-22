@@ -21,7 +21,7 @@ PREFERRED_PROVIDER_virtual/kernel = "linux-hostmobility"
 KERNEL_IMAGETYPE = "uImage"
 
 # The kernel lives in a seperate FAT or UBI partition, don't deploy it in /boot
-RDEPENDS_kernel-base = ""
+RDEPENDS_${KERNEL_PACKAGE_NAME}-base = ""
 
 PREFERRED_PROVIDER_u-boot = "u-boot-hostmobility"
 PREFERRED_PROVIDER_virtual/bootloader = "u-boot-hostmobility"

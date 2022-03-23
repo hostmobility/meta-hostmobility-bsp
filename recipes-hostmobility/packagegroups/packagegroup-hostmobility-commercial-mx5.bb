@@ -1,4 +1,4 @@
-SUMMARY = "MX-5 Commercial package group"
+SUMMARY = "MX-V Commercial package group"
 DESCRIPTION = "Package group bringing in packages that are closed source and part of BSP"
 
 inherit packagegroup

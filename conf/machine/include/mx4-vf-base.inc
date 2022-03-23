@@ -9,7 +9,7 @@ PREFERRED_PROVIDER_virtual/kernel ?= "linux-hostmobility-vf"
 KERNEL_IMAGETYPE = "zImage"
 
 # We store kernel on seperate MTD partition so no need to deploy to rootfs.
-RDEPENDS_kernel-base = ""
+RDEPENDS_${KERNEL_PACKAGE_NAME}-base = ""
 
 PREFERRED_PROVIDER_u-boot ?= "u-boot-hostmobility"
 PREFERRED_PROVIDER_virtual/bootloader ?= "u-boot-hostmobility"

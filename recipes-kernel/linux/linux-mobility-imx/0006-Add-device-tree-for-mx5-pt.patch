@@ -15,7 +15,7 @@ new file mode 100644
 index 000000000000..b9fbdde71bc1
 --- /dev/null
 +++ b/arch/arm/boot/dts/imx6qdl-mx5.dtsi
-@@ -0,0 +1,1658 @@
+@@ -0,0 +1,1666 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +//
 +// Copyright 2012 Freescale Semiconductor, Inc.
@@ -400,7 +400,9 @@ index 000000000000..b9fbdde71bc1
 +					<&ncv7751  4 GPIO_ACTIVE_HIGH>,
 +					<&ncv7751  5 GPIO_ACTIVE_HIGH>,
 +					<&ncv7751  6 GPIO_ACTIVE_HIGH>,
-+					<&ncv7751  7 GPIO_ACTIVE_HIGH>;
++					<&ncv7751  7 GPIO_ACTIVE_HIGH>,
++					<&ncv7751  8 GPIO_ACTIVE_HIGH>,
++					<&ncv7751  9 GPIO_ACTIVE_HIGH>;
 +
 +		DIG-OUT-HI-OC-gpios =	<&gpio1 24 GPIO_ACTIVE_HIGH>,
 +					<&gpio1 30 GPIO_ACTIVE_HIGH>,
@@ -977,9 +979,7 @@ index 000000000000..b9fbdde71bc1
 +		status = "okay";
 +		gpio-controller;
 +		#gpio-cells = <2>; 
-+		/* TODO: Consolidate into one virtual chip or manually fetch these */
-+		/* There are actually 12 outputs but we are only connecting 8 for now */
-+		/* WARNING: This is NOT the way the current driver enumerates them */
++		/* There are actually 12 outputs but we are only connecting 10 for now */
 +		gpio-line-names =
 +			"DIG_OUT_LO_1",
 +			"DIG_OUT_LO_2",
@@ -989,6 +989,8 @@ index 000000000000..b9fbdde71bc1
 +			"DIG_OUT_LO_6",
 +			"DIG_OUT_LO_7",
 +			"DIG_OUT_LO_8",
++			"DIG_OUT_LO_9",
++			"DIG_OUT_LO_10",
 +			"DIG_OUT_LO_EN_DIAG_1",
 +			"DIG_OUT_LO_EN_DIAG_2",
 +			"DIG_OUT_LO_EN_DIAG_3",
@@ -997,6 +999,8 @@ index 000000000000..b9fbdde71bc1
 +			"DIG_OUT_LO_EN_DIAG_6",
 +			"DIG_OUT_LO_EN_DIAG_7",
 +			"DIG_OUT_LO_EN_DIAG_8",
++			"DIG_OUT_LO_EN_DIAG_9",
++			"DIG_OUT_LO_EN_DIAG_10",
 +			"DIG_OUT_LO_OVERLOAD_1",
 +			"DIG_OUT_LO_OVERLOAD_2",
 +			"DIG_OUT_LO_OVERLOAD_3",
@@ -1005,6 +1009,8 @@ index 000000000000..b9fbdde71bc1
 +			"DIG_OUT_LO_OVERLOAD_6",
 +			"DIG_OUT_LO_OVERLOAD_7",
 +			"DIG_OUT_LO_OVERLOAD_8",
++			"DIG_OUT_LO_OVERLOAD_9",
++			"DIG_OUT_LO_OVERLOAD_10",
 +			"DIG_OUT_LO_OPEN_1",
 +			"DIG_OUT_LO_OPEN_2",
 +			"DIG_OUT_LO_OPEN_3",
@@ -1012,7 +1018,9 @@ index 000000000000..b9fbdde71bc1
 +			"DIG_OUT_LO_OPEN_5",
 +			"DIG_OUT_LO_OPEN_6",
 +			"DIG_OUT_LO_OPEN_7",
-+			"DIG_OUT_LO_OPEN_8";
++			"DIG_OUT_LO_OPEN_8",
++			"DIG_OUT_LO_OPEN_9",
++			"DIG_OUT_LO_OPEN_10";
 +        };
 +};
 +

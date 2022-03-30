@@ -15,7 +15,7 @@ new file mode 100644
 index 000000000000..b9fbdde71bc1
 --- /dev/null
 +++ b/arch/arm/boot/dts/imx6qdl-mx5.dtsi
-@@ -0,0 +1,1666 @@
+@@ -0,0 +1,1670 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +//
 +// Copyright 2012 Freescale Semiconductor, Inc.
@@ -951,13 +951,17 @@ index 000000000000..b9fbdde71bc1
 +        spi-max-frequency = <4000000>;
 +        status = "okay";
 +    };
-+    spidev@1 { //SPI to STM32
++    cocpu: spidev@1 { //SPI to STM32
 +        compatible = "hostmobility, mx5-driver";
 +        reg = <1>;
 +        spi-max-frequency = <3000000>;
 +        status = "okay";
 +        DATA_READY-gpios = <&gpio3 19 GPIO_ACTIVE_HIGH>;
 +        MCU_RESET-gpios = <&gpio5 4 GPIO_ACTIVE_HIGH>;
++        interrupt-controller;
++        #gpio-cells = <2>; 
++        gpio-controller;
++        wakeup-source;
 +    };
 +};
 +

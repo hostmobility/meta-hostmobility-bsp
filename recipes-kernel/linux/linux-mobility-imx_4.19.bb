@@ -32,7 +32,7 @@ LINUXBRANCH = "imx_4.19.35_1.0.0"
 SRCREV_FORMAT = "linuxkernel_hmcommercial"
 
 SRCREV_linuxkernel = "e4452f4458e4272345aa773e726107cb74ef2974"
-SRCREV_hmcommercial = "e3e5f2053f16c4e2a671b60bddab9408a4fec45b"
+SRCREV_hmcommercial = "d40b9103b6550768474d1132cd2f6d135f6b611e"
 
 PV = "${LINUX_VERSION}+git${SRCPV}"
 

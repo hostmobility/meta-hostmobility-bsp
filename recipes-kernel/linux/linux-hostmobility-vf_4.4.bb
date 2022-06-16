@@ -23,7 +23,7 @@ do_deploy_append() {
     cd -
     
     type=uImage
-    base_name=${type}-${KERNEL_IMAGE_BASE_NAME}
+    base_name=${type}-${KERNEL_IMAGETYPE}
     install -m 0644 ${KERNEL_OUTPUT_DIR}/${type} ${DEPLOYDIR}/${base_name}.bin
 
     symlink_name=uImage-${KERNEL_IMAGE_SYMLINK_NAME}

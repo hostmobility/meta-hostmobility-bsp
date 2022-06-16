@@ -1,18 +1,24 @@
-inherit kernel
-require recipes-kernel/linux/linux-hostmobility.inc
+inherit kernel siteinfo
+SUMMARY = "Linux Kernel for Host Mobility products based on Toradex Tegra COMs"
+SECTION = "kernel"
+LICENSE = "GPLv2"
 
-LINUX_VERSION ?= "3.1.10"
+LINUX_VERSION ?= "4.14.1"
+LIC_FILES_CHKSUM = "file://COPYING;md5=d7810fab7487fb0aad327b76f1be7cd7"
 
 PV = "${LINUX_VERSION}+gitr${SRCREV}"
 
+DEPENDS += "lzop-native bc-native u-boot-mkimage-native"
+
 S = "${WORKDIR}/git"
 
-LOCALVERSION = "-${SRCBRANCH}"
+LOCALVERSION = "test"
 SRC_URI = "git://github.com/hostmobility/linux-toradex.git;protocol=https;branch=${SRCBRANCH}"
-SRCBRANCH = "expremental-ct2"
-SRCREV = "d0933a4dafaf83df08250cd17e53c6ff0d14ce6d"
+SRCBRANCH = "hm_tegra_4.14"
+SRCREV = "eefc00c4f143ea76efed7d53215ea492d588450b"
+KERNEL_EXTRA_ARGS = "LOADADDR=0x00408000 "
 
-COMPATIBLE_MACHINE = "(mx4-t30|mx4-t20|mx4-ct|mx4-vcc|mx4-gtt|mx4-mil)"
+COMPATIBLE_MACHINE = "(mx4-mil)"
 
 # One possibiltiy for changes to the defconfig:
 config_script () {
@@ -22,8 +28,6 @@ config_script () {
 #    echo "CONFIG_TEGRA_CAMERA=y" >> ${B}/.config
     echo "dummy" > /dev/null
 }
-
-KERNEL_EXTRA_ARGS = "LOADADDR=0x00408000 "
 
 do_configure_prepend () {
 
@@ -52,16 +56,21 @@ do_uboot_mkimage_prepend () {
     cd ${B}
 }
 
-# glibc 2.24 set the oldest kernel to 3.2.0, however the downstream L4T 3.1.10
-# kernel provides all needed interfaces, so override the check_oldest_kernel to
-# disable the warning
-python check_oldest_kernel() {
-    oldest_kernel = d.getVar('OLDEST_KERNEL', True)
-    kernel_version = "3.2.0"
-    tclibc = d.getVar('TCLIBC', True)
-    if tclibc == 'glibc':
-        kernel_version = kernel_version.split('-', 1)[0]
-        if oldest_kernel and kernel_version:
-            if bb.utils.vercmp_string(kernel_version, oldest_kernel) < 0:
-                bb.warn('%s: OLDEST_KERNEL is "%s" but the version of the kernel you are building is "%s" - therefore %s as built may not be compatible with this kernel. Either set OLDEST_KERNEL to an older version, or build a newer kernel.' %(d.getVar('PN', True), oldest_kernel, kernel_version, tclibc))
+KCONFIG_MODE="--alldefconfig"
+
+KBUILD_DEFCONFIG ?= "${KERNEL_DEFCONFIG}"
+
+do_deploy_append() {
+    cd ${B}
+    cat ${KERNEL_OUTPUT_DIR}/zImage ${KERNEL_OUTPUT_DIR}/dts/${KERNEL_DEVICETREE} > combined-image
+    mkimage -A arm -C none -a ${UBOOT_ENTRYPOINT} -e ${UBOOT_ENTRYPOINT} -T kernel -d combined-image ${KERNEL_OUTPUT_DIR}/uImage
+    cd -
+    
+    type=uImage
+    base_name=${type}-${KERNEL_IMAGETYPE}_base
+    install -m 0644 ${KERNEL_OUTPUT_DIR}/${type} ${DEPLOYDIR}/${base_name}.bin
+
+    symlink_name=uImage-${KERNEL_IMAGE_SYMLINK_NAME}
+    ln -sf ${base_name}.bin ${DEPLOYDIR}/${symlink_name}.bin
+    ln -sf ${base_name}.bin ${DEPLOYDIR}/${type}
 }

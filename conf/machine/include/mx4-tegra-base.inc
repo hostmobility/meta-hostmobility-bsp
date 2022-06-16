@@ -18,14 +18,14 @@ XSERVER = "xserver-xorg \
 
 PREFERRED_PROVIDER_virtual/kernel = "linux-hostmobility"
 
-KERNEL_IMAGETYPE = "uImage"
+KERNEL_IMAGETYPE = "zImage"
 
 # The kernel lives in a seperate FAT or UBI partition, don't deploy it in /boot
 RDEPENDS_kernel-base = ""
 
 PREFERRED_PROVIDER_u-boot = "u-boot-hostmobility"
 PREFERRED_PROVIDER_virtual/bootloader = "u-boot-hostmobility"
-PREFERRED_PROVIDER_u-boot-fw-utils ?= "u-boot-hostmobility-fw-utils"
+#PREFERRED_PROVIDER_u-boot-fw-utils ?= "u-boot-hostmobility-fw-utils"
 
 PREFERRED_PROVIDER_lxde-icon-theme = "lxde-icon-theme"
 PREFERRED_PROVIDER_lxsession-lite = "lxsession"

@@ -5,6 +5,7 @@ include conf/machine/include/tune-cortexa5.inc
 
 MACHINEOVERRIDES =. "vf:vf50:vf60:"
 
+LINUX_VERSION_use-head-next = "4.19"
 PREFERRED_PROVIDER_virtual/kernel ?= "linux-hostmobility-vf"
 KERNEL_IMAGETYPE = "zImage"
 
@@ -31,3 +32,8 @@ UBI_VOLNAME = "rootfs"
 SERIAL_CONSOLE ?= "115200 ttyLP0"
 
 BBMASK += "recipes-bsp/u-boot/u-boot-hostmobility_2019.04.bb"
+
+BBMASK +=  "recipes-multimedia/gstreamer/"
+BBMASK +=  "recipes-core/fs-init/fs-init.bbappend"
+BBMASK +=  "recipes-core/usb-rndis-systemd"
+BBMASK += "recipes-connectivity/iproute2/iproute2_3.15.0.bb"

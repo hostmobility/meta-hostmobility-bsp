@@ -189,7 +189,7 @@ index 000000000000..99a71870840f
 +	sdhci@78000200 {
 +		status = "okay";
 +		bus-width = <4>;
-+		cd-gpios = <&gpio TEGRA_GPIO(T, 6) GPIO_ACTIVE_LOW>;
++		//cd-gpios = <&gpio TEGRA_GPIO(T, 6) GPIO_ACTIVE_LOW>;
 +	};
 +
 +	sdhci@78000000 {
@@ -207,7 +207,7 @@ index 000000000000..99a71870840f
 +		cd-gpios = <&gpio TEGRA_GPIO(V, 2) GPIO_ACTIVE_HIGH>;
 +		
 +		no-1-8-v;
-+		non-removable;	
++		//non-removable;	
 +		//keep-power-in-suspend; //we remove the source voltage so this should not work.
 +		cap-power-off-card;
 +		max-frequency = <50000000>;

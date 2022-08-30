@@ -1,21 +1,21 @@
-From 961cdb34ae72bfcac85a5144f3abb997b98a8b13 Mon Sep 17 00:00:00 2001
+From b7b2f8c9f7bf37af44e58b2582b848687cdfa17f Mon Sep 17 00:00:00 2001
 From: rikardo <rikard.olander@hostmobility.com>
-Date: Mon, 16 Aug 2021 14:13:01 +0200
+Date: Mon, 20 Sep 2021 13:21:07 +0000
 Subject: [PATCH 6/7] Add device tree for mx5-pt
 
 ---
- arch/arm/boot/dts/imx6qdl-mx5.dtsi | 1655 ++++++++++++++++++++++++++++
+ arch/arm/boot/dts/imx6qdl-mx5.dtsi | 1658 ++++++++++++++++++++++++++++
  arch/arm/boot/dts/imx6qp-mx5.dts   |   46 +
- 2 files changed, 1701 insertions(+)
+ 2 files changed, 1704 insertions(+)
  create mode 100644 arch/arm/boot/dts/imx6qdl-mx5.dtsi
  create mode 100644 arch/arm/boot/dts/imx6qp-mx5.dts
 
 diff --git a/arch/arm/boot/dts/imx6qdl-mx5.dtsi b/arch/arm/boot/dts/imx6qdl-mx5.dtsi
 new file mode 100644
-index 000000000000..2c569f6723c6
+index 000000000000..b9fbdde71bc1
 --- /dev/null
 +++ b/arch/arm/boot/dts/imx6qdl-mx5.dtsi
-@@ -0,0 +1,1655 @@
+@@ -0,0 +1,1670 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +//
 +// Copyright 2012 Freescale Semiconductor, Inc.
@@ -42,8 +42,8 @@ index 000000000000..2c569f6723c6
 +	aliases {
 +		mxcfb0 = &mxcfb1;
 +		mxcfb1 = &mxcfb2;
-+		eth0 = &ethernet0;
-+		eth1 = &ethernet1;
++		ethernet0 = &eth0;
++		ethernet1 = &eth1;
 +	};
 +
 +	chosen {
@@ -177,13 +177,13 @@ index 000000000000..2c569f6723c6
 +			};
 +		};
 +
-+		reg_uart_5v: regulator@7{
++		reg_uart_5v: regulator@7{ /*TODO change to virtual gpio controlled by stm32*/
 +			compatible = "regulator-fixed";
 +			regulator-name = "reg_uart_5v";
 +			vin-supply = <&reg_stm32_5v>;
 +			regulator-min-microvolt = <5000000>;
 +			regulator-max-microvolt = <5000000>;
-+			gpio = <&gpio2 28 GPIO_ACTIVE_HIGH>;
++			//gpio = <&gpio2 28 GPIO_ACTIVE_HIGH>;
 +			enable-active-high;
 +			regulator-always-on;
 +			regulator-state-mem {
@@ -400,7 +400,9 @@ index 000000000000..2c569f6723c6
 +					<&ncv7751  4 GPIO_ACTIVE_HIGH>,
 +					<&ncv7751  5 GPIO_ACTIVE_HIGH>,
 +					<&ncv7751  6 GPIO_ACTIVE_HIGH>,
-+					<&ncv7751  7 GPIO_ACTIVE_HIGH>;
++					<&ncv7751  7 GPIO_ACTIVE_HIGH>,
++					<&ncv7751  8 GPIO_ACTIVE_HIGH>,
++					<&ncv7751  9 GPIO_ACTIVE_HIGH>;
 +
 +		DIG-OUT-HI-OC-gpios =	<&gpio1 24 GPIO_ACTIVE_HIGH>,
 +					<&gpio1 30 GPIO_ACTIVE_HIGH>,
@@ -456,7 +458,7 @@ index 000000000000..2c569f6723c6
 +			<&clks IMX6QDL_CLK_PLL2_PFD0_352M>;
 +};
 +
-+ethernet0: &fec {
++eth0: &fec {
 +	phy-supply = <&reg_eth_3v3>;
 +	local-mac-address = [00 00 00 00 00 00];
 +	pinctrl-names = "default";
@@ -806,7 +808,7 @@ index 000000000000..2c569f6723c6
 +			reg =<1>;
 +
 +		};
-+		ethernet1: ethernet2@2 {
++		eth1: eth1@2 {
 +			reg =<2>;
 +			local-mac-address = [00 00 00 00 00 00];
 +			//pad-supply = <&vgen1_reg>;
@@ -949,13 +951,17 @@ index 000000000000..2c569f6723c6
 +        spi-max-frequency = <4000000>;
 +        status = "okay";
 +    };
-+    spidev@1 { //SPI to STM32
++    cocpu: spidev@1 { //SPI to STM32
 +        compatible = "hostmobility, mx5-driver";
 +        reg = <1>;
 +        spi-max-frequency = <3000000>;
 +        status = "okay";
-+		DATA_READY-gpios = <&gpio3 19 GPIO_ACTIVE_HIGH>;
-+		SLEEPSYNC-gpios = <&gpio1 9 GPIO_ACTIVE_HIGH>;
++        DATA_READY-gpios = <&gpio3 19 GPIO_ACTIVE_HIGH>;
++        MCU_RESET-gpios = <&gpio5 4 GPIO_ACTIVE_HIGH>;
++        interrupt-controller;
++        #gpio-cells = <2>; 
++        gpio-controller;
++        wakeup-source;
 +    };
 +};
 +
@@ -977,9 +983,7 @@ index 000000000000..2c569f6723c6
 +		status = "okay";
 +		gpio-controller;
 +		#gpio-cells = <2>; 
-+		/* TODO: Consolidate into one virtual chip or manually fetch these */
-+		/* There are actually 12 outputs but we are only connecting 8 for now */
-+		/* WARNING: This is NOT the way the current driver enumerates them */
++		/* There are actually 12 outputs but we are only connecting 10 for now */
 +		gpio-line-names =
 +			"DIG_OUT_LO_1",
 +			"DIG_OUT_LO_2",
@@ -989,6 +993,8 @@ index 000000000000..2c569f6723c6
 +			"DIG_OUT_LO_6",
 +			"DIG_OUT_LO_7",
 +			"DIG_OUT_LO_8",
++			"DIG_OUT_LO_9",
++			"DIG_OUT_LO_10",
 +			"DIG_OUT_LO_EN_DIAG_1",
 +			"DIG_OUT_LO_EN_DIAG_2",
 +			"DIG_OUT_LO_EN_DIAG_3",
@@ -997,6 +1003,18 @@ index 000000000000..2c569f6723c6
 +			"DIG_OUT_LO_EN_DIAG_6",
 +			"DIG_OUT_LO_EN_DIAG_7",
 +			"DIG_OUT_LO_EN_DIAG_8",
++			"DIG_OUT_LO_EN_DIAG_9",
++			"DIG_OUT_LO_EN_DIAG_10",
++			"DIG_OUT_LO_OPEN_1",
++			"DIG_OUT_LO_OPEN_2",
++			"DIG_OUT_LO_OPEN_3",
++			"DIG_OUT_LO_OPEN_4",
++			"DIG_OUT_LO_OPEN_5",
++			"DIG_OUT_LO_OPEN_6",
++			"DIG_OUT_LO_OPEN_7",
++			"DIG_OUT_LO_OPEN_8",
++			"DIG_OUT_LO_OPEN_9",
++			"DIG_OUT_LO_OPEN_10",
 +			"DIG_OUT_LO_OVERLOAD_1",
 +			"DIG_OUT_LO_OVERLOAD_2",
 +			"DIG_OUT_LO_OVERLOAD_3",
@@ -1005,14 +1023,8 @@ index 000000000000..2c569f6723c6
 +			"DIG_OUT_LO_OVERLOAD_6",
 +			"DIG_OUT_LO_OVERLOAD_7",
 +			"DIG_OUT_LO_OVERLOAD_8",
-+			"DIG_OUT_LO_OPEN_1",
-+			"DIG_OUT_LO_OPEN_2",
-+			"DIG_OUT_LO_OPEN_3",
-+			"DIG_OUT_LO_OPEN_4",
-+			"DIG_OUT_LO_OPEN_5",
-+			"DIG_OUT_LO_OPEN_6",
-+			"DIG_OUT_LO_OPEN_7",
-+			"DIG_OUT_LO_OPEN_8";
++			"DIG_OUT_LO_OVERLOAD_9",
++			"DIG_OUT_LO_OVERLOAD_10";
 +        };
 +};
 +
@@ -1020,10 +1032,10 @@ index 000000000000..2c569f6723c6
 +&gpio1 {
 +	gpio-line-names = "gpio1_00",
 +		"gpio1_01",
-+		"I2C_D_EN",
++		"GPS_BOOT",
 +		"gpio1_03",
 +		"gpio1_04",
-+		"CAN_4_INIT",
++		"GPS_FWD",
 +		"gpio1_06",
 +		"gpio1_07",
 +		"gpio1_08",
@@ -1047,7 +1059,7 @@ index 000000000000..2c569f6723c6
 +		"RGMII_INT",
 +		"GPS_RESET_N",
 +		"ETH_WOL_INT",
-+		"CAN_3_INT",
++		"GPS_WHEELTICK",
 +		"DIG_OUT_HI_OC_2",
 +		"gpio1_31";
 +};
@@ -1059,17 +1071,17 @@ index 000000000000..2c569f6723c6
 +		"MDM_WAKEUP_IN",
 +		"RING0",
 +		"WIFI_PWR_ON",
-+		"USB_H1_DETECT",
-+		"USB_OTG_DETECT",
++		"RS485_2_TX_EN",
++		"gpio2_07",
 +		"gpio2_08",
 +		"gpio2_09",
 +		"gpio2_10",
 +		"gpio2_11",
-+		"SD4_IRQ",
++		"AUD_nRST",
 +		"FUNC_LED_GREEN",
 +		"MODEM_LED_RED",
 +		"MODEM_LED_GREEN",
-+		"GPIO2_IO16",
++		"gpio2_16",
 +		"DIG_OUT_EN",
 +		"AUD_SOURCE_SEL",
 +		"GPS_LED_GREEN",
@@ -1081,8 +1093,8 @@ index 000000000000..2c569f6723c6
 +		"gpio2_25",
 +		"gpio2_26",
 +		"gpio2_27",
-+		"UART_PWR_ON",
-+		"SUPERCAP_POWERED",
++		"gpio2_28",
++		"gpio2_29",
 +		"gpio2_30",
 +		"SENSOR_PWR_EN";
 +};
@@ -1164,7 +1176,7 @@ index 000000000000..2c569f6723c6
 +		"gpio5_io01",
 +		"gpio5_io02",
 +		"gpio5_io03",
-+		"MCU_RESET",	/* gpio5_io04 */
++		"MCU_RESET",
 +		"gpio5_io05",
 +		"gpio5_io06",
 +		"gpio5_io07",
@@ -1197,11 +1209,11 @@ index 000000000000..2c569f6723c6
 +&gpio6 {
 +	gpio-line-names = "gpio6_io00",
 +		"gpio6_io01",
-+		"gpio6_io02",
++		"RS485_1_TX_EN",
 +		"gpio6_io03",
 +		"gpio6_io04",
 +		"gpio6_io05",
-+		"GPIO6_IO06",		/* gpio6_io06*/
++		"gpio6_io06", /*Boot word, no pull*/
 +		"MDM_RESETn",		/* gpio6_io07*/
 +		"MDM_PWR_ON",		/* gpio6_io08*/
 +		"MDM_PWRKEY",		/* gpio6_io09*/
@@ -1226,7 +1238,7 @@ index 000000000000..2c569f6723c6
 +		"gpio6_io28",
 +		"gpio6_io29",
 +		"gpio6_io30",
-+		"gpio6_io31";
++		"SIM_SEL";
 +
 +};
 +
@@ -1244,25 +1256,7 @@ index 000000000000..2c569f6723c6
 +		"gpio7_io10",
 +		"WAKE_UP_CPU",	/* gpio7_io11 */
 +		"SD2_CD_B",	/* gpio7_io12 */
-+		"PMIC_INT_N",	/* gpio7_io13 */
-+		"gpio5_io14",
-+		"gpio5_io15",
-+		"gpio5_io16",
-+		"gpio5_io17",
-+		"gpio5_io18",
-+		"gpio5_io19",
-+		"gpio5_io20",
-+		"gpio5_io21",
-+		"gpio5_io22",
-+		"gpio5_io23",
-+		"gpio5_io24",
-+		"gpio5_io25",
-+		"gpio5_io26",
-+		"gpio5_io27",
-+		"gpio5_io28",
-+		"gpio5_io29",
-+		"gpio5_io30",
-+		"gpio5_io31";
++		"PMIC_INT_N";	/* gpio7_io13, no driver impl to use this signal. */
 +};
 +&iomuxc {
 +	pinctrl-names = "default";
@@ -1277,8 +1271,6 @@ index 000000000000..2c569f6723c6
 +				MX6QDL_PAD_KEY_COL3__GPIO4_IO12			0x0001B0B0
 +				/*reg_audio_codec_3v3*/
 +				MX6QDL_PAD_EIM_D31__GPIO3_IO31			0x0001B0B0
-+				/*reg_uart_5v*/
-+				MX6QDL_PAD_EIM_EB0__GPIO2_IO28			0x0001B0B0
 +				/*reg_eth_3v3*/
 +				MX6QDL_PAD_EIM_D30__GPIO3_IO30			0x0001B0B0
 +				/*eth0 reset*/
@@ -1296,6 +1288,27 @@ index 000000000000..2c569f6723c6
 +				MX6QDL_PAD_EIM_A22__GPIO2_IO16			NOPULL
 +				/* GPIO6_IO06 */
 +				MX6QDL_PAD_EIM_A23__GPIO6_IO06			NOPULL
++
++				/* GPS alt.2 */
++				/* GPS_BOOT ,not tested (out) */
++				MX6QDL_PAD_GPIO_2__GPIO1_IO02			NOPULL
++				/* GPS_FWD, not tested */
++				MX6QDL_PAD_GPIO_5__GPIO1_IO05			NOPULL
++				/* GPS_WHEELTICK, not tested */
++				MX6QDL_PAD_ENET_TXD1__GPIO1_IO29		NOPULL
++				/* GPS_WAKE_UP (out) */
++				MX6QDL_PAD_EIM_D17__GPIO3_IO17			NOPULL
++				/* GPS_1PPS */
++				MX6QDL_PAD_EIM_D18__GPIO3_IO18			NOPULL
++
++				/* RTC_INT */
++				MX6QDL_PAD_KEY_COL2__GPIO4_IO10			PULLUP_100K
++
++				/* MCU_REST, need to be pull down (out) */
++				MX6QDL_PAD_EIM_A24__GPIO5_IO04			PULLDOWN_100K
++
++				/* SIM_SEL */
++				MX6QDL_PAD_EIM_BCLK__GPIO6_IO31			PULLDOWN_100K
 +			>;
 +		};
 +
@@ -1508,6 +1521,8 @@ index 000000000000..2c569f6723c6
 +			fsl,pins = <
 +				MX6QDL_PAD_EIM_D26__UART2_TX_DATA	0x1b0b1
 +				MX6QDL_PAD_EIM_D27__UART2_RX_DATA	0x1b0b1
++				/* RS485_2_TX_EN ,no rs485 2 node for uart2 alt.2 */
++				MX6QDL_PAD_NANDF_D6__GPIO2_IO06			NOPULL
 +			>;
 +		};
 +

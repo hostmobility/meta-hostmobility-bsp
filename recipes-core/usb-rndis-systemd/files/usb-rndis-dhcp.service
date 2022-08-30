@@ -1,9 +1,0 @@
-[Unit]
-Description = rndis dhcp service
-
-[Service]
-ExecStart = /usr/sbin/udhcpd -f -S /etc/udhcpd-usb-rndis.conf -p /var/run/udhcpd.rndis0.pid
-Restart=always
-
-[Install]
-WantedBy = basic.target

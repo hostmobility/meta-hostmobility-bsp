@@ -1,16 +1,18 @@
-From 144442b992de5e6fa54336579620179a9b1a1520 Mon Sep 17 00:00:00 2001
+From 180418ccd3b55c0cbe5c63947c3a3faa6dbc5554 Mon Sep 17 00:00:00 2001
 From: rikardo <rikard.olander@hostmobility.com>
-Date: Fri, 13 Aug 2021 10:50:48 +0200
-Subject: [PATCH 1/4] Add mx5 defconfig
+Date: Fri, 28 Jan 2022 14:42:54 +0100
+Date: Tue, 19 Oct 2021 08:36:05 +0000
+Subject: [PATCH] Add mx5 defconfig
+
 
 ---
- configs/mx5_imx6qp_defconfig | 91 ++++++++++++++++++++++++++++++++++++
- 1 file changed, 91 insertions(+)
+ configs/mx5_imx6qp_defconfig | 92 ++++++++++++++++++++++++++++++++++++
+ 1 file changed, 92 insertions(+)
  create mode 100644 configs/mx5_imx6qp_defconfig
 
 diff --git a/configs/mx5_imx6qp_defconfig b/configs/mx5_imx6qp_defconfig
 new file mode 100644
-index 0000000000..def79d7954
+index 0000000000..f368d85a50
 --- /dev/null
 +++ b/configs/mx5_imx6qp_defconfig
 @@ -0,0 +1,92 @@
@@ -25,11 +27,10 @@ index 0000000000..def79d7954
 +CONFIG_SPL_SERIAL_SUPPORT=y
 +CONFIG_SPL=y
 +CONFIG_NR_DRAM_BANKS=1
++CONFIG_OF_BOARD_SETUP=y
 +CONFIG_SYS_EXTRA_OPTIONS="IMX_CONFIG=arch/arm/mach-imx/spl_sd.cfg,MX6Q"
 +CONFIG_BOOTDELAY=0
-+CONFIG_LOGLEVEL=7
 +CONFIG_SYS_CONSOLE_IS_IN_ENV=y
-+CONFIG_LOG=y
 +CONFIG_SUPPORT_RAW_INITRD=y
 +CONFIG_DEFAULT_FDT_FILE="mx5_imx6qp"
 +CONFIG_VERSION_VARIABLE=y
@@ -37,14 +38,15 @@ index 0000000000..def79d7954
 +CONFIG_SPL_RAW_IMAGE_SUPPORT=y
 +# CONFIG_SPL_BANNER_PRINT is not set
 +# CONFIG_TPL_BANNER_PRINT is not set
++CONFIG_SPL_I2C_SUPPORT=y
 +CONFIG_SPL_USB_HOST_SUPPORT=y
 +CONFIG_SPL_USB_GADGET=y
 +CONFIG_SPL_USB_SDP_SUPPORT=y
-+CONFIG_SPL_I2C_SUPPORT=y
 +CONFIG_HUSH_PARSER=y
 +CONFIG_CMD_CONFIG=y
 +CONFIG_CMD_BOOTZ=y
 +CONFIG_CMD_MEMINFO=y
++CONFIG_CMD_UNZIP=y
 +CONFIG_CMD_GPIO=y
 +CONFIG_CMD_I2C=y
 +CONFIG_CMD_MMC=y
@@ -62,7 +64,6 @@ index 0000000000..def79d7954
 +CONFIG_CMD_EXT4_WRITE=y
 +CONFIG_CMD_FAT=y
 +CONFIG_CMD_FS_GENERIC=y
-+CONFIG_CMD_UNZIP=y
 +CONFIG_EFI_PARTITION=y
 +CONFIG_OF_CONTROL=y
 +CONFIG_DEFAULT_DEVICE_TREE="mx5_imx6qp"
@@ -104,7 +105,9 @@ index 0000000000..def79d7954
 +CONFIG_USB_GADGET_VENDOR_NUM=0x0525
 +CONFIG_USB_GADGET_PRODUCT_NUM=0xa4a5
 +CONFIG_CI_UDC=y
++CONFIG_SDP_LOADADDR=0x177fffc0
 +CONFIG_USB_GADGET_DOWNLOAD=y
 +CONFIG_USE_TINY_PRINTF=y
+\ No newline at end of file
 -- 
 2.17.1

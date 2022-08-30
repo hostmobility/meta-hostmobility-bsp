@@ -1,20 +1,22 @@
-From f6c048efc0a16414ae6d75bdf1e549ec2b5fe0ca Mon Sep 17 00:00:00 2001
+From 103a7c2035470c58adaa93b942fea1d44f821dca Mon Sep 17 00:00:00 2001
 From: rikardo <rikard.olander@hostmobility.com>
+Date: Fri, 28 Jan 2022 10:09:29 +0100
 Date: Mon, 30 Aug 2021 13:21:11 +0200
 Subject: [PATCH 3/4] Add mx5 uboot and spl implementation
 
+
 ---
  board/hostmobility/common/Makefile         |   8 +
- board/hostmobility/common/pfuze.c          | 173 +++++
+ board/hostmobility/common/pfuze.c          | 173 ++++
  board/hostmobility/common/pfuze.h          |  17 +
  board/hostmobility/mx5_imx6qp/Kconfig      |  15 +
  board/hostmobility/mx5_imx6qp/Makefile     |   7 +
- board/hostmobility/mx5_imx6qp/enet.c       | 119 ++++
+ board/hostmobility/mx5_imx6qp/enet.c       | 121 +++
  board/hostmobility/mx5_imx6qp/enet.h       |  11 +
- board/hostmobility/mx5_imx6qp/mx5_imx6qp.c | 746 +++++++++++++++++++++
- include/configs/mx5_imx6_common.h          | 101 +++
+ board/hostmobility/mx5_imx6qp/mx5_imx6qp.c | 902 +++++++++++++++++++++
+ include/configs/mx5_imx6_common.h          | 106 +++
  include/configs/mx5_imx6qp.h               |  26 +
- 10 files changed, 1223 insertions(+)
+ 10 files changed, 1386 insertions(+)
  create mode 100644 board/hostmobility/common/Makefile
  create mode 100644 board/hostmobility/common/pfuze.c
  create mode 100644 board/hostmobility/common/pfuze.h
@@ -278,10 +280,10 @@ index 0000000000..10cd397355
 +obj-y  := mx5_imx6qp.o enet.o
 diff --git a/board/hostmobility/mx5_imx6qp/enet.c b/board/hostmobility/mx5_imx6qp/enet.c
 new file mode 100644
-index 0000000000..0cbd01407a
+index 0000000000..9221f9e402
 --- /dev/null
 +++ b/board/hostmobility/mx5_imx6qp/enet.c
-@@ -0,0 +1,119 @@
+@@ -0,0 +1,121 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
 + * Copyright (C) 2012-2016 Freescale Semiconductor, Inc.
@@ -298,6 +300,8 @@ index 0000000000..0cbd01407a
 +#include <asm/gpio.h>
 +#include <miiphy.h>
 +#include <netdev.h>
++#include <linux/delay.h>
++
 +
 +#define ENET_PAD_CTRL  (PAD_CTL_PUS_100K_UP |			\
 +PAD_CTL_SPEED_MED | PAD_CTL_DSE_40ohm | PAD_CTL_HYS)
@@ -420,10 +424,10 @@ index 0000000000..2a1574fb03
 +void setup_fec(void);
 diff --git a/board/hostmobility/mx5_imx6qp/mx5_imx6qp.c b/board/hostmobility/mx5_imx6qp/mx5_imx6qp.c
 new file mode 100644
-index 0000000000..9a814db305
+index 0000000000..03689f61c5
 --- /dev/null
 +++ b/board/hostmobility/mx5_imx6qp/mx5_imx6qp.c
-@@ -0,0 +1,746 @@
+@@ -0,0 +1,902 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
 + * Copyright (C) 2012-2016 Freescale Semiconductor, Inc.
@@ -468,7 +472,9 @@ index 0000000000..9a814db305
 +
 +#include "../common/pfuze.h"
 +#include "enet.h"
++//#include "mx5_packet.h"
 +#include <led.h>
++#include <search.h>
 +
 +
 +DECLARE_GLOBAL_DATA_PTR;
@@ -498,6 +504,7 @@ index 0000000000..9a814db305
 +#define MX5_CO_CPU_ADDR_LEN 2 // 16bit index
 +#define MX5_CO_CPU_REGISTER_MEMORY_INDEX 0x01
 +#define MX5_CO_CPU_READ_BYTE 1
++#define MX5_CO_CPU_READ_TWO_BYTE 2
 +
 +static iomux_v3_cfg_t const uart1_pads[] = {
 +	IOMUX_PADS(PAD_CSI0_DAT10__UART1_TX_DATA | MUX_PAD_CTRL(UART_PAD_CTRL)),
@@ -650,15 +657,16 @@ index 0000000000..9a814db305
 +               return ret;
 +       }
 +
-+	/* Turn off VGEN1-3 and 5-6 voltage, not needed but leave the voltage level the same as default.*/
++	/* Turn off VGEN1-3 and 5 voltage, not needed but leave the voltage level the same as default.*/
 +       pmic_clrsetbits(dev, PFUZE100_VGEN1VOL, LDO_EN, LDO_MODE_OFF);
 +       pmic_clrsetbits(dev, PFUZE100_VGEN2VOL, LDO_EN, LDO_MODE_OFF);
 +       pmic_clrsetbits(dev, PFUZE100_VGEN3VOL, LDO_EN, LDO_MODE_OFF);
 +       pmic_clrsetbits(dev, PFUZE100_VGEN5VOL, LDO_EN, LDO_MODE_OFF);
-+       pmic_clrsetbits(dev, PFUZE100_VGEN6VOL, LDO_EN, LDO_MODE_OFF);
 +
 +       /*Set VGEN4 set to 3V0*/
 +       pmic_clrsetbits(dev, PFUZE100_VGEN4VOL, LDO_VOL_MASK, (LDOB_3_00V | LDO_EN ) );
++		/*Set VGEN6 to 2V7 to feed RTC battery*/
++       pmic_clrsetbits(dev, PFUZE100_VGEN6VOL, LDO_VOL_MASK, (LDOB_2_70V | LDO_EN ));
 +
 +
 +       /* set SW1C standby voltage 1.075V*/
@@ -679,11 +687,163 @@ index 0000000000..9a814db305
 +}
 +#endif
 +#endif
-+
-+#if defined(CONFIG_OF_LIBFDT) && defined(CONFIG_OF_BOARD_SETUP)
-+int ft_board_setup(void *blob, bd_t *bd)
++int set_environment_data_from_eeprom(char * data)
 +{
-+	/*Add fdt_setprop, like hw rev,serial number, mac address etc*/
++	int err = 1;
++	char * env_list_raw_array[10];
++	char * varname;
++	char * value;
++	u32 index = 0;
++	u32 index2 = 0;
++
++	/*Split int tokens so we can use env_set()*/
++	data = strtok(data, "\n");
++	while (data != NULL) 
++	{
++		env_list_raw_array[index++] = data;
++		data = strtok(NULL, "\n");
++	}
++	for (index2 = 0; index2 < index; ++index2) 
++	{
++		debug("Debug:%s\n", env_list_raw_array[index2]);
++		if (env_list_raw_array != NULL) 
++		{
++			varname = strtok(env_list_raw_array[index2], "=");
++			value = strtok(NULL, "=");
++			debug("Debug: varname,value:%s\n",varname);
++			debug("Debug: value,value:%s\n",value);
++			if ((err = env_set(varname, value)) != 0)
++			{
++				printf("Warning: Env_set failed:%u\n", err);
++			}
++		}
++
++	}
++	return err;
++}
++
++int get_environment_data_from_eeprom(uchar export_data [0xffff])
++{
++	uchar retry;
++	uchar env_length_raw[MX5_CO_CPU_READ_TWO_BYTE] = {0, 0};
++	uint env_length = 0;
++	struct udevice *i2cdev;
++	int rc;
++
++	rc = i2c_get_chip_for_busnum(2, MX5_CO_CPU_ADDRESS, MX5_CO_CPU_ADDR_LEN, &i2cdev);
++	if (rc >= 0) {
++	/*Read TODO fix UBOOT_ENV_DATA=0x100 and get the length of env data from the first two bytes.*/
++		for (retry = 0; retry < 10; ++retry) {
++			if (dm_i2c_read(i2cdev, 0x100, env_length_raw, 1) == 0)
++			{
++				env_length = (env_length_raw[1] << 8) | env_length_raw[0];
++				if(env_length == 0xffff)
++				{
++					printf("Epprom ENV parameter length is to long, max 0xffff value:%x\n", env_length);
++					return 1;
++				}
++				debug("Debug:Read from co cpu length, value:%x\n", env_length);
++				/*Read the rest*/
++				if (dm_i2c_read(i2cdev, 0x102, export_data, env_length) == 0)
++				{
++
++					debug("Debug: Import data from eeprom,value:%s\n",export_data);
++					if(export_data == NULL)
++					{
++						printf("Failed to read any data from co-cpu I2C bus\n");
++						continue;
++					}
++					/*fix last character so it is a \n and end of string \0*/
++					export_data[env_length] = '\n';
++					export_data[env_length + 1] = '\0';
++					return 0;
++				}
++				} else {
++					printf("Failed to read from co cpu address 0x102, value:%x\n", env_length);
++				}
++				printf("Retry to read from co cpu address 0x100, value:%x\n", env_length);
++				if (retry == 10)
++				{
++					printf("Timeout i2c read co-cpu!\n");
++					return 1;
++				}
++				udelay(500);
++		}
++	} else {
++		printf("%s: cannot get udevice for chip 0x%02x!\n",
++		       __func__, MX5_CO_CPU_ADDRESS);
++		return 1;
++	}
++return 1;
++}
++int board_late_init(void)
++{
++	uchar eeprom_data [0xffff];
++	int err = 1;
++	err = get_environment_data_from_eeprom(eeprom_data);
++	if ( err != 0)
++	{
++	   printf("Get environment data from eeprom failed, error:%x\n", err);
++	} else {
++		err = set_environment_data_from_eeprom((char *)eeprom_data);
++		if (err != 0)
++		{
++			printf("Set environment data to  environment area failed, error:%x\n", err);
++		}
++		//env_save();
++		//env_reload();
++	}
++	return 0;
++}
++#if defined(CONFIG_OF_LIBFDT) && defined(CONFIG_OF_BOARD_SETUP)
++/* Set serial number and part number from environment to device tree blob chosen.
++		serial-number = "20498888";
++		part-number = "hmp000x"; 
++*/
++int ft_board_setup(void *blob, struct bd_info *bd)
++{
++	char *serial;
++	char *part;
++	int offset;
++	int err = 1;
++	const char *path;
++
++	path = "/chosen";
++	offset = fdt_path_offset(blob, path);
++	if (offset < 0) {
++		debug("Node %s not found.\n", path);
++		return err;
++	}
++
++
++	debug("ft_board_setup\n");
++
++	serial = env_get("serial");
++	if (serial) {
++		err = fdt_setprop(blob, offset, "serial-number", serial,
++				  strlen(serial) + 1);
++
++		if (err < 0) {
++			printf("WARNING: could not set serial-number %s.\n",
++			       fdt_strerror(err));
++			return err;
++		}
++	} else {
++		printf("WARNING: could not read serial-number from env list.\n");
++	}
++	part = env_get("part_nr");
++	if (part) {
++		err = fdt_setprop(blob, offset, "part-number", part,
++				  strlen(part) + 1);
++
++		if (err < 0) {
++			printf("WARNING: could not set part-number %s.\n",
++			       fdt_strerror(err));
++			return err;
++		}
++	} else {
++		printf("WARNING: could not read part-number from env list.\n");
++	}
 +	return 0;
 +}
 +#endif
@@ -1172,7 +1332,7 @@ index 0000000000..9a814db305
 +#endif
 diff --git a/include/configs/mx5_imx6_common.h b/include/configs/mx5_imx6_common.h
 new file mode 100644
-index 0000000000..193cab5bee
+index 0000000000..5d53cde2d1
 --- /dev/null
 +++ b/include/configs/mx5_imx6_common.h
 @@ -0,0 +1,106 @@
@@ -1284,7 +1444,7 @@ index 0000000000..193cab5bee
 +#endif                         /* __MX5_IMX6_COMMON_CONFIG_H */
 diff --git a/include/configs/mx5_imx6qp.h b/include/configs/mx5_imx6qp.h
 new file mode 100644
-index 0000000000..4c0e6d1b62
+index 0000000000..dbc5c04496
 --- /dev/null
 +++ b/include/configs/mx5_imx6qp.h
 @@ -0,0 +1,26 @@

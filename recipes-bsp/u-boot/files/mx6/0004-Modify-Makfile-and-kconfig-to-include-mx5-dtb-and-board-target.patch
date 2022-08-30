@@ -1,13 +1,12 @@
-From d305cb0234015e977544da1b5a2364207c712155 Mon Sep 17 00:00:00 2001
+From 75b8283919328608f999faff75a84312f3118b56 Mon Sep 17 00:00:00 2001
 From: rikardo <rikard.olander@hostmobility.com>
-Date: Fri, 13 Aug 2021 10:53:18 +0200
-Subject: [PATCH 4/4] Modify Makfile and kconfig to include mx5 dtb and board
- target
+Date: Fri, 28 Jan 2022 10:08:02 +0100
+Subject: [PATCH 1/1] Modify Makefile and kconfig to include mx5 dtb and board
 
 ---
  arch/arm/dts/Makefile         |  6 ++++--
- arch/arm/mach-imx/mx6/Kconfig | 10 ++++++++++
- 2 files changed, 14 insertions(+), 2 deletions(-)
+ arch/arm/mach-imx/mx6/Kconfig | 11 +++++++++++
+ 2 files changed, 15 insertions(+), 2 deletions(-)
 
 diff --git a/arch/arm/dts/Makefile b/arch/arm/dts/Makefile
 index 67dca8a669..3b93b1d491 100644
@@ -34,10 +33,10 @@ index 67dca8a669..3b93b1d491 100644
  dtb-$(CONFIG_MX6SL) += imx6sl-evk.dtb
  
 diff --git a/arch/arm/mach-imx/mx6/Kconfig b/arch/arm/mach-imx/mx6/Kconfig
-index 88f188e9c2..1d64341156 100644
+index 88f188e9c2..63b4df8ed2 100644
 --- a/arch/arm/mach-imx/mx6/Kconfig
 +++ b/arch/arm/mach-imx/mx6/Kconfig
-@@ -694,6 +694,15 @@ config TARGET_ZC5601
+@@ -694,6 +694,16 @@ config TARGET_ZC5601
  	select SUPPORT_SPL
  	imply CMD_DM
  
@@ -49,11 +48,12 @@ index 88f188e9c2..1d64341156 100644
 +    	select SUPPORT_SPL
 +    	imply CMD_DM
 +    	select MX6QP
++		select BOARD_LATE_INIT
 +
  endchoice
  
  config SYS_SOC
-@@ -756,5 +765,6 @@ source "board/udoo/Kconfig"
+@@ -756,5 +766,6 @@ source "board/udoo/Kconfig"
  source "board/udoo/neo/Kconfig"
  source "board/wandboard/Kconfig"
  source "board/warp/Kconfig"

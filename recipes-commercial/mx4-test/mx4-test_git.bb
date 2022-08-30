@@ -5,6 +5,8 @@ INSANE_SKIP_${PN} = "ldflags"
 
 SUBPATH = "test/"
 
+INSANE_SKIP_${PN} += "ldflags"
+
 require recipes-commercial/common/revision.inc
 
 RDEPENDS_${PN} = "bash"

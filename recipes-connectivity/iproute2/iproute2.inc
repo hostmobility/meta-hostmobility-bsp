@@ -24,15 +24,15 @@ do_install () {
 }
 
 # The .so files in iproute2-tc are modules, not traditional libraries
-INSANE_SKIP_${PN}-tc = "dev-so"
+INSANE_SKIP:${PN}-tc = "dev-so"
 
 PACKAGES =+ "${PN}-tc"
-FILES_${PN}-tc = "${base_sbindir}/tc* \
+FILES:${PN}-tc = "${base_sbindir}/tc* \
                   ${libdir}/tc/*.so"
 
-FILES_${PN}-dbg += "${libdir}/tc/.debug"
+FILES:${PN}-dbg += "${libdir}/tc/.debug"
 
-ALTERNATIVE_${PN} = "ip"
+ALTERNATIVE:${PN} = "ip"
 ALTERNATIVE_TARGET[ip] = "${base_sbindir}/ip.${BPN}"
 ALTERNATIVE_LINK_NAME[ip] = "${base_sbindir}/ip"
 ALTERNATIVE_PRIORITY = "100"

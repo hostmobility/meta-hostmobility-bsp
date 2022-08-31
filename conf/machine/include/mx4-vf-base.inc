@@ -1,7 +1,7 @@
 # Provides common settings among MX-4 products that use Colibri VF61 COM
 
 include conf/machine/include/imx-base.inc
-include conf/machine/include/tune-cortexa5.inc
+include conf/machine/include/arm/armv7a/tune-cortexa5.inc
 
 MACHINEOVERRIDES =. "vf:vf50:vf60:"
 
@@ -10,11 +10,11 @@ PREFERRED_PROVIDER_virtual/kernel ?= "linux-hostmobility-vf"
 KERNEL_IMAGETYPE = "zImage"
 
 # We store kernel on seperate MTD partition so no need to deploy to rootfs.
-RDEPENDS_${KERNEL_PACKAGE_NAME}-base = ""
+RDEPENDS:${KERNEL_PACKAGE_NAME}-base = ""
 
 PREFERRED_PROVIDER_u-boot ?= "u-boot-hostmobility"
 PREFERRED_PROVIDER_virtual/bootloader ?= "u-boot-hostmobility"
-PREFERRED_PROVIDER_u-boot-fw-utils ?= "u-boot-hostmobility-fw-utils"
+#PREFERRED_PROVIDER_u-boot-fw-utils ?= "u-boot-hostmobility-fw-utils"
 
 # U-Boot NAND binary includes 0x400 padding required for NAND boot
 UBOOT_BINARY ?= "u-boot-nand.imx"

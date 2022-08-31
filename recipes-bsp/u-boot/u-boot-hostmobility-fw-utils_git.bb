@@ -3,7 +3,7 @@ LICENSE = "GPLv2+"
 LIC_FILES_CHKSUM = "file://Licenses/README;md5=c7383a594871c03da76b3707929d2919"
 SECTION = "bootloader"
 PROVIDES = "u-boot-fw-utils"
-RPROVIDES_${PN} = "u-boot-fw-utils"
+RPROVIDES:${PN} = "u-boot-fw-utils"
 DEPENDS = "mtd-utils"
 
 DEFAULT_PREFERENCE_tegra2 = "1"
@@ -16,7 +16,7 @@ SRC_URI = " \
     file://fw_env.config \
 "
 
-SRC_URI_append_tegra3 = " file://fw_unlock_mmc.sh"
+SRC_URI:append_tegra3 = " file://fw_unlock_mmc.sh"
 
 PV = "v2015.04-hm+git${SRCPV}"
 
@@ -24,7 +24,7 @@ S = "${WORKDIR}/git"
 
 EXTRA_OEMAKE = 'CC="${CC}" STRIP="${STRIP}"'
 
-INSANE_SKIP_${PN} = "already-stripped ldflags"
+INSANE_SKIP:${PN} = "already-stripped ldflags"
 
 inherit pkgconfig uboot-config
 
@@ -40,7 +40,7 @@ do_install () {
     install -m 644 ${WORKDIR}/fw_env.config ${D}${sysconfdir}/
 }
 
-do_install_append_tegra3() {
+do_install:append_tegra3() {
     install -d ${D}${sysconfdir}/profile.d/
     install -m 0644 ${WORKDIR}/fw_unlock_mmc.sh ${D}${sysconfdir}/profile.d/fw_unlock_mmc.sh
 }

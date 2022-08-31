@@ -24,7 +24,7 @@ SRC_URI = "\
 
 SRCREV = "85bdcc798163f72a7dfd723af4f0ef35d526ae09"
 
-SRC_URI_append_mx6 = " \
+SRC_URI:append_mx6 = " \
     file://0001-Add-mx5-defconfig.patch \
     file://0002-Add-mx5-device-tree-files.patch\
     file://0003-Add-mx5-uboot-and-spl-implementation.patch \

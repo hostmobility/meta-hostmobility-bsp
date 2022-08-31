@@ -16,7 +16,7 @@ UDEV_GE_141 ?= "0"
 # Logo resolution (qvga, vga, ...) is machine-specific.
 LOGO_SIZE ?= "."
 
-do_configure_append() {
+do_configure:append() {
     if test -e scripts/Makefile.fwinst ; then
         sed -i -e "s:-m0644:-m 0644:g" scripts/Makefile.fwinst
     fi
@@ -26,14 +26,14 @@ do_configure_append() {
 # So explicitly enable it for that in here
 EXTRA_OEMAKE = "${PARALLEL_MAKE} "
 
-do_uboot_mkimage_prepend() {
+do_uboot_mkimage:prepend() {
     mkdir arch/${ARCH}/boot/ || true
 }
 
-do_install_append() {
+do_install:append() {
 	oe_runmake headers_install INSTALL_HDR_PATH=${D}${exec_prefix}/src/linux-${KERNEL_VERSION} ARCH=$ARCH
 }
 
 PACKAGES =+ "kernel-headers"
-FILES_kernel-headers = "${exec_prefix}/src/linux*"
+FILES:kernel-headers = "${exec_prefix}/src/linux*"
 

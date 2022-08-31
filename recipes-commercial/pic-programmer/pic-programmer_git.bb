@@ -16,5 +16,5 @@ do_install() {
     install -m 744 ${B}/pic-programmer ${D}/opt/hm/pic/
 }
 
-FILES_${PN} = "/opt/hm/pic/pic-programmer"
+FILES:${PN} = "/opt/hm/pic/pic-programmer"
 

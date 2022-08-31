@@ -37,25 +37,25 @@ do_install() {
     install -m 0644 ${WORKDIR}/mount-config.service ${D}${systemd_unitdir}/system/mount-config.service
 }
 
-do_install_append_tegra2() {
+do_install:append_tegra2() {
     echo "colibri-t20" > ${D}/${sysconfdir}/platform-board-type
 }
 
-do_install_append_tegra3() {
+do_install:append_tegra3() {
     echo "colibri-t30" > ${D}/${sysconfdir}/platform-board-type
 }
 
-do_install_append_vf() {
+do_install:append_vf() {
     echo "colibri-vf" > ${D}/${sysconfdir}/platform-board-type
 }
 
-do_install_append_mx4-mil() {
+do_install:append_mx4-mil() {
     install -m 744 ${B}/mil/*.sh ${D}/opt/hm/
 }
 
 PACKAGES += "${PN}-scripts ${PN}-autostart ${PN}-mount-config"
 
-FILES_${PN} = "\
+FILES:${PN} = "\
     ${sysconfdir}/first_boot_after_update.txt \
     ${sysconfdir}/platform-system-type \
     ${sysconfdir}/platform-board-type \
@@ -66,8 +66,8 @@ FILES_${PN} = "\
     ${sysconfdir}/platform-build-tag \
 "
 
-RDEPENDS_${PN}-scripts = "bash"
-FILES_${PN}-scripts = "\
+RDEPENDS:${PN}-scripts = "bash"
+FILES:${PN}-scripts = "\
     /opt/hm/go_to_sleep.sh \
     /opt/hm/load_module.sh \
     /opt/hm/modem_status.sh \
@@ -85,7 +85,7 @@ FILES_${PN}-scripts = "\
     /opt/hm/wake_up_cause.sh \
 "
 
-FILES_${PN}-scripts_mx4-mil += "\
+FILES:${PN}-scripts_mx4-mil += "\
     /opt/hm/analog_calibration.sh \
     /opt/hm/date2pic.sh \
     /opt/hm/pic2rtc.sh \
@@ -95,10 +95,10 @@ inherit systemd
 
 SYSTEMD_PACKAGES = "${PN}-autostart ${PN}-mount-config"
 
-RDEPENDS_${PN}-autostart = "bash"
-FILES_${PN}-autostart = "/opt/hm/autostart.sh ${systemd_unitdir}/system/autostart.service"
-SYSTEMD_SERVICE_${PN}-autostart = "autostart.service"
+RDEPENDS:${PN}-autostart = "bash"
+FILES:${PN}-autostart = "/opt/hm/autostart.sh ${systemd_unitdir}/system/autostart.service"
+SYSTEMD_SERVICE:${PN}-autostart = "autostart.service"
 
-RDEPENDS_${PN}-mount-config = "bash"
-FILES_${PN}-mount-config = "/opt/hm/mount_config.sh ${systemd_unitdir}/system/mount-config.service"
-SYSTEMD_SERVICE_${PN}-mount-config = "mount-config.service"
+RDEPENDS:${PN}-mount-config = "bash"
+FILES:${PN}-mount-config = "/opt/hm/mount_config.sh ${systemd_unitdir}/system/mount-config.service"
+SYSTEMD_SERVICE:${PN}-mount-config = "mount-config.service"

@@ -1,8 +1,7 @@
 PREFERRED_PROVIDER_j1708-lib = "j1708-lib_1.0.6"
 PREFERRED_PROVIDER_j1708-test = "j1708-test_1.0.6"
 
-MACHINE_EXTRA_RDEPENDS_append = " \
-    kernel-modules \
+MACHINE_EXTRA_RDEPENDS += " \
     u-boot-hostmobility-fw-utils \
     ${@bb.utils.contains('LICENSE_FLAGS_WHITELIST', 'closed', \
                           'packagegroup-hostmobility-commercial', '', d)} \
@@ -14,7 +13,7 @@ MACHINE_EXTRA_RDEPENDS_append = " \
                           'alsa-utils', '', d)} \
 "
 
-MACHINE_EXTRA_RDEPENDS_append_tegra3 = " \
+MACHINE_EXTRA_RDEPENDS_tegra3 += " \
     e2fsprogs-resize2fs \
     fs-init \
     packagegroup-hostmobility-flexray-utils \

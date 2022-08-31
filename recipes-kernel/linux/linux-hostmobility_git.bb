@@ -23,7 +23,7 @@ config_script () {
     echo "dummy" > /dev/null
 }
 
-do_configure_prepend () {
+do_configure:prepend () {
 
     cd ${S}
     export KBUILD_OUTPUT=${B}
@@ -46,7 +46,7 @@ do_configure_prepend () {
     cd - > /dev/null
 }
 
-do_uboot_mkimage_prepend () {
+do_uboot_mkimage:prepend () {
     cd ${B}
 }
 

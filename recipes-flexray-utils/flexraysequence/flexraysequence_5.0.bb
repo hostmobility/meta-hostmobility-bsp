@@ -18,7 +18,7 @@ SRCREV = "${AUTOREV}"
 
 inherit autotools
 
-do_configure_prepend () {
+do_configure:prepend () {
     install -d 0755 ${WORKDIR}/linux
     install -m 0644 ${THISDIR}/../flexrayheader/flexray.h ${WORKDIR}/linux/flexray.h    
 }
@@ -33,5 +33,5 @@ do_install () {
     install -m 0755 ${WORKDIR}/flexraysequence     ${D}/usr/bin/flexraysequence
 }
 
-FILES_${PN} += "/usr/bin/flexraysequence"
+FILES:${PN} += "/usr/bin/flexraysequence"
 

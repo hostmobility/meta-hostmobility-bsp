@@ -1,7 +1,7 @@
 SUMMARY = "j1708-test"
 DESCRIPTION = "Application to J1708 network bus on MX-4"
 
-RDEPENDS_${PN} = "j1708-lib"
+RDEPENDS:${PN} = "j1708-lib"
 DEPENDS = "j1708-lib"
 
 SUBPATH = "apps/j1708-test"
@@ -19,5 +19,5 @@ do_install() {
     install -m 744 ${B}/j1708-test ${D}${bindir}/j1708-test
 }
 
-FILES_${PN} = "${bindir}/j1708-test"
+FILES:${PN} = "${bindir}/j1708-test"
 

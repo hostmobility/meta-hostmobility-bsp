@@ -16,7 +16,7 @@ COMPATIBLE_MACHINE = "(mx4-c61|mx4-v61)"
 
 # We use CONFIG_ARM_APPENDED_DTB=y and below shall take care of that
 
-do_deploy_append() {
+do_deploy:append() {
     cd ${B}
     cat ${KERNEL_OUTPUT_DIR}/zImage ${KERNEL_OUTPUT_DIR}/dts/${KERNEL_DEVICETREE} > combined-image
     mkimage -A arm -C none -a ${UBOOT_ENTRYPOINT} -e ${UBOOT_ENTRYPOINT} -T kernel -d combined-image ${KERNEL_OUTPUT_DIR}/uImage

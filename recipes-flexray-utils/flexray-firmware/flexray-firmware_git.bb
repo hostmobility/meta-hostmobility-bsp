@@ -14,5 +14,5 @@ do_install() {
     install -m 744 ${S}/mx-flexray.minicom ${D}/opt/hm/frmcu/mx-flexray.minicom
 }
 
-FILES_${PN} += "/opt/hm/frmcu/*"
+FILES:${PN} += "/opt/hm/frmcu/*"
 

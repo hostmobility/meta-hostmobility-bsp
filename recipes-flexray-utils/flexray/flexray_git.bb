@@ -15,10 +15,10 @@ inherit systemd
 DEPENDS = "virtual/kernel"
 
 SYSTEMD_PACKAGES = "${PN}"
-SYSTEMD_SERVICE_${PN} = "flexray_suspend.service flexray_start.service"
-RDEPENDS_${PN} = "bash"
+SYSTEMD_SERVICE:${PN} = "flexray_suspend.service flexray_start.service"
+RDEPENDS:${PN} = "bash"
 
-do_install_append() {
+do_install:append() {
         install -d ${D}${systemd_unitdir}/system
         install -m 644 ${WORKDIR}/flexray_start.service ${D}${systemd_unitdir}/system/flexray_start.service
         install -m 644 ${WORKDIR}/flexray_suspend.service ${D}${systemd_unitdir}/system/flexray_suspend.service

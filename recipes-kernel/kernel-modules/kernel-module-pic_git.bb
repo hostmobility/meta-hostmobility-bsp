@@ -4,8 +4,8 @@ LICENSE = "GPLv2+"
 LIC_FILES_CHKSUM = "file://COPYING;md5=12f884d2ae1ff87c09e5b7ccc2c4ca7e"
 
 PROVIDES = "virtual/kernel-module-pic"
-RPROVIDES_${PN} = "virtual/kernel-module-pic"
-RPROVIDES_${PN}-dev = "virtual/kernel-module-mcc-pic"
+RPROVIDES:${PN} = "virtual/kernel-module-pic"
+RPROVIDES:${PN}-dev = "virtual/kernel-module-mcc-pic"
 
 inherit module
 

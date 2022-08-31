@@ -15,7 +15,7 @@ PREFERRED_PROVIDER_virtual/kernel = "linux-hostmobility"
 KERNEL_IMAGETYPE = "uImage"
 
 # The kernel lives in a seperate FAT or UBI partition, don't deploy it in /boot
-RDEPENDS_kernel-base = ""
+RDEPENDS:kernel-base = ""
 
 PREFERRED_PROVIDER_u-boot = "u-boot-hostmobility"
 PREFERRED_PROVIDER_virtual/bootloader = "u-boot-hostmobility"
@@ -31,7 +31,7 @@ BBMASK += "recipes-bsp/u-boot/u-boot-hostmobility_2019.04.bb"
 IMAGE_FSTYPES = "tar.xz"
 # wic support
 #WKS_FILE = "sdimage-bootpart-mx4-t30.wks"
-#WIC_CREATE_EXTRA_ARGS_append = " --no-fstab-update"
+#WIC_CREATE_EXTRA_ARGS:append = " --no-fstab-update"
 
 IMAGE_BOOT_FILES ?= " \
     ${KERNEL_IMAGETYPE} \

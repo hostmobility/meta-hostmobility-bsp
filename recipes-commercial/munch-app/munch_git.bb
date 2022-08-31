@@ -18,4 +18,4 @@ do_install() {
     install -m 744 ${B}/munch-mem-test ${D}/usr/local/bin
 }
 
-FILES_${PN} += "/usr/local/bin/*"
+FILES:${PN} += "/usr/local/bin/*"

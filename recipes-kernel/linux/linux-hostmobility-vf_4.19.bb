@@ -5,7 +5,7 @@ LICENSE = "GPLv2"
 
 LIC_FILES_CHKSUM = "file://COPYING;md5=bbea815ee2795b2f4230826c0c6b8814"
 
-FILESEXTRAPATHS_prepend := "${THISDIR}/linux-mobility-imx:"
+FILESEXTRAPATHS:prepend := "${THISDIR}/linux-mobility-imx:"
 
 inherit kernel siteinfo
 
@@ -66,7 +66,7 @@ DEPENDS += "lzop-native bc-native u-boot-mkimage-native"
 
 # We use CONFIG_ARM_APPENDED_DTB=y and below shall take care of that
 
-do_deploy_append() {
+do_deploy:append() {
     cd ${B}
     cat ${KERNEL_OUTPUT_DIR}/zImage ${KERNEL_OUTPUT_DIR}/dts/${KERNEL_DEVICETREE} > combined-image
     mkimage -A arm -C none -a ${UBOOT_ENTRYPOINT} -e ${UBOOT_ENTRYPOINT} -T kernel -d combined-image ${KERNEL_OUTPUT_DIR}/uImage

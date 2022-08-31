@@ -28,7 +28,7 @@ do_install() {
     install -m 744 ${B}/core/commons.h ${D}${includedir}/j1708/commons.h
 }
 
-FILES_${PN} = " \
+FILES:${PN} = " \
     ${libdir}/libj1708.so* \
     ${includedir}/j1708/* \
 "

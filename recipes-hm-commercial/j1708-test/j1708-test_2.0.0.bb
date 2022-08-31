@@ -3,7 +3,7 @@ DESCRIPTION = "Application to J1708 network bus on MX-4"
 
 
 DEPENDS += " j1708-lib"
-RDEPENDS_${PN} += " libj1708.so"
+RDEPENDS:${PN} += " libj1708.so"
 
 inherit pkgconfig
 
@@ -24,4 +24,4 @@ do_install() {
     install -m 744 ${B}/j1708-test ${D}${bindir}/j1708-test
 }
 
-FILES_${PN} = "${bindir}/j1708-test"
+FILES:${PN} = "${bindir}/j1708-test"

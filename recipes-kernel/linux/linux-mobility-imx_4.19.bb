@@ -10,7 +10,7 @@ LIC_FILES_CHKSUM = "file://COPYING;md5=bbea815ee2795b2f4230826c0c6b8814"
 DEPENDS += "lzop-native bc-native"
 
 LINUX_VERSION ?= "4.19.35"
-LINUX_VERSION_EXTENSION_append = "-imx"
+LINUX_VERSION_EXTENSION:append = "-imx"
 
 SRC_URI = "\
     git://source.codeaurora.org/external/imx/linux-imx;name=linuxkernel;branch=${LINUXBRANCH};protocol=ssh;nocheckout=1 \
@@ -42,7 +42,7 @@ COMPATIBLE_MACHINE = "mx5-pt"
 KBUILD_DEFCONFIG ?= "${KERNEL_DEFCONFIG}"
 
 
-do_patch_append() {
+do_patch:append() {
     # Add our drivers to the Makefiles to build them.
     echo 'obj-$(CONFIG_GPIO_NCV7751) += ncv7751-gpio-driver/gpio-ncv7751.o' >> '${S}/drivers/gpio/Makefile'
     echo 'obj-$(CONFIG_MX5_GPIO_OVERLAY) += gpio-overlay/gpio-overlay.o' >> '${S}/drivers/gpio/Makefile'

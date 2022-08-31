@@ -4,7 +4,7 @@ MACHINEOVERRIDES =. "tegra:tegra2:"
 
 UBOOT_ENTRYPOINT = "0x00008000"
 
-IMAGE_FSTYPES_append = " ubifs"
+IMAGE_FSTYPES:append = " ubifs"
 
 # Enable free --space-fixup (-F) by default
 MKUBIFS_ARGS = " -c 4084 -e 248KiB -m 4KiB -F"

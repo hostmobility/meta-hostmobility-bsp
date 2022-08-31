@@ -23,7 +23,7 @@ do_install() {
     install -m 744 ${B}/ptd_kline.h ${D}${includedir}/ptd_kline.h
 }
 
-FILES_${PN} = " \
+FILES:${PN} = " \
     ${libdir}/libptdkline.so* \
     ${includedir}/ptdptd_kline.h \
 "

@@ -12,8 +12,8 @@ EXTRA_OEMAKE = 'CC="${CC}" CFLAGS="${CFLAGS}" LDFLAGS="${LDFLAGS}"'
 inherit systemd
 
 SYSTEMD_PACKAGES = "${PN}"
-SYSTEMD_SERVICE_${PN} = "can-xcvr.service"
-RDEPENDS_${PN} = "bash"
+SYSTEMD_SERVICE:${PN} = "can-xcvr.service"
+RDEPENDS:${PN} = "bash"
 
 do_compile () {
     oe_runmake
@@ -30,4 +30,4 @@ do_install() {
     install -m 744 ${S}/can-xcvr_start.sh ${D}${bindir}/can-xcvr_start.sh
 }
 
-FILES_${PN} += "/usr/local/bin/*"
+FILES:${PN} += "/usr/local/bin/*"

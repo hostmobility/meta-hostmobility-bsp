@@ -3,7 +3,7 @@ DESCRIPTION = "Application to update co-cpu firmware on MX-5"
 
 SUBPATH = ""
 
-RDEPENDS_${PN} += "bash"
+RDEPENDS:${PN} += "bash"
 
 
 require recipes-hm-commercial/common/revision.inc
@@ -24,7 +24,7 @@ do_install() {
     install -m 744 ${S}/update_cocpu_firmware.sh ${D}${bindir}/update_cocpu_firmware.sh
 }
 
-FILES_${PN} = " \
+FILES:${PN} = " \
   ${bindir}/hm_cocpu_updater \
   ${bindir}/update_cocpu_firmware.sh \
  "

@@ -17,7 +17,7 @@ do_install() {
 }
 
 
-FILES_${PN} = "\
+FILES:${PN} = "\
     ${sysconfdir}/platform-system-type \
     ${sysconfdir}/platform-board-type \
     ${sysconfdir}/platform-version \

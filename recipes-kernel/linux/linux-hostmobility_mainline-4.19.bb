@@ -4,7 +4,7 @@ LICENSE = "GPLv2"
 
 LIC_FILES_CHKSUM = "file://COPYING;md5=bbea815ee2795b2f4230826c0c6b8814"
 
-FILESEXTRAPATHS_prepend := "${THISDIR}/linux-hostmobility-mainline-4.19:"
+FILESEXTRAPATHS:prepend := "${THISDIR}/linux-hostmobility-mainline-4.19:"
 
 inherit kernel siteinfo
 include conf/tdx_version.conf
@@ -64,7 +64,7 @@ KCONFIG_MODE="--alldefconfig"
 
 KBUILD_DEFCONFIG ?= "${KERNEL_DEFCONFIG}"
 
-do_uboot_mkimage_prepend() {
+do_uboot_mkimage:prepend() {
     cd ${B}
 }
 

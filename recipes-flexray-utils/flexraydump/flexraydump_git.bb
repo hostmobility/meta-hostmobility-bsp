@@ -10,7 +10,7 @@ SRC_URI += "file://COPYING"
 
 S = "${WORKDIR}/git/flexraydump"
 
-do_configure_prepend () {
+do_configure:prepend () {
     install -d 0755 ${S}/src/linux
     install -m 0644 ${THISDIR}/../flexrayheader/flexray.h   ${S}/src/linux/flexray.h    
 }

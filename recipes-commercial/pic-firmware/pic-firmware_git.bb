@@ -41,5 +41,5 @@ do_install() {
 
 }
 
-FILES_${PN} = "/opt/hm/pic/*.hex"
+FILES:${PN} = "/opt/hm/pic/*.hex"
 

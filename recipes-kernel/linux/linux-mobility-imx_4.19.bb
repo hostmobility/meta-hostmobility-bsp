@@ -15,7 +15,7 @@ LINUX_VERSION_EXTENSION:append = "-imx"
 SRC_URI = "\
     git://source.codeaurora.org/external/imx/linux-imx;name=linuxkernel;branch=${LINUXBRANCH};protocol=ssh;nocheckout=1 \
     file://defconfig \    
-    git://git@github.com/hostmobility/hm-commercial.git;name=hmcommercial;subpath=drivers;protocol=ssh;destsuffix=git/drivers \
+    git://git@github.com/hostmobility/hm-commercial.git;name=hmcommercial;branch=${DRIVERBRANCH};subpath=drivers;protocol=ssh;destsuffix=git/drivers \
     file://0001-Compiler-Attributes-add-support-for-__copy-gcc-9.patch \
     file://0002-include-linux-module.h-copy-__init-__exit-attrs-to-i.patch \
     file://0001-perf-Make-perf-able-to-build-with-latest-libbfd.patch \
@@ -28,6 +28,7 @@ SRC_URI = "\
 "
 
 LINUXBRANCH = "imx_4.19.35_1.0.0"
+DRIVERBRANCH = "master"
 
 SRCREV_FORMAT = "linuxkernel_hmcommercial"
 

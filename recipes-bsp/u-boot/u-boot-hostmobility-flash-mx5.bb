@@ -3,6 +3,7 @@ LICENSE = "CLOSED"
 
 SRC_URI = "file://flashmx5.cmd"
 
+COMPATIBLE_MACHINE = "(mx5-pt)"
 DEPENDS = "u-boot-mkimage-native"
 
 

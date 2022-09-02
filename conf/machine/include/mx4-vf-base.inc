@@ -20,7 +20,8 @@ PREFERRED_PROVIDER_virtual/bootloader ?= "u-boot-hostmobility"
 UBOOT_BINARY ?= "u-boot-nand.imx"
 UBOOT_MAKE_TARGET = "u-boot-nand.imx"
 
-EXTRA_IMAGEDEPENDS += "u-boot"
+#disable build uboot for now.
+#EXTRA_IMAGEDEPENDS += "u-boot"
 
 IMAGE_FSTYPES = "tar.xz ubifs"
 

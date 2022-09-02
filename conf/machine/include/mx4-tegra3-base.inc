@@ -6,7 +6,7 @@ MACHINEOVERRIDES =. "tegra:tegra3:tegra3mainline:"
 require conf/machine/include/soc-family.inc
 
 DEFAULTTUNE = "armv7athf-neon"
-require conf/machine/include/tune-cortexa9.inc
+require conf/machine/include/arm/armv7a/tune-cortexa9.inc
 
 EXTRA_IMAGEDEPENDS += "u-boot"
 

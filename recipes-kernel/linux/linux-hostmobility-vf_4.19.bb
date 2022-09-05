@@ -20,12 +20,12 @@ S = "${WORKDIR}/linux-${PV}"
 GENERIC_PATCHES = " \
     file://0002-Add-support-on-USB-for-EG25-modem.patch \
 "
-MACHINE_PATCHES_mx4-hostcom = " \
+MACHINE_PATCHES:mx4-hostcom = " \
     file://0001-add-hostcom-device-tree.patch \
     file://defconfig \
 "
 
-MACHINE_PATCHES_mx4-c61 = " \
+MACHINE_PATCHES:mx4-c61 = " \
     file://0001-add-device-tree-for-c61-v61.patch \
     file://defconfig \
 "

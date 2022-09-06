@@ -56,4 +56,3 @@ BBMASK += "recipes-bsp/u-boot/u-boot-hostmobility_2019.04.bb"
 
 BBMASK +=  "recipes-multimedia/gstreamer/"
 BBMASK +=  "recipes-core/fs-init/fs-init.bbappend"
-BBMASK +=  "recipes-core/usb-rndis-systemd"

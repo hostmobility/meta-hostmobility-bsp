@@ -50,8 +50,7 @@ PREFERRED_PROVIDER_j1708-test = "j1708-test_1.0.6"
 
 MACHINE_EXTRA_RDEPENDS += " \
     u-boot-hostmobility-fw-utils \
-    ${@bb.utils.contains('LICENSE_FLAGS_WHITELIST', 'closed', \
-                          'packagegroup-hostmobility-commercial', '', d)} \
+    packagegroup-hostmobility-commercial \
     ${@bb.utils.contains('MACHINE_FEATURES', 'wifi', \
                           'linux-firmware-ath9k linux-firmware-wl18xx hostapd', '', d)} \
     ${@bb.utils.contains('MACHINE_FEATURES', 'flash', \

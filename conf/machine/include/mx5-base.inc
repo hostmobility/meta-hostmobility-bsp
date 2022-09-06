@@ -1,6 +1,6 @@
 # Provides common settings among MX-5 products that use imx6
 
-MACHINEOVERRIDES =. "mx6:mx6q:mx6dl:"
+MACHINEOVERRIDES =. "mx6:mx6q:mx6dl:mx5-base:"
 
 IMX_DEFAULT_BSP = "nxp"
 

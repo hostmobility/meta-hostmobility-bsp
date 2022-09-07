@@ -60,6 +60,7 @@ MACHINE_EXTRA_RDEPENDS += " \
     e2fsprogs-resize2fs \
     fs-init \
     packagegroup-hostmobility-flexray-utils \
+    libubootenv \
 "
 
 

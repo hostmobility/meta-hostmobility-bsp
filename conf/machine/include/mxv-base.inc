@@ -40,6 +40,7 @@ MACHINE_EXTRA_RDEPENDS:append = " \
                           'linux-firmware-sd8887 linux-firmware-sd8897 hostapd', '', d)} \
     cryptodev-module \
     cryptodev-tests \
+    libubootenv \
 "
 
 KERNEL_MODULE_AUTOLOAD += "cryptodev-module"

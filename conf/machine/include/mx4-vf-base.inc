@@ -45,6 +45,7 @@ MACHINE_EXTRA_RDEPENDS += " \
                           'mtd-utils mtd-utils-ubifs mtd-utils-misc mtd-utils-jffs2', '', d)} \
     ${@bb.utils.contains('MACHINE_FEATURES', 'alsa', \
                           'alsa-utils', '', d)} \
+    libubootenv \
 "
 
 CORE_IMAGE_EXTRA_INSTALL += " \

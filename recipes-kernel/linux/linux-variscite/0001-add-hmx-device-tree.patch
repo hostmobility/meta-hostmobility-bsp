@@ -1,8 +1,9 @@
-From 6cf846df8d62e67a5dc30957924943080303e15c Mon Sep 17 00:00:00 2001
+From 579401efa9b1b73f6efc40570b4077dd62182778 Mon Sep 17 00:00:00 2001
 From: OpenEmbedded <oe.patch@oe>
-Date: Mon, 29 Aug 2022 14:48:17 +0200
-Subject: [PATCH] Device tree + Makefile for hmx(hmx0 is dev board)
+Date: Fri, 2 Sep 2022 12:41:03 +0200
+Subject: [PATCH]  Device tree + Makefile for hmx(hmx0 is dev board)
 
+ update from review
 ---
  arch/arm64/boot/dts/freescale/Makefile        |   3 +
  .../dts/freescale/imx8mp-var-dart-hmx0.dts    | 860 +++++++++++++++++
@@ -890,7 +891,7 @@ index 000000000000..e92db7e9f5d0
 +};
 diff --git a/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts b/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts
 new file mode 100644
-index 000000000000..2baec7b1a4a2
+index 000000000000..c96303c82b1d
 --- /dev/null
 +++ b/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts
 @@ -0,0 +1,882 @@
@@ -1040,6 +1041,7 @@ index 000000000000..2baec7b1a4a2
 +		pwr_out_active {
 +			function = "pwr_out_active";
 +			gpios = <&gpio1 5 GPIO_ACTIVE_HIGH>;
++			default-state = "on";
 +		};
 +	};
 +
@@ -1077,11 +1079,11 @@ index 000000000000..2baec7b1a4a2
 +	};
 +
 +
-+	extcon_usb1: extcon_usb1 {
++	extcon_usb2: extcon_usb2 {
 +		compatible = "linux,extcon-usb-gpio";
 +		pinctrl-names = "default";
 +		pinctrl-0 = <&pinctrl_extcon>;
-+		id-gpio = <&gpio1 10 GPIO_ACTIVE_HIGH>;
++		id-gpio = <&gpio1 8 GPIO_ACTIVE_HIGH>;
 +		status = "okay";
 +	};
 +};
@@ -1143,7 +1145,7 @@ index 000000000000..2baec7b1a4a2
 +
 +	/* NXP PCF85063A RTC module */
 +	rtc@51 {
-+		compatible = "nxp,pcf85063";
++		compatible = "nxp,pcf85063a";
 +		reg = <0x51>;
 +		quartz-load-femtofarads = <12500>;
 +		pinctrl-names = "default";
@@ -1170,6 +1172,8 @@ index 000000000000..2baec7b1a4a2
 +	sda-gpios = <&gpio5 21 GPIO_ACTIVE_HIGH>;
 +	status = "okay";
 +
++
++	/* TODO check if interrupt is active low or high */
 +	accelerometer@30 {
 +		pinctrl-names = "default";
 +		pinctrl-0 = <&pinctrl_acc>;
@@ -1177,7 +1181,7 @@ index 000000000000..2baec7b1a4a2
 +		reg = <0x30>;
 +		st,drdy-int-pin = <1>;
 +		interrupt-parent = <&gpio5>;
-+		interrupts = <0 IRQ_TYPE_EDGE_FALLING>;
++		interrupts = <2 IRQ_TYPE_EDGE_FALLING>;
 +		drive-open-drain = <1>;
 +		status = "okay";
 +	};
@@ -1231,7 +1235,7 @@ index 000000000000..2baec7b1a4a2
 +	status = "okay";
 +};
 +
-+&usb3_phy0 {
++&usb3_phy1 {
 +	fsl,phy-tx-vref-tune = <0xe>;
 +	fsl,phy-tx-preemp-amp-tune = <3>;
 +	fsl,phy-tx-vboost-level = <5>;
@@ -1241,33 +1245,34 @@ index 000000000000..2baec7b1a4a2
 +	status = "okay";
 +};
 +
-+&usb3_0 {
-+	status = "okay";
-+};
-+
-+&usb_dwc3_0 {
-+	dr_mode = "otg";
-+	hnp-disable;
-+	srp-disable;
-+	adp-disable;
-+	extcon = <&extcon_usb1>;
-+	status = "okay";
-+};
-+
-+&usb3_phy1 {
-+	fsl,phy-tx-preemp-amp-tune = <3>;
-+	fsl,phy-tx-vref-tune = <0xb>;
-+	status = "okay";
-+};
-+
 +&usb3_1 {
 +	status = "okay";
 +};
 +
 +&usb_dwc3_1 {
++	dr_mode = "otg";
++	hnp-disable;
++	srp-disable;
++	adp-disable;
++	extcon = <&extcon_usb2>;
++	status = "okay";
++};
++
++&usb3_phy0 {
++	fsl,phy-tx-preemp-amp-tune = <3>;
++	fsl,phy-tx-vref-tune = <0xb>;
++	status = "okay";
++};
++
++&usb3_0 {
++	status = "okay";
++};
++
++&usb_dwc3_0 {
 +	dr_mode = "host";
 +	status = "okay";
 +};
++/* TODO change ports if needed and check power logic for USB host/peripheral */
 +
 +/* SD card */
 +&usdhc2 {
@@ -1348,12 +1353,12 @@ index 000000000000..2baec7b1a4a2
 +		interrupt-parent = <&gpio4>;
 +		interrupts = <24 IRQ_TYPE_LEVEL_LOW>;
 +		device-wake-gpios = <&gpio5 28 GPIO_ACTIVE_HIGH>;
-+		reset-gpios = <&gpio5 28 GPIO_ACTIVE_HIGH>;
++		reset-gpios = <&gpio5 29 GPIO_ACTIVE_HIGH>;
 +	};
 +	/* CAN-FD controller 5 in schematics */
-+	can4: tcan4x5x@0 {
++	can4: tcan4x5x@1 {
 +		compatible = "ti,tcan4x5x";
-+		reg = <0>;
++		reg = <1>;
 +		#address-cells = <1>;
 +		#size-cells = <1>;
 +		spi-max-frequency = <18000000>;
@@ -1520,12 +1525,15 @@ index 000000000000..2baec7b1a4a2
 +			/* can0, can4 irqs */
 +			MX8MP_IOMUXC_SAI2_TXFS__GPIO4_IO24                           	0x12
 +			MX8MP_IOMUXC_SAI2_RXD0__GPIO4_IO23				0x12
++			MX8MP_IOMUXC_UART4_RXD__GPIO5_IO28                          	0x102 
++			MX8MP_IOMUXC_UART4_TXD__GPIO5_IO29                          	0x102 
 +		>;
 +	};
 +
++	/* USB2_OTG_ID */
 +	pinctrl_extcon: extcongrp {
 +		fsl,pins = <
-+			MX8MP_IOMUXC_GPIO1_IO10__GPIO1_IO10				0x10
++			MX8MP_IOMUXC_GPIO1_IO08__GPIO1_IO08				0x10
 +		>;
 +	};
 +
@@ -1540,13 +1548,6 @@ index 000000000000..2baec7b1a4a2
 +		fsl,pins = <
 +			MX8MP_IOMUXC_SAI5_MCLK__CAN2_RX					0x154
 +			MX8MP_IOMUXC_SAI5_RXD3__CAN2_TX					0x154
-+		>;
-+	};
-+
-+	pinctrl_can: cangrp {
-+		fsl,pins = <
-+			MX8MP_IOMUXC_GPIO1_IO06__GPIO1_IO06				0x1c6
-+			MX8MP_IOMUXC_SPDIF_RX__GPIO5_IO04				0x16
 +		>;
 +	};
 +

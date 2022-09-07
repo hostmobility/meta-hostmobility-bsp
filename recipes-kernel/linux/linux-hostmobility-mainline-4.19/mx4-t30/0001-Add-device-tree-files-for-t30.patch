@@ -90,14 +90,14 @@ index 000000000000..99a71870840f
 +
 +	spi@7000d400 {
 +		status = "okay";
-+		spi-max-frequency = <12000000>;
++		spi-max-frequency = <3000000>;
 +		reg = <0x7000d400 0x200>;
 +		interrupts = <GIC_SPI 59 IRQ_TYPE_EDGE_RISING>;
 +
 +		mx4_io_spi: spi@0 {
 +			compatible = "mx4_io_spi";
 +	       	reg = <0>;
-+	       	spi-max-frequency = <5000000>;
++	       	spi-max-frequency = <3000000>;
 +			interrupt-parent = <&gpio>;
 +	       	interrupts = <TEGRA_GPIO(O, 5) GPIO_ACTIVE_HIGH>;
 +	        gpios = <&gpio TEGRA_GPIO(V, 1) GPIO_ACTIVE_HIGH>;
@@ -165,7 +165,7 @@ index 000000000000..99a71870840f
 +   	mx4_pic: spi@1 {
 +        	compatible = "hostmobility,mx4_pic";
 +        	reg = <1>;
-+        	spi-max-frequency = <12000000>;
++        	spi-max-frequency = <3000000>;
 +	       	spi-cpha;
 +    	};
 +	};

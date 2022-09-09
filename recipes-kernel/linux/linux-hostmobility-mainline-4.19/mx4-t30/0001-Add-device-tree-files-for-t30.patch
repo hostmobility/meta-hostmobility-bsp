@@ -1,3 +1,16 @@
+From d2d6553f71d2958a064b7daad8668498a6cda290 Mon Sep 17 00:00:00 2001
+From: Mattias Busck <mattias.busck@hostmobility.com>
+Date: Tue, 6 Sep 2022 07:50:25 +0000
+Subject: [PATCH 2/2] T30: Update RTC device node to enable wakeup(DT patch)
+
+---
+ arch/arm/boot/dts/Makefile             |    3 +-
+ arch/arm/boot/dts/tegra30-mx4-t30.dts  |  308 ++++++
+ arch/arm/boot/dts/tegra30-mx4-t30.dtsi | 1254 ++++++++++++++++++++++++
+ 3 files changed, 1564 insertions(+), 1 deletion(-)
+ create mode 100644 arch/arm/boot/dts/tegra30-mx4-t30.dts
+ create mode 100644 arch/arm/boot/dts/tegra30-mx4-t30.dtsi
+
 diff --git a/arch/arm/boot/dts/Makefile b/arch/arm/boot/dts/Makefile
 index b5bd3de87c33..b4966a000a77 100644
 --- a/arch/arm/boot/dts/Makefile
@@ -14,10 +27,10 @@ index b5bd3de87c33..b4966a000a77 100644
  	tegra114-roth.dtb \
 diff --git a/arch/arm/boot/dts/tegra30-mx4-t30.dts b/arch/arm/boot/dts/tegra30-mx4-t30.dts
 new file mode 100644
-index 000000000000..99a71870840f
+index 000000000000..a8d522272544
 --- /dev/null
 +++ b/arch/arm/boot/dts/tegra30-mx4-t30.dts
-@@ -0,0 +1,307 @@
+@@ -0,0 +1,308 @@
 +/dts-v1/;
 +
 +#include "tegra30-mx4-t30.dtsi"
@@ -80,12 +93,13 @@ index 000000000000..99a71870840f
 +		
 +		/*RTC*/
 +		pcf85063@51 {
-+			compatible = "nxp,pcf85063";
++			compatible = "nxp,pcf85063a";
 +			reg = <0x51>;
-+	        interrupt-parent = <&gpio>;
++			interrupt-parent = <&gpio>;
 +			interrupt-names = "RTC-INT";
-+	        interrupts = <TEGRA_GPIO(Z, 2) GPIO_ACTIVE_LOW>; // SODIMM pin 156
-+	    };
++			interrupts = <TEGRA_GPIO(Z, 2) GPIO_ACTIVE_LOW>; // SODIMM pin 156
++			wakeup-source;
++	    	};
 +	};
 +
 +	spi@7000d400 {
@@ -327,7 +341,7 @@ index 000000000000..99a71870840f
 +};
 diff --git a/arch/arm/boot/dts/tegra30-mx4-t30.dtsi b/arch/arm/boot/dts/tegra30-mx4-t30.dtsi
 new file mode 100644
-index 000000000000..68d83e7defe6
+index 000000000000..92bac3e99042
 --- /dev/null
 +++ b/arch/arm/boot/dts/tegra30-mx4-t30.dtsi
 @@ -0,0 +1,1254 @@
@@ -1585,3 +1599,6 @@ index 000000000000..68d83e7defe6
 +};
 +
 +
+-- 
+2.17.1
+

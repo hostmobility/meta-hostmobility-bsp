@@ -17,6 +17,7 @@ PV = "${LINUX_VERSION}"
 S = "${WORKDIR}/linux-${PV}"
 
 GENERIC_PATCHES = " \
+    file://0001-Update-rtc-pcf85063-from-upstream.patch \
 "
 MACHINE_PATCHES = " \
     file://defconfig \

@@ -560,8 +560,8 @@ index 000000000000..b9fbdde71bc1
 +		pinctrl-names = "default";
 +		pinctrl-0 = <&pinctrl_acc_init>;
 +		interrupt-parent = <&gpio1>;
-+		interupt-names = "ACC_INIT1";
-+		interrupts = <18 IRQ_TYPE_LEVEL_LOW>;
++		interrupt-names = "INT1";
++		interrupts = <18 IRQ_TYPE_EDGE_FALLING>;
 +		position = <0>;
 +		//vdd-supply = <&reg_mma845xq_3v3>;
 +		//vddio-supply = <&reg_mma845xq_3v3>;

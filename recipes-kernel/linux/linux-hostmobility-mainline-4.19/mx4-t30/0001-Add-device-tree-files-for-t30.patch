@@ -1,23 +1,21 @@
-diff --git a/arch/arm/boot/dts/Makefile b/arch/arm/boot/dts/Makefile
-index b5bd3de87c33..b4966a000a77 100644
---- a/arch/arm/boot/dts/Makefile
-+++ b/arch/arm/boot/dts/Makefile
-@@ -1074,7 +1074,8 @@ dtb-$(CONFIG_ARCH_TEGRA_3x_SOC) += \
- 	tegra30-beaver.dtb \
- 	tegra30-cardhu-a02.dtb \
- 	tegra30-cardhu-a04.dtb \
--	tegra30-colibri-eval-v3.dtb
-+	tegra30-colibri-eval-v3.dtb \
-+	tegra30-mx4-t30.dtb
- dtb-$(CONFIG_ARCH_TEGRA_114_SOC) += \
- 	tegra114-dalmore.dtb \
- 	tegra114-roth.dtb \
+From 9c03238207c4bb58db4848661ad5526bfa6c787b Mon Sep 17 00:00:00 2001
+From: rikardo <rikard.olander@hostmobility.com>
+Date: Tue, 13 Sep 2022 13:00:53 +0000
+Subject: [PATCH 1/2] add device tree for t30
+
+---
+ arch/arm/boot/dts/tegra30-mx4-t30.dts  |  308 ++++++
+ arch/arm/boot/dts/tegra30-mx4-t30.dtsi | 1254 ++++++++++++++++++++++++
+ 2 files changed, 1562 insertions(+)
+ create mode 100644 arch/arm/boot/dts/tegra30-mx4-t30.dts
+ create mode 100644 arch/arm/boot/dts/tegra30-mx4-t30.dtsi
+
 diff --git a/arch/arm/boot/dts/tegra30-mx4-t30.dts b/arch/arm/boot/dts/tegra30-mx4-t30.dts
 new file mode 100644
-index 000000000000..99a71870840f
+index 000000000000..38197ec3d232
 --- /dev/null
 +++ b/arch/arm/boot/dts/tegra30-mx4-t30.dts
-@@ -0,0 +1,307 @@
+@@ -0,0 +1,308 @@
 +/dts-v1/;
 +
 +#include "tegra30-mx4-t30.dtsi"
@@ -80,12 +78,13 @@ index 000000000000..99a71870840f
 +		
 +		/*RTC*/
 +		pcf85063@51 {
-+			compatible = "nxp,pcf85063";
++			compatible = "nxp,pcf85063a";
 +			reg = <0x51>;
-+	        interrupt-parent = <&gpio>;
++			interrupt-parent = <&gpio>;
 +			interrupt-names = "RTC-INT";
-+	        interrupts = <TEGRA_GPIO(Z, 2) GPIO_ACTIVE_LOW>; // SODIMM pin 156
-+	    };
++			interrupts = <TEGRA_GPIO(Z, 2) GPIO_ACTIVE_LOW>; // SODIMM pin 156
++			wakeup-source;
++	    	};
 +	};
 +
 +	spi@7000d400 {
@@ -327,7 +326,7 @@ index 000000000000..99a71870840f
 +};
 diff --git a/arch/arm/boot/dts/tegra30-mx4-t30.dtsi b/arch/arm/boot/dts/tegra30-mx4-t30.dtsi
 new file mode 100644
-index 000000000000..68d83e7defe6
+index 000000000000..92bac3e99042
 --- /dev/null
 +++ b/arch/arm/boot/dts/tegra30-mx4-t30.dtsi
 @@ -0,0 +1,1254 @@
@@ -1585,3 +1584,6 @@ index 000000000000..68d83e7defe6
 +};
 +
 +
+-- 
+2.17.1
+

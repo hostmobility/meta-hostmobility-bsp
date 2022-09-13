@@ -1,0 +1,22 @@
+From cbee0ab51dd1adc6590047d3f3d86187f85178eb Mon Sep 17 00:00:00 2001
+From: rikardo <rikard.olander@hostmobility.com>
+Date: Tue, 13 Sep 2022 13:01:16 +0000
+Subject: [PATCH 2/2] include t30 dtb in makefile
+
+---
+ arch/arm/boot/dts/Makefile | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/arch/arm/boot/dts/Makefile b/arch/arm/boot/dts/Makefile
+index 7a72fc636a7a..75e661946671 100644
+--- a/arch/arm/boot/dts/Makefile
++++ b/arch/arm/boot/dts/Makefile
+@@ -1500,3 +1500,5 @@ dtb-$(CONFIG_ARCH_ASPEED) += \
+ 	aspeed-bmc-portwell-neptune.dtb \
+ 	aspeed-bmc-quanta-q71l.dtb \
+ 	aspeed-bmc-supermicro-x11spi.dtb
++	dtb-$(CONFIG_ARCH_TEGRA_3x_SOC) += \
++		tegra30-mx4-t30.dtb
+-- 
+2.17.1
+

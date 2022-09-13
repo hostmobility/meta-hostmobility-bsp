@@ -1,25 +1,25 @@
-From 5830626ec2a08c11663d31d23ef6ac34c88a3589 Mon Sep 17 00:00:00 2001
+From 9a712ba44ea130fdb1636b1f236a60194482ee04 Mon Sep 17 00:00:00 2001
 From: rikardo <rikard.olander@hostmobility.com>
-Date: Fri, 2 Aug 2019 11:13:15 +0200
-Subject: [PATCH] Add mx4_pic and can-xcvr to spidev
+Date: Tue, 13 Sep 2022 14:03:14 +0000
+Subject: [PATCH 1/1] Add mx4_pic and can-xcvr to spidev
 
 ---
  drivers/spi/spidev.c | 2 ++
  1 file changed, 2 insertions(+)
 
 diff --git a/drivers/spi/spidev.c b/drivers/spi/spidev.c
-index cda1071..296a406 100644
+index 1bd73e322b7b..8d8a057e85ac 100644
 --- a/drivers/spi/spidev.c
 +++ b/drivers/spi/spidev.c
-@@ -669,6 +669,8 @@ static const struct of_device_id spidev_dt_ids[] = {
- 	{ .compatible = "lineartechnology,ltc2488" },
- 	{ .compatible = "ge,achc" },
- 	{ .compatible = "semtech,sx1301" },
+@@ -696,6 +696,8 @@ static const struct of_device_id spidev_dt_ids[] = {
+ 	{ .compatible = "menlo,m53cpld" },
+ 	{ .compatible = "cisco,spi-petra" },
+ 	{ .compatible = "micron,spi-authenta" },
 +	{ .compatible = "hostmobility,mx4_pic" },
 +	{ .compatible = "hostmobility,can_xcvr" },
  	{},
  };
  MODULE_DEVICE_TABLE(of, spidev_dt_ids);
 -- 
-2.7.4
+2.17.1
 

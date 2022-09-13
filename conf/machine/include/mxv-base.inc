@@ -1,10 +1,10 @@
 # Provides common settings among MX-5 products that use imx6
 
-MACHINEOVERRIDES =. "mx6:mx6q:mx6dl:mxv-base:"
+MACHINEOVERRIDES =. "mx6:mx6q:mx6dl:mxv-base:imx-nxp-bsp:use-mainline-bsp:"
 
-IMX_DEFAULT_BSP = "nxp"
+IMX_DEFAULT_BSP = "use-mainline-bsp"
 
-require conf/machine/include/imx-base.inc
+include conf/machine/include/imx-base.inc
 require conf/machine/include/arm/armv7a/tune-cortexa9.inc
 
 KERNEL_IMAGETYPE = "zImage"
@@ -46,3 +46,4 @@ MACHINE_EXTRA_RDEPENDS:append = " \
 KERNEL_MODULE_AUTOLOAD += "cryptodev"
 # fix u-boot-fw-utils \ using libubootenv if we need fw_setenv?
 
+#BBMASK += "recipes-kernel/kernel-modules/kernel-module-imx-gpu-viv"

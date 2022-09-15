@@ -894,7 +894,7 @@ new file mode 100644
 index 000000000000..c96303c82b1d
 --- /dev/null
 +++ b/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts
-@@ -0,0 +1,882 @@
+@@ -0,0 +1,892 @@
 +// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 +/*
 + * Copyright 2022 Host Mobility AB
@@ -1160,6 +1160,7 @@ index 000000000000..c96303c82b1d
 +	temperature-sensor@73 {
 +		compatible = "ti,tmp103";
 +		reg = <0x73>;
++		status = "okay";
 +	};
 +};
 +
@@ -1174,11 +1175,11 @@ index 000000000000..c96303c82b1d
 +
 +
 +	/* TODO check if interrupt is active low or high */
-+	accelerometer@30 {
++	accelerometer@1e {
 +		pinctrl-names = "default";
 +		pinctrl-0 = <&pinctrl_acc>;
 +		compatible = "st,lis2hh12";
-+		reg = <0x30>;
++		reg = <0x1e>;
 +		st,drdy-int-pin = <1>;
 +		interrupt-parent = <&gpio5>;
 +		interrupts = <2 IRQ_TYPE_EDGE_FALLING>;
@@ -1319,6 +1320,7 @@ index 000000000000..c96303c82b1d
 +		bosch,mram-cfg = <0x0 0 0 32 0 0 1 1>;
 +		interrupt-parent = <&gpio4>;
 +		interrupts = <27 IRQ_TYPE_LEVEL_LOW>;
++		status = "okay";
 +	};
 +	/* CAN-FD controller 6 in schematics */
 +	can5: tcan4x5x@3 {
@@ -1331,6 +1333,7 @@ index 000000000000..c96303c82b1d
 +		bosch,mram-cfg = <0x0 0 0 32 0 0 1 1>;
 +		interrupt-parent = <&gpio4>;
 +		interrupts = <26 IRQ_TYPE_LEVEL_LOW>;
++		status = "okay";
 +	};
 +};
 +
@@ -1354,6 +1357,7 @@ index 000000000000..c96303c82b1d
 +		interrupts = <24 IRQ_TYPE_LEVEL_LOW>;
 +		device-wake-gpios = <&gpio5 28 GPIO_ACTIVE_HIGH>;
 +		reset-gpios = <&gpio5 29 GPIO_ACTIVE_HIGH>;
++		status = "okay";
 +	};
 +	/* CAN-FD controller 5 in schematics */
 +	can4: tcan4x5x@1 {
@@ -1366,12 +1370,18 @@ index 000000000000..c96303c82b1d
 +		bosch,mram-cfg = <0x0 0 0 32 0 0 1 1>;
 +		interrupt-parent = <&gpio4>;
 +		interrupts = <23 IRQ_TYPE_LEVEL_LOW>;
++		status = "okay";
 +	};
 +};
 +
 +&ldo4 {
 +	regulator-min-microvolt = <1800000>;
 +	regulator-max-microvolt = <1800000>;
++};
++
++/* BT disabled since we use GPIO5_IO13 for 5V_nDROP_OUT*/
++&uart4 {
++       status = "disabled";
 +};
 +
 +&iomuxc {

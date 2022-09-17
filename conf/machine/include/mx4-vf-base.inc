@@ -5,6 +5,7 @@ include conf/machine/include/tune-cortexa5.inc
 
 MACHINEOVERRIDES =. "vf:vf50:vf60:"
 
+LINUX_VERSION_use-head-next = "4.19"
 PREFERRED_PROVIDER_virtual/kernel ?= "linux-hostmobility-vf"
 KERNEL_IMAGETYPE = "zImage"
 
@@ -19,7 +20,8 @@ PREFERRED_PROVIDER_u-boot-fw-utils ?= "u-boot-hostmobility-fw-utils"
 UBOOT_BINARY ?= "u-boot-nand.imx"
 UBOOT_MAKE_TARGET = "u-boot-nand.imx"
 
-EXTRA_IMAGEDEPENDS += "u-boot"
+#disable build uboot for now.
+#EXTRA_IMAGEDEPENDS += "u-boot"
 
 IMAGE_FSTYPES = "tar.xz ubifs"
 
@@ -31,3 +33,6 @@ UBI_VOLNAME = "rootfs"
 SERIAL_CONSOLE ?= "115200 ttyLP0"
 
 BBMASK += "recipes-bsp/u-boot/u-boot-hostmobility_2019.04.bb"
+
+BBMASK +=  "recipes-multimedia/gstreamer/"
+BBMASK +=  "recipes-core/fs-init/fs-init.bbappend"

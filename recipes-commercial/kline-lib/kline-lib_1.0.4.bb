@@ -5,7 +5,7 @@ SUBPATH = "lib/kline"
 
 require recipes-commercial/common/revision.inc
 
-S = "${WORKDIR}/kline/"
+S = "${WORKDIR}/kline"
 
 do_compile () {
     oe_runmake
@@ -15,15 +15,15 @@ do_install() {
     install -d ${D}${includedir}
     install -d ${D}${libdir}
 
-    install -m 744 ${B}/libptdkline.so.${PV} ${D}${libdir}/libptdkline.so.${PV}
+    install -m 744 ${B}libptdkline.so.${PV} ${D}${libdir}libptdkline.so.${PV}
 
-    ln -sf ${libdir}/libptdkline.so.${PV} ${D}${libdir}/libptdkline.so
+    ln -sf ${libdir}libptdkline.so.${PV} ${D}${libdir}libptdkline.so
 
     #Install headers
-    install -m 744 ${B}/ptd_kline.h ${D}${includedir}/ptd_kline.h
+    install -m 744 ${B}ptd_kline.h ${D}${includedir}ptd_kline.h
 }
 
 FILES_${PN} = " \
-    ${libdir}/libptdkline.so* \
-    ${includedir}/ptdptd_kline.h \
+    ${libdir}libptdkline.so* \
+    ${includedir}ptdptd_kline.h \
 "

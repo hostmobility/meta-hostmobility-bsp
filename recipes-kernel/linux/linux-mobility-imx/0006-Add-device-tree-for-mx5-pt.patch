@@ -388,7 +388,7 @@ index 000000000000..34ffca27a78f
 +		vdd-supply = <&reg_modem_4v>;
 +		gpio-line-names = "MODEM_ENABLE_ON","MODEM_RESET","MODEM_POWER_ENABLE","MODEM_STATUS_ON";
 +	};
-+
++};
 +&can1 {
 +	pinctrl-0 = <&pinctrl_flexcan1>;
 +	pinctrl-names = "default";

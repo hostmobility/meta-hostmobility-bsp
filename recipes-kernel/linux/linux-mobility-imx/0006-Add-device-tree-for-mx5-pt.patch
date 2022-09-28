@@ -1,21 +1,21 @@
-From 809e074df0e9a2da5bec5f1564f3694927616054 Mon Sep 17 00:00:00 2001
+From 09e12a23f83c0f6ca764b18cff8f19341e5b9fae Mon Sep 17 00:00:00 2001
 From: rikardo <rikard.olander@hostmobility.com>
-Date: Tue, 13 Sep 2022 08:04:20 +0000
-Subject: [PATCH 1/1]  Add device tree for mx5-pt
+Date: Wed, 28 Sep 2022 12:55:44 +0000
+Subject: [PATCH 1/1] Add device tree for mx5-pt
 
 ---
- arch/arm/boot/dts/imx6qdl-mx5.dtsi | 1685 ++++++++++++++++++++++++++++
+ arch/arm/boot/dts/imx6qdl-mx5.dtsi | 1592 ++++++++++++++++++++++++++++
  arch/arm/boot/dts/imx6qp-mx5.dts   |   20 +
- 2 files changed, 1705 insertions(+)
+ 2 files changed, 1612 insertions(+)
  create mode 100644 arch/arm/boot/dts/imx6qdl-mx5.dtsi
  create mode 100644 arch/arm/boot/dts/imx6qp-mx5.dts
 
 diff --git a/arch/arm/boot/dts/imx6qdl-mx5.dtsi b/arch/arm/boot/dts/imx6qdl-mx5.dtsi
 new file mode 100644
-index 000000000000..f61b188d4661
+index 000000000000..34ffca27a78f
 --- /dev/null
 +++ b/arch/arm/boot/dts/imx6qdl-mx5.dtsi
-@@ -0,0 +1,1685 @@
+@@ -0,0 +1,1592 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +//
 +// Copyright 2012 Freescale Semiconductor, Inc.
@@ -57,191 +57,186 @@ index 000000000000..f61b188d4661
 +		reg = <0x10000000 0x20000000>;
 +	};
 +
-+	regulators {
-+		compatible = "simple-bus";
-+		#address-cells = <1>;
-+		#size-cells = <0>;
-+		/*dummy regulators that is controlled by stm32*/
-+		reg_stm32_3v3: stm32_regulator@0 {
-+			compatible = "regulator-fixed";
-+			regulator-name = "reg_stm32_3v3";
-+			regulator-min-microvolt = <3300000>;
-+			regulator-max-microvolt = <3300000>;
-+			regulator-always-on;
-+		};
-+
-+		reg_stm32_4v: stm32_regulator@1 {
-+			compatible = "regulator-fixed";
-+			regulator-name = "reg_stm32_4v";
-+			regulator-min-microvolt = <4000000>;
-+			regulator-max-microvolt = <4000000>;
-+			regulator-always-on;
-+		};
-+
-+		reg_stm32_5v: stm32_regulator@2 {
-+			compatible = "regulator-fixed";
-+			regulator-name = "reg_stm32_5v";
-+			regulator-min-microvolt = <5000000>;
-+			regulator-max-microvolt = <5000000>;
-+			regulator-always-on; // should be possible to shutdown
-+		};
-+
-+		reg_stm32_vref: stm32_regulator@3 {
-+			compatible = "regulator-fixed";
-+			regulator-name = "reg_stm32_vref";
-+			regulator-min-microvolt = <2500000>;
-+			regulator-max-microvolt = <2500000>;
-+			regulator-always-on; // should be possible to shutdown
-+		};
-+		/* stm32 controlled on next board */
-+		reg_usb_otg_vbus: regulator@0 {
-+			compatible = "regulator-fixed";
-+			regulator-name = "reg_usb_otg_vbus";
-+			vin-supply = <&reg_stm32_5v>;
-+			regulator-min-microvolt = <5000000>;
-+			regulator-max-microvolt = <5000000>;
-+			regulator-always-on;
-+		};
-+		/* stm32 controlled on next board and this processor, connected to reset of usb251x */
-+		reg_usb_h1_vbus: regulator@1 {
-+			compatible = "regulator-fixed";
-+			regulator-name = "reg_usb_h1_vbus";
-+			vin-supply = <&reg_stm32_5v>;
-+			regulator-min-microvolt = <5000000>;
-+			regulator-max-microvolt = <5000000>;
-+			regulator-always-on;
-+		};
-+
-+		reg_hdmi: regulator@2 {
-+			compatible = "regulator-fixed";
-+			regulator-name = "hdmi-5v-supply";
-+			hdmi-5v-supply = <&reg_stm32_4v>;
-+			regulator-min-microvolt = <5000000>;
-+			regulator-max-microvolt = <5000000>;
-+			gpio = <&gpio4 12 GPIO_ACTIVE_HIGH>;
-+			enable-active-high;
-+			regulator-state-mem {
-+				regulator-off-in-suspend;
-+			};
-+		};
-+		/*fix regulator for sound on the next board*/
-+		reg_audio_codec_3v3: regulator@3 {
-+			compatible = "regulator-fixed";
-+			regulator-name = "reg_audio_codec_3v3";
-+			vin-supply = <&reg_stm32_3v3>;
-+			regulator-min-microvolt = <3300000>;
-+			regulator-max-microvolt = <3300000>;
-+			regulator-always-on;
-+			regulator-state-mem {
-+				regulator-off-in-suspend;
-+			};
-+		};
-+
-+		reg_audio_codec_1v8: regulator@4 {
-+			compatible = "regulator-fixed";
-+			regulator-name = "reg_audio_codec_1v8";
-+			vin-supply = <&sw4_reg>;
-+			regulator-min-microvolt = <1800000>;
-+			regulator-max-microvolt = <1800000>;
-+			gpio = <&gpio3 31 GPIO_ACTIVE_HIGH>;
-+			enable-active-high;
-+			regulator-always-on;
-+			regulator-state-mem {
-+				regulator-off-in-suspend;
-+			};
-+		};
-+
-+		reg_modem_4v: regulator@5 {
-+			compatible = "regulator-fixed";
-+			regulator-name = "reg_modem_4v";
-+			vin-supply = <&reg_stm32_4v>;
-+			regulator-min-microvolt = <4000000>;
-+			regulator-max-microvolt = <4000000>;
-+			gpio = <&gpio6 8 GPIO_ACTIVE_HIGH>;
-+			enable-active-high;
-+			regulator-state-mem {
-+				regulator-off-in-suspend;
-+			};
-+		};
-+
-+		reg_mma845xq_3v3: regulator@6{
-+			compatible = "regulator-fixed";
-+			regulator-name = "reg_mma845xq_3v3";
-+			vin-supply = <&reg_stm32_3v3>;
-+			regulator-min-microvolt = <3300000>;
-+			regulator-max-microvolt = <3300000>;
-+			gpio = <&gpio2 31 GPIO_ACTIVE_HIGH>;
-+			enable-active-high;
-+			regulator-always-on;
-+			regulator-state-mem {
-+				regulator-off-in-suspend;
-+			};
-+		};
-+
-+		reg_uart_5v: regulator@7{ /*TODO change to virtual gpio controlled by stm32*/
-+			compatible = "regulator-fixed";
-+			regulator-name = "reg_uart_5v";
-+			vin-supply = <&reg_stm32_5v>;
-+			regulator-min-microvolt = <5000000>;
-+			regulator-max-microvolt = <5000000>;
-+			//gpio = <&gpio2 28 GPIO_ACTIVE_HIGH>;
-+			enable-active-high;
-+			regulator-always-on;
-+			regulator-state-mem {
-+				regulator-off-in-suspend;
-+			};
-+		};
-+
-+		reg_wifi_3v3: regulator@8{
-+			compatible = "regulator-fixed";
-+			regulator-name = "reg_wifi_3v3";
-+			vin-supply = <&reg_stm32_3v3>;
-+			regulator-min-microvolt = <3300000>;
-+			regulator-max-microvolt = <3300000>;
-+			regulator-always-on;
-+			regulator-state-mem {
-+				regulator-off-in-suspend;
-+			};
-+		};
-+
-+		reg_wifi_1v8: regulator@9{
-+			compatible = "regulator-fixed";
-+			regulator-name = "reg_wifi_1v8";
-+			vin-supply = <&sw4_reg>;/*GEN_1V8/SW4_1V825*/
-+			regulator-min-microvolt = <1800000>;
-+			regulator-max-microvolt = <1800000>;
-+			gpio = <&gpio2 5 GPIO_ACTIVE_HIGH>;
-+			enable-active-high;
-+			regulator-state-mem {
-+				regulator-off-in-suspend;
-+			};
-+		};
-+
-+		reg_eth_3v3: regulator@10{
-+			compatible = "regulator-fixed";
-+			regulator-name = "reg_eth_3v3";
-+			vin-supply = <&reg_stm32_3v3>;
-+			regulator-min-microvolt = <3300000>;
-+			regulator-max-microvolt = <3300000>;
-+			gpio = <&gpio3 30 GPIO_ACTIVE_HIGH>;
-+			enable-active-high;
-+			regulator-state-mem {
-+				regulator-off-in-suspend;
-+			};
-+		};
-+		
-+		/*CAN_stby will be moved on next board rev.3.*/
-+		reg_can_stby: regulator@111{
-+			compatible = "regulator-fixed";
-+			regulator-name = "reg_can_stby";
-+			regulator-min-microvolt = <3300000>;
-+			regulator-max-microvolt = <3300000>;
-+			gpio = <&gpio4 5 GPIO_ACTIVE_HIGH>;
-+			regulator-always-on;
-+			regulator-state-mem {
-+				regulator-off-in-suspend;
++	/*dummy regulators that is controlled by stm32*/
++	reg_stm32_3v3: stm32_regulator@0 {
++		compatible = "regulator-fixed";
++		regulator-name = "reg_stm32_3v3";
++		regulator-min-microvolt = <3300000>;
++		regulator-max-microvolt = <3300000>;
++		regulator-always-on;
 +	};
-+		};		
++
++	reg_stm32_4v: stm32_regulator@1 {
++		compatible = "regulator-fixed";
++		regulator-name = "reg_stm32_4v";
++		regulator-min-microvolt = <4000000>;
++		regulator-max-microvolt = <4000000>;
++		regulator-always-on;
++	};
++
++	reg_stm32_5v: stm32_regulator@2 {
++		compatible = "regulator-fixed";
++		regulator-name = "reg_stm32_5v";
++		regulator-min-microvolt = <5000000>;
++		regulator-max-microvolt = <5000000>;
++		regulator-always-on; // should be possible to shutdown
++	};
++
++	reg_stm32_vref: stm32_regulator@3 {
++		compatible = "regulator-fixed";
++		regulator-name = "reg_stm32_vref";
++		regulator-min-microvolt = <2500000>;
++		regulator-max-microvolt = <2500000>;
++		regulator-always-on; // should be possible to shutdown
++	};
++	/* stm32 controlled on next board */
++	reg_usb_otg_vbus: regulator@0 {
++		compatible = "regulator-fixed";
++		regulator-name = "reg_usb_otg_vbus";
++		vin-supply = <&reg_stm32_5v>;
++		regulator-min-microvolt = <5000000>;
++		regulator-max-microvolt = <5000000>;
++		regulator-always-on;
++	};
++	/* stm32 controlled on next board and this processor, connected to reset of usb251x */
++	reg_usb_h1_vbus: regulator@1 {
++		compatible = "regulator-fixed";
++		regulator-name = "reg_usb_h1_vbus";
++		vin-supply = <&reg_stm32_5v>;
++		regulator-min-microvolt = <5000000>;
++		regulator-max-microvolt = <5000000>;
++		regulator-always-on;
++	};
++
++	reg_hdmi: regulator@2 {
++		compatible = "regulator-fixed";
++		regulator-name = "hdmi-5v-supply";
++		hdmi-5v-supply = <&reg_stm32_4v>;
++		regulator-min-microvolt = <5000000>;
++		regulator-max-microvolt = <5000000>;
++		gpio = <&gpio4 12 GPIO_ACTIVE_HIGH>;
++		enable-active-high;
++		regulator-state-mem {
++			regulator-off-in-suspend;
++		};
++	};
++	/*fix regulator for sound on the next board*/
++	reg_audio_codec_3v3: regulator@3 {
++		compatible = "regulator-fixed";
++		regulator-name = "reg_audio_codec_3v3";
++		vin-supply = <&reg_stm32_3v3>;
++		regulator-min-microvolt = <3300000>;
++		regulator-max-microvolt = <3300000>;
++		regulator-always-on;
++		regulator-state-mem {
++			regulator-off-in-suspend;
++		};
++	};
++
++	reg_audio_codec_1v8: regulator@4 {
++		compatible = "regulator-fixed";
++		regulator-name = "reg_audio_codec_1v8";
++		vin-supply = <&sw4_reg>;
++		regulator-min-microvolt = <1800000>;
++		regulator-max-microvolt = <1800000>;
++		gpio = <&gpio3 31 GPIO_ACTIVE_HIGH>;
++		enable-active-high;
++		regulator-always-on;
++		regulator-state-mem {
++			regulator-off-in-suspend;
++		};
++	};
++
++	reg_modem_4v: regulator@5 {
++		compatible = "regulator-fixed";
++		regulator-name = "reg_modem_4v";
++		vin-supply = <&reg_stm32_4v>;
++		regulator-min-microvolt = <4000000>;
++		regulator-max-microvolt = <4000000>;
++		gpio = <&gpio6 8 GPIO_ACTIVE_HIGH>;
++		enable-active-high;
++		regulator-state-mem {
++			regulator-off-in-suspend;
++		};
++	};
++
++	reg_mma845xq_3v3: regulator@6{
++		compatible = "regulator-fixed";
++		regulator-name = "reg_mma845xq_3v3";
++		vin-supply = <&reg_stm32_3v3>;
++		regulator-min-microvolt = <3300000>;
++		regulator-max-microvolt = <3300000>;
++		gpio = <&gpio2 31 GPIO_ACTIVE_HIGH>;
++		enable-active-high;
++		regulator-always-on;
++		regulator-state-mem {
++			regulator-off-in-suspend;
++		};
++	};
++
++	reg_uart_5v: regulator@7{ /*TODO change to virtual gpio controlled by stm32*/
++		compatible = "regulator-fixed";
++		regulator-name = "reg_uart_5v";
++		vin-supply = <&reg_stm32_5v>;
++		regulator-min-microvolt = <5000000>;
++		regulator-max-microvolt = <5000000>;
++		//gpio = <&gpio2 28 GPIO_ACTIVE_HIGH>;
++		enable-active-high;
++		regulator-always-on;
++		regulator-state-mem {
++			regulator-off-in-suspend;
++		};
++	};
++
++	reg_wifi_3v3: regulator@8{
++		compatible = "regulator-fixed";
++		regulator-name = "reg_wifi_3v3";
++		vin-supply = <&reg_stm32_3v3>;
++		regulator-min-microvolt = <3300000>;
++		regulator-max-microvolt = <3300000>;
++		regulator-always-on;
++		regulator-state-mem {
++			regulator-off-in-suspend;
++		};
++	};
++
++	reg_wifi_1v8: regulator@9{
++		compatible = "regulator-fixed";
++		regulator-name = "reg_wifi_1v8";
++		vin-supply = <&sw4_reg>;/*GEN_1V8/SW4_1V825*/
++		regulator-min-microvolt = <1800000>;
++		regulator-max-microvolt = <1800000>;
++		gpio = <&gpio2 5 GPIO_ACTIVE_HIGH>;
++		enable-active-high;
++		regulator-state-mem {
++			regulator-off-in-suspend;
++		};
++	};
++
++	reg_eth_3v3: regulator@10{
++		compatible = "regulator-fixed";
++		regulator-name = "reg_eth_3v3";
++		vin-supply = <&reg_stm32_3v3>;
++		regulator-min-microvolt = <3300000>;
++		regulator-max-microvolt = <3300000>;
++		gpio = <&gpio3 30 GPIO_ACTIVE_HIGH>;
++		enable-active-high;
++		regulator-state-mem {
++			regulator-off-in-suspend;
++		};
++	};
++	
++	/*CAN_stby will be moved on next board rev.3.*/
++	reg_can_stby: regulator@111{
++		compatible = "regulator-fixed";
++		regulator-name = "reg_can_stby";
++		regulator-min-microvolt = <3300000>;
++		regulator-max-microvolt = <3300000>;
++		gpio = <&gpio4 5 GPIO_ACTIVE_HIGH>;
++		regulator-always-on;
++		regulator-state-mem {
++			regulator-off-in-suspend;
++		};
 +	};
 +
 +	sound {
@@ -273,73 +268,6 @@ index 000000000000..f61b188d4661
 +            clocks = <&clks IMX6QDL_CLK_CKO>;
 +        };
 +	};
-+	parallel-display {
-+		compatible = "fsl,imx-parallel-display";
-+		#address-cells = <1>;
-+		#size-cells = <0>;
-+		interface-pix-fmt = "rgb24";
-+		pinctrl-names = "default";
-+		pinctrl-0 = <&pinctrl_ipu1>;
-+
-+		port@0 {
-+		reg = <0>;
-+
-+			parallel_display_in: endpoint {
-+				remote-endpoint = <&ipu1_di0_disp0>;
-+			};
-+		};
-+
-+		port@1 {
-+			reg = <1>;
-+
-+			parallel_display_out: endpoint {
-+				remote-endpoint = <&adv712x_in>;
-+			};
-+		};
-+	};
-+
-+	dvi-connector {
-+		compatible = "dvi-connector";
-+		label = "dvi";
-+
-+		digital;
-+		analog;
-+
-+		ddc-i2c-bus = <&hdmi_edid>;
-+		//hpd-gpios 
-+
-+		port {
-+			dvi_connector_in: endpoint {
-+				remote-endpoint = <&adv712x_out>;
-+			};
-+		};
-+	};
-+
-+	dvi-encoder {
-+		// adi,adv7125 DAC 8bit instead of 10 bit.
-+		compatible = "adi,adv7123";
-+
-+		ports {
-+			#address-cells = <1>;
-+			#size-cells = <0>;
-+
-+			port@0 {
-+				reg = <0>;
-+
-+				adv712x_in: endpoint {
-+					remote-endpoint = <&parallel_display_out>;
-+				};
-+			};
-+
-+			port@1 {
-+				reg = <1>;
-+
-+				adv712x_out: endpoint {
-+					remote-endpoint = <&dvi_connector_in>;
-+				};
-+			};
-+		};
-+	};
 +
 +	leds {
 +		compatible = "gpio-leds";
@@ -355,7 +283,7 @@ index 000000000000..f61b188d4661
 +		led1: func_led_red {
 +			label = "func_led_red";
 +			gpios = <&gpio2 22 GPIO_ACTIVE_HIGH>;
-+			default-state = "on";
++			default-state = "off";
 +		};
 +		led2: gps_led_green {
 +			label = "gps_led_green";
@@ -365,7 +293,7 @@ index 000000000000..f61b188d4661
 +		led3: gps_led_red {
 +			label = "gps_led_red";
 +			gpios = <&gpio3 23 GPIO_ACTIVE_HIGH>;
-+			default-state = "on";
++			default-state = "off";
 +		};
 +		led4: modem_led_green {
 +			label = "modem_led_green";
@@ -375,18 +303,18 @@ index 000000000000..f61b188d4661
 +		led5: modem_led_red {
 +			label = "modem_led_red";
 +			gpios = <&gpio2 14 GPIO_ACTIVE_HIGH>;
-+			default-state = "on";
++			default-state = "off";
 +		};
 +		led6: wifi_led_green {
 +			label = "wifi_led_green";
 +			gpios = <&gpio2 21 GPIO_ACTIVE_HIGH>;
-+			default-state = "on";
++			default-state = "off";
 +			linux,default-trigger = "phy0rx"; // toggle on incomming traffic wlan.
 +		};
 +		led7: wifi_led_red {
 +			label = "wifi_led_red";
 +			gpios = <&gpio2 20 GPIO_ACTIVE_HIGH>;
-+			default-state = "on";
++			default-state = "off";
 +		};
 +	};
 +
@@ -460,7 +388,6 @@ index 000000000000..f61b188d4661
 +		vdd-supply = <&reg_modem_4v>;
 +		gpio-line-names = "MODEM_ENABLE_ON","MODEM_RESET","MODEM_POWER_ENABLE","MODEM_STATUS_ON";
 +	};
-+};
 +
 +&can1 {
 +	pinctrl-0 = <&pinctrl_flexcan1>;
@@ -494,28 +421,11 @@ index 000000000000..f61b188d4661
 +};
 +
 +&hdmi {
-+	pinctrl-names = "default";
-+	pinctrl-0 = <&pinctrl_hdmi_cec>;
++	//pinctrl-names = "default";
++	//pinctrl-0 = <&pinctrl_hdmi_cec>;
 +	ddc-i2c-bus = <&i2c2>;
 +	status = "okay";
-+};
-+
-+&dcic1 {
-+	dcic_id = <0>;
-+	dcic_mux = "dcic-hdmi";
-+	status = "okay";
-+};
-+
-+&dcic2 {
-+	dcic_id = <1>;
-+	dcic_mux = "dcic-lvds1";
-+	status = "okay";
-+};
-+
-+&hdmi {
-+	ddc-i2c-bus = <&i2c2>;
-+	status = "okay";
-+//	HDMI-supply = <&reg_hdmi>;
++	HDMI-supply = <&reg_hdmi>;
 +};
 +
 +
@@ -552,7 +462,6 @@ index 000000000000..f61b188d4661
 +		compatible = "fsl,imx6-hdmi-i2c";
 +		reg = <0x50>;
 +	};
-+
 +	/*  Special optional external i2c 
 +		here for customers.
 +		EXT_i2C_SCL
@@ -583,8 +492,13 @@ index 000000000000..f61b188d4661
 +
 +	/*RTC, todo fix INT*/
 +	rtc_extern: pcf85063@51 {
++		quartz-load-femtofarads = <12500>;
 +		compatible = "nxp,pcf85063a";
 +		reg = <0x51>;
++		interrupt-parent = <&gpio4>;
++		interrupt-names = "RTC-INT";
++		interrupts = <10 IRQ_TYPE_EDGE_FALLING>;
++		wakeup-source;
 +	};
 +
 +	pmic: pfuze100@8 {
@@ -732,10 +646,6 @@ index 000000000000..f61b188d4661
 +
 +};
 +
-+&gpc {
-+	fsl,ldo-bypass = <1>;
-+};
-+
 +&reg_arm {
 +	vin-supply = <&sw2_reg>;
 +};
@@ -841,9 +751,6 @@ index 000000000000..f61b188d4661
 +};
 +
 +
-+&ipu1_di0_disp0 {
-+	remote-endpoint = <&parallel_display_in>;
-+};
 +
 +&audmux {
 +	pinctrl-names = "default";

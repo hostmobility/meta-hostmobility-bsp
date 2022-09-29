@@ -1,15 +1,15 @@
-From ce0d55336b71754a005d0399387afabea55a6f5a Mon Sep 17 00:00:00 2001
+From 13fa6d3bf21bc6463413c0f85e009d16eb58ed66 Mon Sep 17 00:00:00 2001
 From: Mattias Busck <mattias.busck@hostmobility.com>
-Date: Wed, 28 Sep 2022 17:10:23 +0200
-Subject: [PATCH] Patch u-boot to show console on uart3
+Date: Wed, 28 Sep 2022 21:19:37 +0200
+Subject: [PATCH] Add-hmx1-device-tree-for-u-boot
 
 ---
  ...ar-dart-dt8mcustomboard-legacy-u-boot.dtsi |  7 +-
  ...mx8mp-var-dart-dt8mcustomboard-u-boot.dtsi |  4 +-
- .../dts/imx8mp-var-dart-dt8mcustomboard.dts   | 64 ++++---------------
+ .../dts/imx8mp-var-dart-dt8mcustomboard.dts   | 66 ++++---------------
  .../imx8mp_var_dart/imx8mp_var_dart.c         |  7 +-
  include/configs/imx8mp_var_dart.h             |  4 +-
- 5 files changed, 25 insertions(+), 61 deletions(-)
+ 5 files changed, 26 insertions(+), 62 deletions(-)
 
 diff --git a/arch/arm/dts/imx8mp-var-dart-dt8mcustomboard-legacy-u-boot.dtsi b/arch/arm/dts/imx8mp-var-dart-dt8mcustomboard-legacy-u-boot.dtsi
 index ad8f4fec1f..5e9cacdb8c 100644
@@ -55,7 +55,7 @@ index b581b8f76d..c009060b0e 100644
  };
  
 diff --git a/arch/arm/dts/imx8mp-var-dart-dt8mcustomboard.dts b/arch/arm/dts/imx8mp-var-dart-dt8mcustomboard.dts
-index 1d683d9344..1650f82cc8 100644
+index 1d683d9344..a278a6d148 100644
 --- a/arch/arm/dts/imx8mp-var-dart-dt8mcustomboard.dts
 +++ b/arch/arm/dts/imx8mp-var-dart-dt8mcustomboard.dts
 @@ -2,20 +2,16 @@
@@ -149,7 +149,7 @@ index 1d683d9344..1650f82cc8 100644
  };
  
  &usb3_phy0 {
-@@ -155,6 +123,7 @@
+@@ -155,15 +123,16 @@
  	};
  };
  
@@ -157,8 +157,10 @@ index 1d683d9344..1650f82cc8 100644
  &fec {
  	pinctrl-names = "default";
  	pinctrl-0 = <&pinctrl_fec>;
-@@ -163,7 +132,7 @@
- 	phy-reset-gpios = <&pca6408_2 0 GPIO_ACTIVE_LOW>;
+ 	phy-mode = "rgmii";
+ 	phy-handle = <&ethphy1>;
+-	phy-reset-gpios = <&pca6408_2 0 GPIO_ACTIVE_LOW>;
++	//TODO: phy-reset-gpios = <&pca6408_2 0 GPIO_ACTIVE_LOW>;
  	phy-reset-duration = <10>;
  	phy-reset-post-delay = <20>;
 -	status = "okay";

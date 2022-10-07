@@ -490,14 +490,14 @@ index 000000000000..34ffca27a78f
 +		interrupt-route = <1>;
 +	};
 +
-+	/*RTC, todo fix INT*/
++	/*RTC*/
 +	rtc_extern: pcf85063@51 {
 +		quartz-load-femtofarads = <12500>;
 +		compatible = "nxp,pcf85063a";
 +		reg = <0x51>;
-+		interrupt-parent = <&gpio4>;
++		// interrupt and wake up on timer alarm.
 +		interrupt-names = "RTC-INT";
-+		interrupts = <10 IRQ_TYPE_EDGE_FALLING>;
++		interrupts = <&gpio4 10 GPIO_ACTIVE_LOW>;
 +		wakeup-source;
 +	};
 +

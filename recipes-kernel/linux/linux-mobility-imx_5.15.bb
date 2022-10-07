@@ -18,6 +18,8 @@ GENERIC_PATCHES = ""
 MACHINE_PATCHES:mx5-pt= " \
     git://git@github.com/hostmobility/hm-commercial.git;name=hmcommercial;branch=${DRIVERBRANCH};subpath=drivers;protocol=ssh;destsuffix=git/drivers \
     file://0006-Add-device-tree-for-mx5-pt.patch \
+    file://0001-Revert-usbnet-smsc95xx-Fix-deadlock-on-runtime-resum.patch \
+    file://0002-Revert-usbnet-smsc95xx-Forward-PHY-interrupts-to-PHY.patch \
 "
 
 SRC_URI = "git://github.com/Freescale/linux-fslc.git;name=linuxkernel;branch=${LINUXBRANCH};protocol=https;nocheckout=1  \
@@ -31,7 +33,7 @@ LIC_FILES_CHKSUM = "file://COPYING;md5=6bc538ed5bd9a7fc9398086aedcd7e46"
 PV = "5.15.63+git${SRCPV}"
 
 LINUXBRANCH = "5.15.x+fslc"
-SRCREV_linuxkernel = "b6abb62daa5511c4a3eaa30cbdb02544d1f10fa2"
+SRCREV_linuxkernel = "577e58342355e7c3870948a6c3c2b5840cf694ea"
 
 DRIVERBRANCH = "kirkstone"
 SRCREV_FORMAT = "linuxkernel_hmcommercial"

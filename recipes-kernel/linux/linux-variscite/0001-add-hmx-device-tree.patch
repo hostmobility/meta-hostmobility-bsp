@@ -899,7 +899,7 @@ new file mode 100644
 index 000000000000..211328daa4f2
 --- /dev/null
 +++ b/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts
-@@ -0,0 +1,903 @@
+@@ -0,0 +1,905 @@
 +// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 +/*
 + * Copyright 2022 Host Mobility AB
@@ -1308,13 +1308,15 @@ index 000000000000..211328daa4f2
 +	/* Note: can1 and can2 are on SOC internal flexcan1,flexcan2 */
 +
 +	can1_xcvr: tcan1146@0 {
-+		compatible = "hostmobility,tcan1146";
++		compatible = "ti,tcan114x";
 +		reg = <0>;
++		spi-max-frequency = <3000000>;
 +		status = "okay";
 +	};
 +	can2_xcvr: tcan1146@1 {
-+		compatible = "hostmobility,tcan1146";
++		compatible = "ti,tcan114x";
 +		reg = <1>;
++		spi-max-frequency = <3000000>;
 +		status = "okay";
 +	};
 +	/* CAN-FD controller 4 in schematics */

@@ -116,7 +116,7 @@ index 000000000000..a927c4ca3fd9
 +};
 +
 +&dspi0 {
-+	status = "disable";
++	status = "okay";
 +
 +	mcp2515can: can@1 {
 +		compatible = "microchip,mcp2515";

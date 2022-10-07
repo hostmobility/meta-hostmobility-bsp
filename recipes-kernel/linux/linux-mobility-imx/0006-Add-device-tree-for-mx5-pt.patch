@@ -721,6 +721,7 @@ index 000000000000..34ffca27a78f
 +	status = "okay";
 +	#address-cells = <1>;
 +	#size-cells = <0>;
++   disable-over-current;
 +
 +	hub@1 {
 +		reg =<1>;

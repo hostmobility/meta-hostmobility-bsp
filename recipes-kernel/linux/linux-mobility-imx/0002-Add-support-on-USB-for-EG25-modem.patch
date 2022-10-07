@@ -1,22 +1,22 @@
-From a63d4a92ed374c7e86ebeb32a8b52af13d150a03 Mon Sep 17 00:00:00 2001
+From 08f704f45c1751f3118aadd16e279ca9f4a55079 Mon Sep 17 00:00:00 2001
 From: rikardo <rikard.olander@hostmobility.com>
-Date: Mon, 16 Aug 2021 13:46:07 +0200
-Subject: [PATCH 2/7] Add support on USB for EG25 modem
+Date: Tue, 13 Sep 2022 13:17:04 +0000
+Subject: [PATCH 1/1] Add support on USB for EG25 modem
 
 ---
  drivers/net/usb/qmi_wwan.c    | 39 ++++++++++++++++++++++++++++++++++-
  drivers/usb/class/cdc-acm.c   | 13 +++++++++++-
- drivers/usb/serial/option.c   | 24 +++++++++++++++++++++
+ drivers/usb/serial/option.c   | 21 +++++++++++++++++++
  drivers/usb/serial/qcserial.c |  2 --
  drivers/usb/serial/usb_wwan.c | 21 +++++++++++++++++++
- 5 files changed, 95 insertions(+), 4 deletions(-)
+ 5 files changed, 92 insertions(+), 4 deletions(-)
 
 diff --git a/drivers/net/usb/qmi_wwan.c b/drivers/net/usb/qmi_wwan.c
-index 9195f3476b1d..ef98fa736ce0 100644
+index 3e1aab1e894e..97557c69dfdf 100644
 --- a/drivers/net/usb/qmi_wwan.c
 +++ b/drivers/net/usb/qmi_wwan.c
-@@ -115,6 +115,22 @@ static const struct net_device_ops qmimux_netdev_ops = {
- 	.ndo_start_xmit = qmimux_start_xmit,
+@@ -123,6 +123,22 @@ static const struct net_device_ops qmimux_netdev_ops = {
+ 	.ndo_get_stats64 = dev_get_tstats64,
  };
  
 +#include <linux/etherdevice.h>
@@ -38,8 +38,8 @@ index 9195f3476b1d..ef98fa736ce0 100644
  static void qmimux_setup(struct net_device *dev)
  {
  	dev->header_ops      = NULL;  /* No header */
-@@ -866,6 +882,28 @@ static const struct driver_info	qmi_wwan_info_quirk_dtr = {
- 	QMI_FIXED_INTF(vend, prod, 0)
+@@ -977,6 +993,28 @@ static const struct driver_info	qmi_wwan_info_quirk_dtr = {
+ 	.driver_info = (unsigned long)&qmi_wwan_info_quirk_dtr
  
  static const struct usb_device_id products[] = {
 +#ifndef QMI_FIXED_INTF
@@ -67,7 +67,7 @@ index 9195f3476b1d..ef98fa736ce0 100644
  	/* 1. CDC ECM like devices match on the control interface */
  	{	/* Huawei E392, E398 and possibly others sharing both device id and more... */
  		USB_VENDOR_AND_INTERFACE_INFO(HUAWEI_VENDOR_ID, USB_CLASS_VENDOR_SPEC, 1, 9),
-@@ -1305,7 +1343,6 @@ static const struct usb_device_id products[] = {
+@@ -1439,7 +1477,6 @@ static const struct usb_device_id products[] = {
  	{QMI_GOBI_DEVICE(0x05c6, 0x9225)},	/* Sony Gobi 2000 Modem device (N0279, VU730) */
  	{QMI_GOBI_DEVICE(0x05c6, 0x9245)},	/* Samsung Gobi 2000 Modem device (VL176) */
  	{QMI_GOBI_DEVICE(0x03f0, 0x251d)},	/* HP Gobi 2000 Modem device (VP412) */
@@ -76,10 +76,10 @@ index 9195f3476b1d..ef98fa736ce0 100644
  	{QMI_GOBI_DEVICE(0x05c6, 0x9265)},	/* Asus Gobi 2000 Modem device (VR305) */
  	{QMI_GOBI_DEVICE(0x05c6, 0x9235)},	/* Top Global Gobi 2000 Modem device (VR306) */
 diff --git a/drivers/usb/class/cdc-acm.c b/drivers/usb/class/cdc-acm.c
-index 32da5a4182ac..70deabd0c2d5 100644
+index 7b2e2420ecae..98a1ba55e17f 100644
 --- a/drivers/usb/class/cdc-acm.c
 +++ b/drivers/usb/class/cdc-acm.c
-@@ -976,7 +976,7 @@ static int wait_serial_change(struct acm *acm, unsigned long arg)
+@@ -1010,7 +1010,7 @@ static int wait_serial_change(struct acm *acm, unsigned long arg)
  		}
  	} while (!rv);
  
@@ -88,7 +88,7 @@ index 32da5a4182ac..70deabd0c2d5 100644
  
  	return rv;
  }
-@@ -1409,6 +1409,10 @@ static int acm_probe(struct usb_interface *intf,
+@@ -1420,6 +1420,10 @@ static int acm_probe(struct usb_interface *intf,
  			usb_fill_bulk_urb(snd->urb, usb_dev, acm->out,
  				NULL, acm->writesize, acm_write_bulk, snd);
  		snd->urb->transfer_flags |= URB_NO_TRANSFER_DMA_MAP;
@@ -99,41 +99,33 @@ index 32da5a4182ac..70deabd0c2d5 100644
  		if (quirks & SEND_ZERO_PACKET)
  			snd->urb->transfer_flags |= URB_ZERO_PACKET;
  		snd->instance = acm;
-@@ -1485,6 +1489,13 @@ static int acm_probe(struct usb_interface *intf,
- 		usb_clear_halt(usb_dev, acm->out);
+@@ -1497,6 +1501,13 @@ static int acm_probe(struct usb_interface *intf,
  	}
  
+ 	dev_info(&intf->dev, "ttyACM%d: USB ACM device\n", minor);
++	
 +	if((usb_dev->descriptor.idVendor == 0x1519) && (usb_dev->descriptor.idProduct == 0x0020))
 +	{
 +		pm_runtime_set_autosuspend_delay(&usb_dev->dev, 3000);
 +		usb_enable_autosuspend(usb_dev);
 +		device_init_wakeup(&usb_dev->dev, 1); //usb remote wakeup
 +	}
-+
+ 
  	return 0;
- alloc_fail6:
- 	if (acm->country_codes) {
+ 
 diff --git a/drivers/usb/serial/option.c b/drivers/usb/serial/option.c
-index d8c474b386a8..5bba76337f4f 100644
+index de59fa919540..c352e994f55f 100644
 --- a/drivers/usb/serial/option.c
 +++ b/drivers/usb/serial/option.c
-@@ -235,6 +235,7 @@ static void option_instat_callback(struct urb *urb);
+@@ -238,6 +238,7 @@ static void option_instat_callback(struct urb *urb);
  /* These Quectel products use Qualcomm's vendor ID */
  #define QUECTEL_PRODUCT_UC20			0x9003
  #define QUECTEL_PRODUCT_UC15			0x9090
 +#define QUECTEL_PRODUCT_EG25			0x9008
  /* These u-blox products use Qualcomm's vendor ID */
  #define UBLOX_PRODUCT_R410M			0x90b2
- /* These Yuga products use Qualcomm's vendor ID */
-@@ -247,6 +248,7 @@ static void option_instat_callback(struct urb *urb);
- #define QUECTEL_PRODUCT_BG96			0x0296
- #define QUECTEL_PRODUCT_EP06			0x0306
- #define QUECTEL_PRODUCT_EM12			0x0512
-+#define QUECTEL_PRODUCT_EG25			0x0125
- 
- #define CMOTECH_VENDOR_ID			0x16d8
- #define CMOTECH_PRODUCT_6001			0x6001
-@@ -567,6 +569,17 @@ static void option_instat_callback(struct urb *urb);
+ #define UBLOX_PRODUCT_R6XX			0x90fa
+@@ -593,6 +594,17 @@ static void option_instat_callback(struct urb *urb);
  
  
  static const struct usb_device_id option_ids[] = {
@@ -141,7 +133,7 @@ index d8c474b386a8..5bba76337f4f 100644
 +	{ USB_DEVICE(QUALCOMM_VENDOR_ID, 0x9003) }, /* Quectel UC20 */
 +	{ USB_DEVICE(QUECTEL_VENDOR_ID, 0x0125) }, /* Quectel EC25 */
 +	{ USB_DEVICE(QUECTEL_VENDOR_ID, 0x0121) }, /* Quectel EC21 */
-+	{ USB_DEVICE(QUALCOMM_VENDOR_ID, QUECTEL_PRODUCT_EG25) }, /* Quectel EG20 */
++	{ USB_DEVICE(QUALCOMM_VENDOR_ID, QUECTEL_PRODUCT_EG25) }, /* Quectel EG25 */
 +	{ USB_DEVICE(QUALCOMM_VENDOR_ID, 0x9215) }, /* Quectel EC25 */
 +	{ USB_DEVICE(QUECTEL_VENDOR_ID, 0x0191) }, /* Quectel EG91 */
 +	{ USB_DEVICE(QUECTEL_VENDOR_ID, 0x0195) }, /* Quectel EG95 */
@@ -151,16 +143,7 @@ index d8c474b386a8..5bba76337f4f 100644
  	{ USB_DEVICE(OPTION_VENDOR_ID, OPTION_PRODUCT_COLT) },
  	{ USB_DEVICE(OPTION_VENDOR_ID, OPTION_PRODUCT_RICOLA) },
  	{ USB_DEVICE(OPTION_VENDOR_ID, OPTION_PRODUCT_RICOLA_LIGHT) },
-@@ -1084,6 +1097,8 @@ static const struct usb_device_id option_ids[] = {
- 	  .driver_info = RSVD(4) },
- 	{ USB_DEVICE(QUECTEL_VENDOR_ID, QUECTEL_PRODUCT_EC25),
- 	  .driver_info = RSVD(4) },
-+	{ USB_DEVICE(QUECTEL_VENDOR_ID, QUECTEL_PRODUCT_EG25),
-+	  .driver_info = RSVD(4) },
- 	{ USB_DEVICE(QUECTEL_VENDOR_ID, QUECTEL_PRODUCT_BG96),
- 	  .driver_info = RSVD(4) },
- 	{ USB_DEVICE_AND_INTERFACE_INFO(QUECTEL_VENDOR_ID, QUECTEL_PRODUCT_EP06, 0xff, 0xff, 0xff),
-@@ -2002,6 +2017,7 @@ static struct usb_serial_driver option_1port_device = {
+@@ -2188,6 +2200,7 @@ static struct usb_serial_driver option_1port_device = {
  #ifdef CONFIG_PM
  	.suspend           = usb_wwan_suspend,
  	.resume            = usb_wwan_resume,
@@ -168,7 +151,7 @@ index d8c474b386a8..5bba76337f4f 100644
  #endif
  };
  
-@@ -2037,6 +2053,14 @@ static int option_probe(struct usb_serial *serial,
+@@ -2231,6 +2244,14 @@ static int option_probe(struct usb_serial *serial,
  	if (device_flags & NUMEP2 && iface_desc->bNumEndpoints != 2)
  		return -ENODEV;
  
@@ -184,7 +167,7 @@ index d8c474b386a8..5bba76337f4f 100644
  	usb_set_serial_data(serial, (void *)device_flags);
  
 diff --git a/drivers/usb/serial/qcserial.c b/drivers/usb/serial/qcserial.c
-index 613f91add03d..8fe5f8bc67ea 100644
+index 586ef5551e76..04cb634fd2c3 100644
 --- a/drivers/usb/serial/qcserial.c
 +++ b/drivers/usb/serial/qcserial.c
 @@ -63,7 +63,6 @@ static const struct usb_device_id id_table[] = {
@@ -204,10 +187,10 @@ index 613f91add03d..8fe5f8bc67ea 100644
  	{USB_DEVICE(0x05c6, 0x9265)},	/* Asus Gobi 2000 Modem device (VR305) */
  	{USB_DEVICE(0x05c6, 0x9234)},	/* Top Global Gobi 2000 QDL device (VR306) */
 diff --git a/drivers/usb/serial/usb_wwan.c b/drivers/usb/serial/usb_wwan.c
-index 912472f26e4f..c9446f9e3b2c 100644
+index f21f25a8cf6f..dda965391374 100644
 --- a/drivers/usb/serial/usb_wwan.c
 +++ b/drivers/usb/serial/usb_wwan.c
-@@ -496,10 +496,31 @@ static struct urb *usb_wwan_setup_urb(struct usb_serial_port *port,
+@@ -428,6 +428,13 @@ static struct urb *usb_wwan_setup_urb(struct usb_serial_port *port,
  	if (!urb)
  		return NULL;
  
@@ -221,6 +204,9 @@ index 912472f26e4f..c9446f9e3b2c 100644
  	usb_fill_bulk_urb(urb, serial->dev,
  			  usb_sndbulkpipe(serial->dev, endpoint) | dir,
  			  buf, len, callback, ctx);
+@@ -435,6 +442,20 @@ static struct urb *usb_wwan_setup_urb(struct usb_serial_port *port,
+ 	if (intfdata->use_zlp && dir == USB_DIR_OUT)
+ 		urb->transfer_flags |= URB_ZERO_PACKET;
  
 +	if (dir == USB_DIR_OUT) {
 +		struct usb_device_descriptor *desc = &serial->dev->descriptor;

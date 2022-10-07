@@ -732,11 +732,10 @@ index 000000000000..34ffca27a78f
 +
 +		};
 +		eth1: eth1@2 {
++			compatible = "usb424,9e00"; // 9902,9905,9908,9e00
 +			reg =<2>;
 +			local-mac-address = [00 00 00 00 00 00];
 +			//pad-supply = <&vgen1_reg>;
-+			//line-name = "ETH2-RST-Z2";
-+			//reset-gpios = <&P03 0 GPIO_ACTIVE_HIGH>;
 +
 +		};
 +		modem1@3 {
@@ -1596,7 +1595,7 @@ index 000000000000..34ffca27a78f
 +				MX6QDL_PAD_EIM_RW__ECSPI2_SS0 0x1b0f9
 +			>;
 +		};
-+		pinctrl_eth1_reset: eth1rstgrp {
++		pinctrl_eth1_reset: eth1rstgrp {/*Not connected to the reset pin rev.5*/
 +			fsl,pins = <
 +				MX6QDL_PAD_EIM_WAIT__GPIO5_IO00 0x0001B0B0
 +			>;

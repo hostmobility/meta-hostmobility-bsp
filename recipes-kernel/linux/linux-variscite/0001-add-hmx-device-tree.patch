@@ -1,28 +1,26 @@
-From 2c26bcaa747b0cb168435423bdc38de722f39950 Mon Sep 17 00:00:00 2001
-From: OpenEmbedded <oe.patch@oe>
-Date: Fri, 2 Sep 2022 12:41:03 +0200
-Subject: [PATCH] Device tree + Makefile for hmx(hmx0 is dev board)
+From 584e9a64f62dad339924f72e1d238ea4f75e4485 Mon Sep 17 00:00:00 2001
+From: Mattias Busck <mattias.busck@hostmobility.com>
+Date: Fri, 7 Oct 2022 16:35:36 +0200
+Subject: [PATCH] HMX device tree tested on fully populated board
 
- * update from review
- * fix clock names
- * can6 tested on prototype board but unstable/gets stuck and requires
-   ip link set down/up cycle at higher frame rates.
+To be tested: USB3 and tcan114x
 
-TODO: test at with kernel 5.15.60
+uname:
+Linux imx8mp-var-dart-hmx1 5.15.60-imx8mp+gcc035d00ff28
 ---
  arch/arm64/boot/dts/freescale/Makefile        |   3 +
- .../dts/freescale/imx8mp-var-dart-hmx0.dts    | 860 +++++++++++++++++
- .../dts/freescale/imx8mp-var-dart-hmx1.dts    | 903 ++++++++++++++++++
- 3 files changed, 1766 insertions(+)
+ .../dts/freescale/imx8mp-var-dart-hmx0.dts    | 860 ++++++++++++++++
+ .../dts/freescale/imx8mp-var-dart-hmx1.dts    | 939 ++++++++++++++++++
+ 3 files changed, 1802 insertions(+)
  create mode 100644 arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx0.dts
  create mode 100644 arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts
 
 diff --git a/arch/arm64/boot/dts/freescale/Makefile b/arch/arm64/boot/dts/freescale/Makefile
-index 4c2a241e6582..dd02de158e3c 100644
+index 6ce43e6646ea..40f2cf56973e 100644
 --- a/arch/arm64/boot/dts/freescale/Makefile
 +++ b/arch/arm64/boot/dts/freescale/Makefile
-@@ -218,3 +218,6 @@ dtb-$(CONFIG_ARCH_MXC) += imx8ulp-evk.dtb imx8ulp-evk-rk055hdmipi4m.dtb \
- 
+@@ -264,3 +264,6 @@ dtb-$(CONFIG_ARCH_MXC) += imx8qm-mek-sof-cs42888.dtb imx8qm-mek-sof-wm8960.dtb
+ dtb-$(CONFIG_ARCH_MXC) += imx8dxl-evk-root.dtb imx8dxl-evk-inmate.dtb
  dtb-$(CONFIG_ARCH_S32) += s32v234-evb.dtb \
  			  s32v234-sbc.dtb
 +
@@ -896,10 +894,10 @@ index 000000000000..e92db7e9f5d0
 +};
 diff --git a/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts b/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts
 new file mode 100644
-index 000000000000..211328daa4f2
+index 000000000000..b32c240ccf86
 --- /dev/null
 +++ b/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts
-@@ -0,0 +1,905 @@
+@@ -0,0 +1,939 @@
 +// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 +/*
 + * Copyright 2022 Host Mobility AB
@@ -987,39 +985,73 @@ index 000000000000..211328daa4f2
 +		pinctrl-names = "default";
 +		pinctrl-0 = <&pinctrl_gpio_leds>;
 +		status = "okay";
-+
 +		red_func {
-+			color = <LED_COLOR_ID_RED>;
++			color = <LED_COLOR_ID_GREEN>;
 +			function = "func";
-+			gpios = <&gpio3 7 GPIO_ACTIVE_HIGH>;
++			gpios = <&pca9535 15 GPIO_ACTIVE_LOW>;
 +			linux,default-trigger = "heartbeat";
 +			default-state = "on";
 +		};
-+		yellow_gps {
-+			color = <LED_COLOR_ID_YELLOW>;
++
++		green_func {
++			color = <LED_COLOR_ID_RED>;
++			function = "func";
++			gpios = <&pca9535 14 GPIO_ACTIVE_LOW>;
++			linux,default-trigger = "heartbeat";
++			default-state = "on";
++		};
++
++		red_gps {
++			color = <LED_COLOR_ID_GREEN>;
 +			function = "gps";
-+			gpios = <&gpio3 1 GPIO_ACTIVE_HIGH>;
++			gpios = <&pca9535 13 GPIO_ACTIVE_LOW>;
++			linux,default-trigger = "heartbeat";
++			default-state = "on";
++		};
++		green_gps {
++			color = <LED_COLOR_ID_RED>;
++			function = "gps";
++			gpios = <&pca9535 12 GPIO_ACTIVE_LOW>;
++			linux,default-trigger = "heartbeat";
++			default-state = "on";
++		};
++
++		red_wifi {
++			color = <LED_COLOR_ID_GREEN>;
++			function = LED_FUNCTION_WLAN;
++			gpios = <&pca9535 11 GPIO_ACTIVE_LOW>;
++			linux,default-trigger = "phy0rx";
 +			default-state = "on";
 +		};
 +		green_wifi {
-+			color = <LED_COLOR_ID_GREEN>;
++			color = <LED_COLOR_ID_RED>;
 +			function = LED_FUNCTION_WLAN;
-+			gpios = <&gpio3 9 GPIO_ACTIVE_HIGH>;
++			gpios = <&pca9535 10 GPIO_ACTIVE_LOW>;
 +			linux,default-trigger = "phy0rx";
 +			default-state = "on";
 +		};
 +		
-+		green_gsm {
++		red_gsm {
 +			color = <LED_COLOR_ID_GREEN>;
 +			function = LED_FUNCTION_WAN;
-+			gpios = <&gpio3 6 GPIO_ACTIVE_HIGH>;
++			gpios = <&pca9535 9 GPIO_ACTIVE_LOW>;
++			default-state = "on";
++			linux,default-trigger = "heartbeat";
++		};
++
++		green_gsm {
++			color = <LED_COLOR_ID_RED>;
++			function = LED_FUNCTION_WAN;
++			gpios = <&pca9535 8 GPIO_ACTIVE_LOW>;
++			linux,default-trigger = "heartbeat";
 +			default-state = "on";
 +		};
 +
-+		green_power {
-+			color = <LED_COLOR_ID_GREEN>;
++		yellow_power {
++			color = <LED_COLOR_ID_YELLOW>;
 +			function = LED_FUNCTION_POWER;
-+			gpios = <&gpio3 8 GPIO_ACTIVE_HIGH>;
++			gpios = <&pca9535 7 GPIO_ACTIVE_LOW>;
++			linux,default-trigger = "heartbeat";
 +			default-state = "on";
 +		};
 +

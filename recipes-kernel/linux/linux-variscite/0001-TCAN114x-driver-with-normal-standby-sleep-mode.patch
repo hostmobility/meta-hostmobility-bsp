@@ -23,7 +23,7 @@ index 0f5a49fc7c9e..1843f75d0bc2 100644
 +	select REGMAP_SPI
 +	depends on SPI_MASTER
 +	help
-+	  This driver controls the Ti TCAN1145/TCAN1146 CAN Transceiver.
++	  This driver controls the ti tcan1145/tcan114x CAN transceiver.
 +
  config TIFM_7XX1
  	tristate "TI Flash Media PCI74xx/PCI76xx host adapter support"
@@ -324,14 +324,14 @@ index 000000000000..19601f15d83a
 +}
 +
 +static const struct of_device_id tcan114x_of_match[] = {
-+	{ .compatible = "ti,tcan1146", },
++	{ .compatible = "ti,tcan114x", },
 +	{ },
 +};
 +
 +MODULE_DEVICE_TABLE(of, tcan114x_of_match);
 +
 +static const struct spi_device_id tcan114x_id[] = {
-+	{ "TCAN1146", 0 },
++	{ "tcan114x", 0 },
 +	{ },
 +};
 +MODULE_DEVICE_TABLE(spi, tcan114x_id);
@@ -350,7 +350,7 @@ index 000000000000..19601f15d83a
 +module_spi_driver(tcan114x_spi_driver);
 +
 +MODULE_AUTHOR("Mattias Busck<mattias.busck@hostmobility.com");
-+MODULE_DESCRIPTION("TI TCAN1146 CAN Transceiver SPI driver");
++MODULE_DESCRIPTION("ti tcan114x CAN transceiver SPI driver");
 +MODULE_LICENSE("GPL");
 -- 
 2.17.1

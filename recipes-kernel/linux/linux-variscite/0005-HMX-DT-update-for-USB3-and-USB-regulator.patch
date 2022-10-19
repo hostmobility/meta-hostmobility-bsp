@@ -1,0 +1,150 @@
+From 6791f34ad5d8e6ad7d198e303cc11b249ad67409 Mon Sep 17 00:00:00 2001
+From: Mattias Busck <mattias.busck@hostmobility.com>
+Date: Wed, 19 Oct 2022 06:49:57 +0200
+Subject: [PATCH] HMX: DT update for USB3 and USB regulator
+
+Update device-tree, align with imx8mp-var-dart-dt8mcustomboard.dts
+---
+ .../dts/freescale/imx8mp-var-dart-hmx1.dts    | 72 +++++++++++++++----
+ 1 file changed, 59 insertions(+), 13 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts b/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts
+index 5f2032142611..7affed03710b 100644
+--- a/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts
++++ b/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts
+@@ -10,12 +10,33 @@
+ / {
+ 	model = "Host Mobility HMX1 imx8mp";
+ 
++	aliases {
++		rtc0 = &rtc_extern;
++		rtc1 = &snvs_rtc;
++		ethernet2 = &obdnet;
++		ethernet3 = &usbnet;
++	};
++
+ 	chosen {
+ 		stdout-path = &uart3;
+ 		serial-number = "10210100000";
+ 		part-number = "hmp1021-1";
+ 	};
+ 
++	reg_usb_hubs: regulator-usbhubs {
++		compatible = "regulator-fixed";
++		regulator-name = "regulator-usb-hubs";
++		gpio = <&gpio1 12 GPIO_ACTIVE_HIGH>;
++		enable-active-high;
++		regulator-always-on;
++		pinctrl-0 = <&pinctrl_usbhubs>;
++		pinctrl-names = "default";
++
++		regulator-state-mem {
++			regulator-on-in-suspend;
++		};
++	};
++
+ 	gpio-keys {
+ 		compatible = "gpio-keys";
+ 		pinctrl-names = "default";
+@@ -219,15 +240,6 @@
+ 		#clock-cells = <0>;
+ 		clock-frequency = <40000000>;
+ 	};
+-
+-
+-	extcon_usb2: extcon_usb2 {
+-		compatible = "linux,extcon-usb-gpio";
+-		pinctrl-names = "default";
+-		pinctrl-0 = <&pinctrl_extcon>;
+-		id-gpio = <&gpio1 8 GPIO_ACTIVE_HIGH>;
+-		status = "okay";
+-	};
+ };
+ 
+ /* TODO: Adapt these when we have the phys designed in */
+@@ -285,8 +297,25 @@
+ 		#interrupt-cells = <2>;
+ 	};
+ 
++	typec@3d {
++		compatible = "nxp,ptn5150";
++		pinctrl-names = "default";
++		pinctrl-0 = <&pinctrl_extcon>;
++		reg = <0x3d>;
++		interrupt-parent = <&gpio1>;
++		interrupts = <8 IRQ_TYPE_LEVEL_HIGH>;
++		irq-is-id-quirk;
++		status ="okay";
++
++		port {
++			typec_dr_sw: endpoint {
++				remote-endpoint = <&usb3_drd_sw>;
++			};
++		};
++	};
++
+ 	/* NXP PCF85063A RTC module */
+-	rtc@51 {
++	rtc_extern: rtc@51 {
+ 		compatible = "nxp,pcf85063a";
+ 		reg = <0x51>;
+ 		quartz-load-femtofarads = <12500>;
+@@ -398,8 +427,17 @@
+ 	hnp-disable;
+ 	srp-disable;
+ 	adp-disable;
+-	extcon = <&extcon_usb2>;
++	usb-role-switch;
++	role-switch-default-mode = "none";
++	snps,dis-u1-entry-quirk;
++	snps,dis-u2-entry-quirk;
+ 	status = "okay";
++
++	port {
++		usb3_drd_sw: endpoint {
++			remote-endpoint = <&typec_dr_sw>;
++		};
++	};
+ };
+ 
+ &usb3_phy0 {
+@@ -416,11 +454,12 @@
+ 		#address-cells = <1>;
+ 		#size-cells = <0>;
+ 		wakeup-source;
++		vdd-supply = <&reg_usb_hubs>;
+ 
+ 		usbnet: usbether@1 {
+ 			compatible = "usb424,ec00";
+ 			reg =<1>;
+-			local-mac-address = [ BA AD F0 0D CA FE ];
++			local-mac-address = [ 00 00 00 00 00 00 ];
+ 			wakeup-source;
+ 		};
+ 
+@@ -435,7 +474,7 @@
+ 			obdnet: obdether@1 {
+ 				compatible = "usb424,ec00";
+ 				reg =<1>;
+-				local-mac-address = [ BA AD C0 DE CA FE ];
++				local-mac-address = [ 00 00 00 00 00 00 ];
+ 				wakeup-source;
+ 				//pad-supply = <&vgen1_reg>;
+ 				//line-name = "ETH2-RST-Z2";
+@@ -806,6 +845,13 @@
+ 			MX8MP_IOMUXC_GPIO1_IO09__GPIO1_IO09 				0x1c0
+ 		>;
+ 	};
++
++	/* 0x146 == pull up, drive strength = 6 */
++	pinctrl_usbhubs: usbhubsgrp {
++		fsl,pins = <
++			MX8MP_IOMUXC_GPIO1_IO12__GPIO1_IO12 				0x146
++		>;
++	};
+ };
+ 
+ &gpio1 {
+-- 
+2.17.1
+

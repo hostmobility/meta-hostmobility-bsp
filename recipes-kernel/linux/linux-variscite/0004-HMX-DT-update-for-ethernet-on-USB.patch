@@ -1,0 +1,83 @@
+From 5901346957b50bb7833751ee757a39274c00fa1e Mon Sep 17 00:00:00 2001
+From: Mattias Busck <mattias.busck@hostmobility.com>
+Date: Mon, 17 Oct 2022 11:50:18 +0200
+Subject: [PATCH] HMX: DT update for ethernet on USB
+
+---
+ .../dts/freescale/imx8mp-var-dart-hmx1.dts    | 46 +++++++++++++++++++
+ 1 file changed, 46 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts b/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts
+index b32c240ccf86..5f2032142611 100644
+--- a/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts
++++ b/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts
+@@ -12,6 +12,8 @@ / {
+ 
+ 	chosen {
+ 		stdout-path = &uart3;
++		serial-number = "10210100000";
++		part-number = "hmp1021-1";
+ 	};
+ 
+ 	gpio-keys {
+@@ -292,6 +294,7 @@ rtc@51 {
+ 		pinctrl-0 = <&pinctrl_rtc>;
+ 		interrupt-parent = <&gpio1>;
+ 		interrupts = <9 IRQ_TYPE_EDGE_FALLING>;
++		interrupt-names = "RTC-INT";
+ 		wakeup-source;
+ 		status = "okay";
+ 	};
+@@ -407,6 +410,49 @@ &usb3_phy0 {
+ 
+ &usb3_0 {
+ 	status = "okay";
++	lan9513i@1 {
++		compatible = "usb424,9514";
++		reg =<1>;
++		#address-cells = <1>;
++		#size-cells = <0>;
++		wakeup-source;
++
++		usbnet: usbether@1 {
++			compatible = "usb424,ec00";
++			reg =<1>;
++			local-mac-address = [ BA AD F0 0D CA FE ];
++			wakeup-source;
++		};
++
++		// Cascaded LAN9513 (on USB3_D_P in schematics)
++		lan9513i@2 {
++			compatible = "usb424,9514";
++			reg =<2>;
++			#address-cells = <1>;
++			#size-cells = <0>;
++			wakeup-source;
++
++			obdnet: obdether@1 {
++				compatible = "usb424,ec00";
++				reg =<1>;
++				local-mac-address = [ BA AD C0 DE CA FE ];
++				wakeup-source;
++				//pad-supply = <&vgen1_reg>;
++				//line-name = "ETH2-RST-Z2";
++				//reset-gpios = <&P03 0 GPIO_ACTIVE_HIGH>;
++			};
++
++		};
++		usb_modem@3 {
++			reg =<3>;
++		};
++		usb_a_connector@4 {
++			reg =<4>;
++
++		};
++
++	}; 
++
+ };
+ 
+ &usb_dwc3_0 {
+-- 
+2.30.2
+

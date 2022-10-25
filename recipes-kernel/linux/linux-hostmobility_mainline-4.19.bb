@@ -42,7 +42,7 @@ SRC_URI[sha256sum] = "c981abe15c4b9496cdadb04e4f4afb88b3a78f31ced8d07684ee9c58b3
 
 # For CI use one could use the following instead (plus patches still of course)
 LINUX_VERSION_use-head-next ?= "4.19"
-SRCREV_use-head-next = "${AUTOREV}"
+SRCREV_use-head-next = "1845fbffe0c5fb49ad29d18c5d75f0c165977de0"
 PV_use-head-next = "${LINUX_VERSION}+git${SRCPV}"
 S_use-head-next = "${WORKDIR}/git"
 SRCBRANCH_use-head-next = "linux-4.19.y"

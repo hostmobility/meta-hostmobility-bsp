@@ -84,6 +84,7 @@ FILES_${PN}-scripts = "\
     /opt/hm/firmware_update_next_boot.sh \
     /opt/hm/wake_up_cause.sh \
 "
+#    /opt/hm/udev_eth_rule.sh not used and not in master right now maybe in the future.
 
 FILES_${PN}-scripts_mx4-mil += "\
     /opt/hm/analog_calibration.sh \

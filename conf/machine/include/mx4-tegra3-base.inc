@@ -1,6 +1,7 @@
 # Provides common Tegra3 SoC settings on MX-4 products
 
 MACHINEOVERRIDES =. "tegra:tegra3:tegra3mainline:"
+MACHINEOVERRIDES =. "use-head-next:"
 
 # meta-angstrom/conf/distro/include/arm-defaults.inc
 require conf/machine/include/soc-family.inc
@@ -25,11 +26,10 @@ PREFERRED_PROVIDER_u-boot-fw-utils ?= "u-boot-hostmobility-fw-utils"
 # used by sysvinit_2
 SERIAL_CONSOLE = "115200 ttyS0"
 
-IMAGE_FSTYPES ?= "tar.xz"
+IMAGE_FSTYPES ?= "ext3"
 
 BBMASK += "recipes-bsp/u-boot/u-boot-hostmobility_2019.04.bb"
 
-IMAGE_FSTYPES = "tar.xz"
 # wic support
 #WKS_FILE = "sdimage-bootpart-mx4-t30.wks"
 #WIC_CREATE_EXTRA_ARGS:append = " --no-fstab-update"

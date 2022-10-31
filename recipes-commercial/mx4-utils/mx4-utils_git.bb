@@ -30,7 +30,7 @@ do_install() {
     echo 2.2.x > ${D}/${sysconfdir}/platform-bsp-version
     echo ${PLATFORM_VERSION} > ${D}/${sysconfdir}/platform-version
     echo "${PLATFORM_VERSION_DETAILS}" > ${D}/${sysconfdir}/platform-version-details
-    echo "unknown(${MACHINE})" > ${D}/${sysconfdir}/platform-branch-name
+    echo "${DISTRO_CODENAME}" > ${D}/${sysconfdir}/platform-branch-name
     install -m 744 ${B}/mx4/*.sh ${D}/opt/hm/
 
     install -m 0644 ${WORKDIR}/autostart.service ${D}${systemd_unitdir}/system/autostart.service
@@ -84,6 +84,7 @@ FILES:${PN}-scripts = "\
     /opt/hm/firmware_update_next_boot.sh \
     /opt/hm/wake_up_cause.sh \
 "
+#    /opt/hm/udev_eth_rule.sh not used and not in master right now maybe in the future.
 
 FILES:${PN}-scripts_mx4-mil += "\
     /opt/hm/analog_calibration.sh \

@@ -30,7 +30,7 @@ do_install() {
     echo 2.0.x > ${D}/${sysconfdir}/platform-bsp-version
     echo ${PLATFORM_VERSION} > ${D}/${sysconfdir}/platform-version
     echo "${PLATFORM_VERSION_DETAILS}" > ${D}/${sysconfdir}/platform-version-details
-    echo "unknown(${MACHINE})" > ${D}/${sysconfdir}/platform-branch-name
+    echo "${DISTRO_CODENAME}" > ${D}/${sysconfdir}/platform-branch-name
     install -m 744 ${B}/mx4/*.sh ${D}/opt/hm/
 
     install -m 0644 ${WORKDIR}/autostart.service ${D}${systemd_unitdir}/system/autostart.service

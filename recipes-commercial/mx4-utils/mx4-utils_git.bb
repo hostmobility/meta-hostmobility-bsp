@@ -3,8 +3,6 @@ DESCRIPTION = "Collection of utility scripts which is part of MX-4 Board Support
 
 SUBPATH = "scripts/"
 
-inherit hostmobility-helpers
-
 require recipes-commercial/common/revision.inc
 
 SRC_URI += "\
@@ -23,7 +21,7 @@ do_install() {
     # Legacy file and method to indicate that it is first-time boot
     touch ${D}/${sysconfdir}/first_boot_after_update.txt
 
-    system_type=`get_mx4_type_from_machine ${MACHINE}`
+    system_type=`echo ${MACHINE} | sed -e "s/^mx4-//"`
     echo ${system_type} > ${D}/${sysconfdir}/platform-system-type
 
     echo ${BUILD_TAG} > ${D}/${sysconfdir}/platform-build-tag 
@@ -37,20 +35,16 @@ do_install() {
     install -m 0644 ${WORKDIR}/mount-config.service ${D}${systemd_unitdir}/system/mount-config.service
 }
 
-do_install:append_tegra2() {
+do_install:append:tegra2() {
     echo "colibri-t20" > ${D}/${sysconfdir}/platform-board-type
 }
 
-do_install:append_tegra3() {
+do_install:append:tegra3() {
     echo "colibri-t30" > ${D}/${sysconfdir}/platform-board-type
 }
 
-do_install:append_vf() {
+do_install:append:vf() {
     echo "colibri-vf" > ${D}/${sysconfdir}/platform-board-type
-}
-
-do_install:append_mx4-mil() {
-    install -m 744 ${B}/mil/*.sh ${D}/opt/hm/
 }
 
 PACKAGES += "${PN}-scripts ${PN}-autostart ${PN}-mount-config"

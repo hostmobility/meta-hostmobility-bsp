@@ -1,8 +1,8 @@
 # Provides common settings among MX-5 products that use imx6
 
-MACHINEOVERRIDES =. "mx6:mx6q:mx6dl:mxv-base:imx-nxp-bsp:use-mainline-bsp:"
+MACHINEOVERRIDES =. "mx6:mx6q:mx6dl:mxv-base:"
 
-IMX_DEFAULT_BSP = "use-mainline-bsp"
+IMX_DEFAULT_BSP = "mainline"
 
 include conf/machine/include/imx-base.inc
 require conf/machine/include/arm/armv7a/tune-cortexa9.inc

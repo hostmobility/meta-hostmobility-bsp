@@ -217,9 +217,9 @@ index 000000000000..4752c9600da4
 +		clocks = <&tegra_car TEGRA30_CLK_SDMMC1>;
 +		resets = <&tegra_car 14>;
 +		reset-names = "sdhci";
-+		// power-gpios =  <&gpio TEGRA_GPIO(O, 0) GPIO_ACTIVE_HIGH>; replaced by vmmc-supply(solves wlcore crash on hostapd)!
++		 power-gpios =  <&gpio TEGRA_GPIO(O, 0) GPIO_ACTIVE_HIGH>;
 +		tap-delay=<0xf>;
-+		vmmc-supply = <&wlan_reg>;
++		//vmmc-supply = <&wlan_reg>; disable and use legacy  power-gpios so it sets wlan_en low in suspend in go_to_sleep(gpio112)
 +		vqmmc-supply = <&ldo5_reg>; /*set to 3.3 on max voltage fix*/
 +		
 +		cd-gpios = <&gpio TEGRA_GPIO(V, 2) GPIO_ACTIVE_HIGH>;
@@ -1297,7 +1297,7 @@ index 000000000000..07823c7ba368
 +					regulator-coupled-max-spread = <300000>;
 +					regulator-max-step-microvolt = <100000>;
 +					regulator-boot-on;
-+					//regulator-always-on;
++					regulator-always-on;
 +					ti,regulator-ext-sleep-control = <1>;
 +					nvidia,tegra-cpu-regulator;
 +					//regulator-state-mem { regulator-off-in-suspend; };
@@ -1411,7 +1411,7 @@ index 000000000000..07823c7ba368
 +			regulator-coupled-max-spread = <300000>;
 +			regulator-max-step-microvolt = <100000>;
 +			regulator-boot-on;
-+			//regulator-always-on;
++			regulator-always-on;
 +			ti,vsel0-state-low;
 +			/* VSEL1: EN_CORE_DVFS_N low for DVFS */
 +			ti,vsel1-state-low;
@@ -1510,16 +1510,16 @@ index 000000000000..07823c7ba368
 +			enable-active-high;
 +			gpio = <&gpio TEGRA_GPIO(C, 0) GPIO_ACTIVE_HIGH>;
 +		};
-+		wlan_reg: regulator@3 {
++		/*wlan_reg: regulator@3 {
 +			compatible = "regulator-fixed";
 +			reg = <2>;
 +			regulator-name = "wlan_en";
 +			regulator-min-microvolt = <3300000>;
 +			regulator-max-microvolt = <3300000>;
-+			enable-active-high;
++			enable-active-high; regulator-always-on;
 +			gpio = <&gpio TEGRA_GPIO(O, 0) GPIO_ACTIVE_HIGH>;
 +			regulator-state-mem { regulator-off-in-suspend;};
-+		};
++		};*/
 +	};
 +
 +	sound {

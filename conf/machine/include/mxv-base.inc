@@ -2,7 +2,7 @@
 
 MACHINEOVERRIDES =. "mx6:mx6q:mx6dl:mxv-base:"
 
-IMX_DEFAULT_BSP = "mainline"
+IMX_DEFAULT_BSP = "nxp"
 
 include conf/machine/include/imx-base.inc
 require conf/machine/include/arm/armv7a/tune-cortexa9.inc

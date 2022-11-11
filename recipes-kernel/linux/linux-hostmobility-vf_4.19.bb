@@ -9,7 +9,7 @@ FILESEXTRAPATHS_prepend := "${THISDIR}/linux-mobility-imx:"
 
 inherit kernel siteinfo
 
-COMPATIBLE_MACHINE = "(mx4-c61|mx4-hostcom)"
+COMPATIBLE_MACHINE = "(vfcv61|mx4-hostcom)"
 LINUX_VERSION ?= "4.19.66"
 
 LOCALVERSION = "-${PR}"
@@ -25,7 +25,7 @@ MACHINE_PATCHES_mx4-hostcom = " \
     file://defconfig \
 "
 
-MACHINE_PATCHES_mx4-c61 = " \
+MACHINE_PATCHES_vfcv61 = " \
     file://0001-add-device-tree-for-c61-v61.patch \
     file://defconfig \
 "

@@ -10,7 +10,8 @@ SRCREV_hmcommercial = "${AUTOREV}"
 SRC_URI:append:mx5-pt= " \
     file://mxv_delta_imx_v7_defconfig.cfg \
     file://0006-Add-device-tree-for-mx5-pt.patch \
-    file://0007-imx6qdl-mx-v-hdmi-display-dtsi-file-for-mainline-linux.patch \
+    file://0007-imx6qdl-mx-v-hdmi-display-dtsi-file-for-fsl-imx-linux.patch \
+    file://0002-Add-support-on-USB-for-EG25-modem.patch \
     git://git@github.com/hostmobility/hm-commercial.git;name=hmcommercial;branch=${DRIVERBRANCH};subpath=drivers;protocol=ssh;destsuffix=git/drivers \
 "
 

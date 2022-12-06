@@ -18,6 +18,7 @@ GENERIC_PATCHES = ""
 MACHINE_PATCHES:mx5-pt= " \
     git://git@github.com/hostmobility/hm-commercial.git;name=hmcommercial;branch=${DRIVERBRANCH};subpath=drivers;protocol=ssh;destsuffix=git/drivers \
     file://0006-Add-device-tree-for-mx5-pt.patch \
+    file://0007-imx6qdl-mx-v-hdmi-display-dtsi-file-for-mainline-linux.patch \
     file://0001-Revert-usbnet-smsc95xx-Fix-deadlock-on-runtime-resum.patch \
     file://0002-Revert-usbnet-smsc95xx-Forward-PHY-interrupts-to-PHY.patch \
 "

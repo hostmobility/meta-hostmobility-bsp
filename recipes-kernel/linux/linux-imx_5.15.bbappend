@@ -7,6 +7,7 @@ SRCREV_hmcommercial = "${AUTOREV}"
 
 SRC_URI:append:mx5-pt= " \
     file://0006-Add-device-tree-for-mx5-pt.patch \
+    file://0007-imx6qdl-mx-v-hdmi-display-dtsi-file-for-mainline-linux.patch \
     git://git@github.com/hostmobility/hm-commercial.git;name=hmcommercial;branch=${DRIVERBRANCH};subpath=drivers;protocol=ssh;destsuffix=git/drivers \
 "
 

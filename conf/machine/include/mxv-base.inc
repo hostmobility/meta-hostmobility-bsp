@@ -39,6 +39,8 @@ MACHINE_EXTRA_RDEPENDS:append = " \
     packagegroup-hostmobility-commercial-mx5 \
     ${@bb.utils.contains('MACHINE_FEATURES', 'wifi', \
                           'linux-firmware-sd8887 linux-firmware-sd8897 hostapd', '', d)} \
+    ${@bb.utils.contains('MACHINE_FEATURES', 'alsa', \
+                          'alsa-utils', '', d)} \
     cryptodev-module \
     cryptodev-tests \
     libubootenv \

@@ -1,0 +1,43 @@
+From cc7743309ec1c99cb354c00dc9bb8a858eda466f Mon Sep 17 00:00:00 2001
+From: rikardo <rikard.olander@hostmobility.com>
+Date: Tue, 6 Dec 2022 09:42:59 +0000
+Subject: [PATCH 1/1] add imx6qdl mx-v hdmi display dtsi file for mainline-linux or fslc-linux
+
+---
+ .../boot/dts/imx6qdl-mx-v-hdmi-display.dtsi   | 23 +++++++++++++++++++
+ 1 file changed, 23 insertions(+)
+ create mode 100644 arch/arm/boot/dts/imx6qdl-mx-v-hdmi-display.dtsi
+
+diff --git a/arch/arm/boot/dts/imx6qdl-mx-v-hdmi-display.dtsi b/arch/arm/boot/dts/imx6qdl-mx-v-hdmi-display.dtsi
+new file mode 100644
+index 000000000000..d51275c44d56
+--- /dev/null
++++ b/arch/arm/boot/dts/imx6qdl-mx-v-hdmi-display.dtsi
+@@ -0,0 +1,23 @@
++// SPDX-License-Identifier: GPL-2.0+
++//
++// Copyright 2012 Freescale Semiconductor, Inc.
++// Copyright 2011 Linaro Ltd.
++// Copyright 2022 Host Mobility.
++// includes support for Hdmi (display) to be use for mainline linux or flsc-linux.
++// Support etnaviv gpu driver.
++
++/ {
++	/* TODO fix audio
++	sound-hdmi {
++		compatible = "fsl,imx6q-audio-hdmi",
++				"fsl,imx-audio-hdmi";
++		model = "imx-audio-hdmi";
++		hdmi-controller = <&hdmi_audio>;
++	};*/
++};
++
++&hdmi {
++	ddc-i2c-bus = <&i2c2>;
++	status = "okay";
++	HDMI-supply = <&reg_hdmi>;
++};
+\ No newline at end of file
+-- 
+2.17.1
+

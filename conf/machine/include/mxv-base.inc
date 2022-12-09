@@ -2,19 +2,20 @@
 
 MACHINEOVERRIDES =. "mx6:mx6q:mx6dl:mxv-base:"
 
-IMX_DEFAULT_BSP = "mainline"
-
 include conf/machine/include/imx-base.inc
 require conf/machine/include/arm/armv7a/tune-cortexa9.inc
 
 KERNEL_IMAGETYPE = "zImage"
-PREFERRED_PROVIDER_virtual/kernel = "linux-mobility-imx"
+PREFERRED_PROVIDER_virtual/kernel ?= "linux-mobility-imx"
+PREFERRED_PROVIDER_virtual/kernel:mainline = "linux-mobility-imx"
+PREFERRED_PROVIDER_virtual/kernel:imx-nxp-bsp = "linux-imx"
 
 # We store kernel on seperate MTD partition so no need to deploy to rootfs.
 RDEPENDS:${KERNEL_PACKAGE_NAME}-base = ""
 
 PREFERRED_PROVIDER_u-boot = "u-boot-hostmobility"
 PREFERRED_PROVIDER_virtual/bootloader = "u-boot-hostmobility"
+PREFERRED_PROVIDER_virtual/bootloader:imx-nxp-bsp = "u-boot-hostmobility"
 PREFERRED_PROVIDER_u-boot-fw-utils ?= "libubootenv"
 PREFERRED_PROVIDER_j1708-lib = "j1708-lib_2.0.0"
 PREFERRED_PROVIDER_j1708-test = "j1708-test_2.0.0"
@@ -38,6 +39,8 @@ MACHINE_EXTRA_RDEPENDS:append = " \
     packagegroup-hostmobility-commercial-mx5 \
     ${@bb.utils.contains('MACHINE_FEATURES', 'wifi', \
                           'linux-firmware-sd8887 linux-firmware-sd8897 hostapd', '', d)} \
+    ${@bb.utils.contains('MACHINE_FEATURES', 'alsa', \
+                          'alsa-utils', '', d)} \
     cryptodev-module \
     cryptodev-tests \
     libubootenv \

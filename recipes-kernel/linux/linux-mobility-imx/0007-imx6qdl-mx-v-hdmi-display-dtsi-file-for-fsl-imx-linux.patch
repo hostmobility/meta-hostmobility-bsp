@@ -1,0 +1,142 @@
+From 462a4f0d6b8c10f95217ff9bfc139dfa156e8f7a Mon Sep 17 00:00:00 2001
+From: rikardo <rikard.olander@hostmobility.com>
+Date: Tue, 6 Dec 2022 08:57:24 +0000
+Subject: [PATCH 1/1] add imx6qdl mx-v hdmi display dtsi file for fsl-imx-linux
+
+---
+ .../boot/dts/imx6qdl-mx-v-hdmi-display.dtsi   | 122 ++++++++++++++++++
+ 1 file changed, 122 insertions(+)
+ create mode 100644 arch/arm/boot/dts/imx6qdl-mx-v-hdmi-display.dtsi
+
+diff --git a/arch/arm/boot/dts/imx6qdl-mx-v-hdmi-display.dtsi b/arch/arm/boot/dts/imx6qdl-mx-v-hdmi-display.dtsi
+new file mode 100644
+index 000000000000..44ea31322c20
+--- /dev/null
++++ b/arch/arm/boot/dts/imx6qdl-mx-v-hdmi-display.dtsi
+@@ -0,0 +1,122 @@
++// SPDX-License-Identifier: GPL-2.0+
++//
++// Copyright 2012 Freescale Semiconductor, Inc.
++// Copyright 2011 Linaro Ltd.
++// Copyright 2022 Host Mobility.
++// includes support for Hdmi (display) to be use for fsl-imx-linux.
++// Support vivante gpu driver.
++
++/ {
++	aliases {
++		mxcfb0 = &mxcfb1;
++		mxcfb1 = &mxcfb2;
++	};
++
++	sound-hdmi {
++		compatible = "fsl,imx6q-audio-hdmi",
++				"fsl,imx-audio-hdmi";
++		model = "imx-audio-hdmi";
++		hdmi-controller = <&hdmi_audio>;
++	};
++
++	mxcfb1: fb@0 {
++		compatible = "fsl,mxc_sdc_fb";
++		disp_dev = "hdmi";
++		interface_pix_fmt = "RGB565";
++		mode_str ="1920x1080M@60";
++		default_bpp = <16>;
++		int_clk = <0>;
++		late_init = <0>;
++		status = "okay";
++	};
++
++	mxcfb2: fb@1 {
++		compatible = "fsl,mxc_sdc_fb";
++		disp_dev = "lcd";
++		interface_pix_fmt = "RGB24";
++		mode_str ="800x600@60";
++		default_bpp = <24>;
++		int_clk = <0>;
++		late_init = <0>;
++		status = "okay";
++	};
++
++	lcd@0 {
++		compatible = "fsl,lcd";
++		ipu_id = <0>;
++		disp_id = <1>;
++		default_ifmt = "RGB24";
++		pinctrl-names = "default";
++		pinctrl-0 = <&pinctrl_ipu1>;
++		status = "okay";
++	};
++
++};
++
++&dcic1 {
++	dcic_id = <0>;
++	dcic_mux = "dcic-hdmi";
++	status = "okay";
++};
++
++&dcic2 {
++	dcic_id = <1>;
++	dcic_mux = "dcic-lvds1";
++	status = "okay";
++};
++
++&hdmi_audio {
++	status = "okay";
++};
++
++&hdmi_cec {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_hdmi_cec>;
++	status = "disabled"; // dvi-connector does not have this signal
++};
++
++&hdmi_core {
++	ipu_id = <0>;
++	disp_id = <0>;
++	status = "okay";
++};
++
++&hdmi_video {
++	fsl,phy_reg_vlev = <0x294>;
++	fsl,phy_reg_cksymtx = <0x800d>;
++	HDMI-supply = <&reg_hdmi>;
++	digi,dvi_mode;
++	status = "okay";
++};
++
++/* gpc (display) to be use for fsl-imx-linux */
++&gpc {
++	fsl,ldo-bypass = <1>;
++};
++
++/*This part is based on arch/arm/dts/imx6qp-sabresd.dts and not sure we need it for display memory.*/
++&pre1 {
++	status = "okay";
++};
++
++&pre2 {
++	status = "okay";
++};
++
++&pre3 {
++	status = "okay";
++};
++
++&pre4 {
++	status = "okay";
++};
++
++&prg1 {
++	memory-region = <&memory>;
++	status = "okay";
++};
++
++&prg2 {
++	memory-region = <&memory>;
++	status = "okay";
++};
+\ No newline at end of file
+-- 
+2.17.1
+

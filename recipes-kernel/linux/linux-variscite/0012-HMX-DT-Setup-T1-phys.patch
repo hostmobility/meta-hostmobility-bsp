@@ -1,0 +1,85 @@
+From b715aec8445c467fbb3af63993b3e0d3ca34b04f Mon Sep 17 00:00:00 2001
+From: Mattias Busck <mattias.busck@hostmobility.com>
+Date: Wed, 7 Dec 2022 17:29:46 +0100
+Subject: [PATCH] HMX DT: Setup T1 phys
+
+Work in progress to get T1 phys communicating.
+Trying with c22 driver.
+
+* No link for eth0(FEC) with c22
+* eth1(EQOS) phy not detected.
+---
+ .../dts/freescale/imx8mp-var-dart-hmx1.dts    | 48 ++++++++++++-------
+ 1 file changed, 31 insertions(+), 17 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts b/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts
+index 3de36d78f51e..50791c0c4baa 100644
+--- a/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts
++++ b/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts
+@@ -242,32 +242,46 @@ can5_osc: can5_osc {
+ 	};
+ };
+ 
+-/* TODO: Adapt these when we have the phys designed in */
+-/*
+-&eqos {
++
++/* First Automotive Ethernet Marvell 88Q2110 */
++&fec {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_fec>;
++	phy-mode = "rgmii";
++	phy-handle = <&ethphy_t1_1>;
++	status = "okay";
+ 	mdio {
+-		ethphy1: ethernet-phy@1 {
++		#address-cells = <1>;
++		#size-cells = <0>;
++		ethphy_t1_1: ethernet-phy@0 {
++			// trying med clause 22 instead of clause 45
+ 			compatible = "ethernet-phy-ieee802.3-c22";
+-			reg = <1>;
++			reg = <0>;
++			reset-gpios = <&gpio3 1 GPIO_ACTIVE_HIGH>;
+ 			at803x,eee-disabled;
+-			at803x,vddio-1p8v;
+ 			eee-broken-1000t;
++			reset-assert-us = <10000>;
++			reset-deassert-us = <20000>;
++			vddio-supply = <&vddio1>;
++
++			vddio1: vddio-regulator {
++				regulator-min-microvolt = <1800000>;
++				regulator-max-microvolt = <1800000>;
++			};
+ 		};
+ 	};
+ };
+ 
+-&fec {
+-	pinctrl-names = "default";
+-	pinctrl-0 = <&pinctrl_fec>;
+-	phy-mode = "rgmii";
+-	phy-handle = <&ethphy1>;
+-	phy-reset-gpios = <&pca6408_2 0 GPIO_ACTIVE_LOW>;
+-	phy-reset-duration = <10>;
+-	phy-reset-post-delay = <100>;
+-	status = "okay";
++/* Second Automotive Ethernet Marvell 88Q2110*/
++&eqos {
++	mdio {
++		ethernet-phy@0 {
++			// trying med clause 22 instead of clause 45
++			compatible = "ethernet-phy-ieee802.3-c22";
++			reg = <0>;
++		};
++	};
+ };
+-*/
+-
+ 
+ &i2c2 {
+ 	clock-frequency = <400000>;
+-- 
+2.30.2
+

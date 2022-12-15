@@ -35,6 +35,7 @@ PV = "5.15.63+git${SRCPV}"
 
 LINUXBRANCH = "5.15.x+fslc"
 SRCREV_linuxkernel = "577e58342355e7c3870948a6c3c2b5840cf694ea"
+SRCREV = "${SRCREV_linuxkernel}"
 
 DRIVERBRANCH = "kirkstone"
 SRCREV_FORMAT = "linuxkernel_hmcommercial"

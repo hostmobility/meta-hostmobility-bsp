@@ -38,7 +38,7 @@ SRCREV_linuxkernel = "577e58342355e7c3870948a6c3c2b5840cf694ea"
 
 DRIVERBRANCH = "kirkstone"
 SRCREV_FORMAT = "linuxkernel_hmcommercial"
-SRCREV_hmcommercial = "${AUTOREV}"
+SRCREV_hmcommercial = "6bb9cce9e762b44872966e2d65e403e213058131"
 
 LOCALVERSION = ""
 

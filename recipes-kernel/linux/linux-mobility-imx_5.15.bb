@@ -37,9 +37,9 @@ LINUXBRANCH = "5.15.x+fslc"
 SRCREV_linuxkernel = "577e58342355e7c3870948a6c3c2b5840cf694ea"
 SRCREV = "${SRCREV_linuxkernel}"
 
-DRIVERBRANCH = "kirkstone"
+DRIVERBRANCH = "main"
 SRCREV_FORMAT = "linuxkernel_hmcommercial"
-SRCREV_hmcommercial = "6bb9cce9e762b44872966e2d65e403e213058131"
+SRCREV_hmcommercial = "030c709b5b221de5de9993393c5746460fbabb46"
 
 LOCALVERSION = ""
 

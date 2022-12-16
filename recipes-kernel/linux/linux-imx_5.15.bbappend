@@ -3,9 +3,9 @@ FILESEXTRAPATHS:prepend := "${THISDIR}/linux-mobility-imx:"
 
 KERNEL_SRC = "git://github.com/nxp-imx/linux-imx.git;protocol=https;branch=${SRCBRANCH};name=linuxkernel"
 
-DRIVERBRANCH = "kirkstone"
+DRIVERBRANCH = "main"
 SRCREV_FORMAT = "linuxkernel_hmcommercial"
-SRCREV_hmcommercial = "6bb9cce9e762b44872966e2d65e403e213058131"
+SRCREV_hmcommercial = "030c709b5b221de5de9993393c5746460fbabb46"
 
 SRC_URI:append:mx5-pt= " \
     file://mxv_delta_imx_v7_defconfig.cfg \

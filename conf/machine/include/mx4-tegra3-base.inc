@@ -27,6 +27,8 @@ PREFERRED_PROVIDER_u-boot-fw-utils ?= "u-boot-hostmobility-fw-utils"
 SERIAL_CONSOLE = "115200 ttyS0"
 
 IMAGE_FSTYPES ?= "ext3"
+# Set ext3 partition arguments -b 4096 -g 32768 to allow faster reflashing of the system when using t30_hmupdate file in /boot on target machine.
+EXTRA_IMAGECMD:ext3 = "-b 4096 -g 32768 "
 
 BBMASK += "recipes-bsp/u-boot/u-boot-hostmobility_2019.04.bb"
 

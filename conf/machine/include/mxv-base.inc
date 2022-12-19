@@ -50,3 +50,5 @@ KERNEL_MODULE_AUTOLOAD += "cryptodev"
 # fix u-boot-fw-utils \ using libubootenv if we need fw_setenv?
 
 #BBMASK += "recipes-kernel/kernel-modules/kernel-module-imx-gpu-viv"
+
+BBMASK:imx-mainline-bsp = "meta-imx/meta-bsp/recipes-kernel/linux-firmware/linux-firmware_%.bbappend"

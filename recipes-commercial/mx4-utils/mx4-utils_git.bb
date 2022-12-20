@@ -27,7 +27,7 @@ do_install() {
     echo ${system_type} > ${D}/${sysconfdir}/platform-system-type
 
     echo ${BUILD_TAG} > ${D}/${sysconfdir}/platform-build-tag 
-    echo 2.0.x > ${D}/${sysconfdir}/platform-bsp-version
+    echo 2.1 > ${D}/${sysconfdir}/platform-bsp-version
     echo ${PLATFORM_VERSION} > ${D}/${sysconfdir}/platform-version
     echo "${PLATFORM_VERSION_DETAILS}" > ${D}/${sysconfdir}/platform-version-details
     echo "${DISTRO_CODENAME}" > ${D}/${sysconfdir}/platform-branch-name

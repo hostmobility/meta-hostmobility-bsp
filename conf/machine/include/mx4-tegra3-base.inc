@@ -68,3 +68,5 @@ MACHINE_EXTRA_RDEPENDS += " \
 CORE_IMAGE_EXTRA_INSTALL += " \
     kernel-module-pic \
 "
+
+BBMASK= "meta-imx/"

@@ -51,4 +51,4 @@ KERNEL_MODULE_AUTOLOAD += "cryptodev"
 
 #BBMASK += "recipes-kernel/kernel-modules/kernel-module-imx-gpu-viv"
 
-BBMASK:imx-mainline-bsp = "meta-imx/meta-bsp/recipes-kernel/linux-firmware/linux-firmware_%.bbappend"
+BBMASK:imx-mainline-bsp = "meta-imx/"

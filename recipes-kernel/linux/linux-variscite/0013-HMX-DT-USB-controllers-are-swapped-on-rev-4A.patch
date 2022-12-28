@@ -1,0 +1,64 @@
+From 8d2061a1ce51801ddf2723652964313079518b67 Mon Sep 17 00:00:00 2001
+From: Host Mobility Support <support@hostmobility.com>
+Date: Tue, 27 Dec 2022 10:06:08 +0100
+Subject: [PATCH] HMX DT: USB controllers are swapped on rev 4A
+
+---
+ .../boot/dts/freescale/imx8mp-var-dart-hmx1.dts      | 12 ++++++------
+ 1 file changed, 6 insertions(+), 6 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts b/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts
+index 496211fe2d74..ed20a2c76d8f 100644
+--- a/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts
++++ b/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts
+@@ -424,7 +424,7 @@ &uart3 {
+ 	status = "okay";
+ };
+ 
+-&usb3_phy1 {
++&usb3_phy0 {
+ 	fsl,phy-tx-vref-tune = <0xe>;
+ 	fsl,phy-tx-preemp-amp-tune = <3>;
+ 	fsl,phy-tx-vboost-level = <5>;
+@@ -434,11 +434,11 @@ &usb3_phy1 {
+ 	status = "okay";
+ };
+ 
+-&usb3_1 {
++&usb3_0 {
+ 	status = "okay";
+ };
+ 
+-&usb_dwc3_1 {
++&usb_dwc3_0 {
+ 	dr_mode = "otg";
+ 	hnp-disable;
+ 	srp-disable;
+@@ -456,13 +456,13 @@ usb3_drd_sw: endpoint {
+ 	};
+ };
+ 
+-&usb3_phy0 {
++&usb3_phy1 {
+ 	fsl,phy-tx-preemp-amp-tune = <3>;
+ 	fsl,phy-tx-vref-tune = <0xb>;
+ 	status = "okay";
+ };
+ 
+-&usb3_0 {
++&usb3_1 {
+ 	status = "okay";
+ 	lan9513i@1 {
+ 		compatible = "usb424,9514";
+@@ -510,7 +510,7 @@ usb_a_connector@4 {
+ 
+ };
+ 
+-&usb_dwc3_0 {
++&usb_dwc3_1 {
+ 	dr_mode = "host";
+ 	status = "okay";
+ };
+-- 
+2.30.2
+

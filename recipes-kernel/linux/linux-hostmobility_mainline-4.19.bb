@@ -81,7 +81,7 @@ DEPENDS:vf60 += "lzop-native bc-native u-boot-mkimage-native"
 
 
 # We use CONFIG_ARM_APPENDED_DTB=y and below shall take care of that
-do_deploy_append:vf60() {
+do_deploy:append:vf60() {
     cd ${B}
     cat ${KERNEL_OUTPUT_DIR}/zImage ${KERNEL_OUTPUT_DIR}/dts/${KERNEL_DEVICETREE} > combined-image
     mkimage -A arm -C none -a ${UBOOT_ENTRYPOINT} -e ${UBOOT_ENTRYPOINT} -T kernel -d combined-image ${KERNEL_OUTPUT_DIR}/uImage

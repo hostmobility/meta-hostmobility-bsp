@@ -1,7 +1,7 @@
 OpenEmbedded/Yocto BSP Layer for Host Mobility products
 
-This layer add our machine customization that include u-boot, drivers and linux kernels. 
-This layer support kirkstone poky. 
+This layer adds our custom machine configurations that include u-boot, drivers and Linux kernels. 
+It supports poky v4 (kirkstone).
 
 =====================================================================
 

@@ -6,7 +6,7 @@ include conf/machine/include/tune-cortexa5.inc
 MACHINEOVERRIDES =. "vf:vf50:vf60:vfcv61:"
 
 LINUX_VERSION_use-head-next = "4.19"
-PREFERRED_PROVIDER_virtual/kernel ?= "linux-hostmobility-vf"
+PREFERRED_PROVIDER_virtual/kernel ?= "linux-hostmobility"
 KERNEL_IMAGETYPE = "zImage"
 
 # We store kernel on seperate MTD partition so no need to deploy to rootfs.

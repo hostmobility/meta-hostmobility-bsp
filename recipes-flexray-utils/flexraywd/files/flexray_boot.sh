@@ -1,4 +1,5 @@
 #!/bin/bash
+WORKING_DIR="/opt/hm"
 
 FIRST_TIME_BOOT_FILE=/usr/bin/first_boot_after_update_flexray.txt
 NO_FLEXRAY_FILE=/etc/no_flexray_upgrade

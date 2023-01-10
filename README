@@ -1,41 +1,20 @@
-OpenEmbedded/Yocto BSP Layer for Host Mobility products based on COMs from Toradex 
+OpenEmbedded/Yocto BSP Layer for Host Mobility products
+
+This layer adds our custom machine configurations that include u-boot, drivers and Linux kernels. 
+It supports poky v4 (kirkstone).
+
 =====================================================================
 
 This layer provides support for:
 
-- MX-4 T20
-- MX-4 CT/GTT/VCC
-- MX-4 MIL
-- MX-4 V61/C61
+- MX-4 C61 (mx4-c61)
+- MX-4 T30 (mx4-t30) (both T30 and T30FR)
+- MX-V PT (mx5-pt)
+- HMX (soon to be introduced)
 
 For more information on available Host Moblity products please visit:
 
-http://hostmobility.com/index.php?pageId=557
-
-This layer is largely based on different Toradex meta layers.
-
-Dependencies
-============
-
-This layer depends on:
-
-  URI: git://git.openembedded.org/bitbake
-  branch: 1.32
-  revision: HEAD
-
-  URI: git://git.openembedded.org/openembedded-core
-  layers: meta
-  branch: master
-  revision: HEAD
-
-  URI: git://git.toradex.com/meta-toradex-tegra
-  layers: meta
-  branch: master
-  revision: HEAD
-
-  URI: git://git.toradex.com/meta-toradex-nxp
-  branch: master
-  revision: HEAD
+https://hostmobility.com
 
 Maintainer
 =======

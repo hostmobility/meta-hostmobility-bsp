@@ -3,7 +3,42 @@ WORKING_DIR="/opt/hm"
 
 FIRST_TIME_BOOT_FILE=/usr/bin/first_boot_after_update_flexray.txt
 NO_FLEXRAY_FILE=/etc/no_flexray_upgrade
-PREFIX=mx4-msg-flexray-update
+PREFIX=mx4-msg-flexray
+
+# start and restart flexraytimesync utility will syncronize the time in the MX4 with the time used in the FlexRay slave node for timestamping frames.
+function start_flexraytimesync()
+{
+
+	while true; do
+		logger -t ${PREFIX} "Start flexraytimesync"
+		/usr/bin/flexraytimesync
+		logger -t ${PREFIX} "Stopped flexraytimesync exit:$?"
+		sleep 1
+	done
+}
+# start and restart flexrayd demon for udp package to vflexray0.
+function start_flexrayd()
+{
+
+	while true; do
+		logger -t ${PREFIX} "Start flexrayd"
+		/usr/bin/flexrayd
+		logger -t ${PREFIX} "Stopped flexrayd exit:$?"
+		sleep 1
+	done
+}
+# abort script remove start programs.
+function Stop_script ()
+{
+	kill -0 "$flexraytimesync_PID"
+	if [[ $? == 0 ]]; then
+		kill -9 "$flexraytimesync_PID" &
+	fi
+	kill -0 "$flexrayd_PID"
+	if [[ $? == 0 ]]; then
+		kill -9 "$flexrayd_PID" &
+	fi
+}
 
 
 ## Flexray setup
@@ -85,5 +120,22 @@ if [ -f $FIRST_TIME_BOOT_FILE ]; then
 	fi
 
 fi
+
+
+#Start flexray programs
+
+trap Stop_script SIGINT
+
+start_flexraytimesync &
+flexraytimesync_PID=$!
+
+start_flexrayd &
+flexrayd_PID=$!
+
+/usr/bin/flexraywd
+echo flexraywd:$?
+
+
+
 
 exit 0

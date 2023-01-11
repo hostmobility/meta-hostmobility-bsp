@@ -12,4 +12,10 @@ echo 102 > /sys/class/gpio/unexport
 
 modprobe -r pps_gen_gpio
 
+
+#remove the virtual interface
+#ip link set vflexray0 down
+#ip link delete dev vflexray0
+#modprobe -r vflexray
+
 exit 0

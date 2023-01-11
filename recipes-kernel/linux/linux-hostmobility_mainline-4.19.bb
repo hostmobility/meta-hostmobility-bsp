@@ -35,7 +35,7 @@ MACHINE_PATCHES:tegra3 = " \
 MACHINE_PATCHES:vfcv61 = " \
     file://0001-add-device-tree-for-c61-v61.patch \
     file://0002-Add-support-on-USB-for-EG25-modem.patch \
-    file://defconfig \
+    file://vfcv61_delta_imx_v6_v7_defconfig.cfg \
 "
 
 SRC_URI = " \
@@ -69,6 +69,9 @@ config_script () {
 KCONFIG_MODE="--alldefconfig"
 
 KBUILD_DEFCONFIG ?= "${KERNEL_DEFCONFIG}"
+
+#unset KBUILD_DEFCONFIG
+DELTA_KERNEL_DEFCONFIG:vfcv61 = "vfcv61_delta_imx_v6_v7_defconfig.cfg"
 
 do_uboot_mkimage:prepend() {
     cd ${B}

@@ -20,6 +20,7 @@ S = "${WORKDIR}/linux-${PV}"
 
 GENERIC_PATCHES = " \
     file://0002-Add-support-on-USB-for-EG25-modem.patch \
+    file://0001-Update-rtc-pcf85063-from-upstream.patch \
 "
 MACHINE_PATCHES:mx4-hostcom = " \
     file://0001-add-hostcom-device-tree.patch \

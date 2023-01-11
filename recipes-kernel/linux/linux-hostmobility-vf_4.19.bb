@@ -6,6 +6,7 @@ LICENSE = "GPLv2"
 LIC_FILES_CHKSUM = "file://COPYING;md5=bbea815ee2795b2f4230826c0c6b8814"
 
 FILESEXTRAPATHS:prepend := "${THISDIR}/linux-mobility-imx:"
+FILESEXTRAPATHS:prepend := "${THISDIR}/linux-hostmobility-mainline-4.19:"
 
 inherit kernel siteinfo
 
@@ -22,15 +23,14 @@ GENERIC_PATCHES = " \
 "
 MACHINE_PATCHES:mx4-hostcom = " \
     file://0001-add-hostcom-device-tree.patch \
-    file://defconfig \
 "
 
 MACHINE_PATCHES:mx4-c61 = " \
     file://0001-add-device-tree-for-c61-v61.patch \
-    file://defconfig \
 "
 
 SRC_URI = " \
+    file://defconfig \
     https://cdn.kernel.org/pub/linux/kernel/v4.x/linux-${PV}.tar.xz \
     ${GENERIC_PATCHES} \
     ${MACHINE_PATCHES} \
@@ -61,6 +61,9 @@ config_script () {
 KCONFIG_MODE="--alldefconfig"
 
 KBUILD_DEFCONFIG ?= "${KERNEL_DEFCONFIG}"
+
+unset KBUILD_DEFCONFIG
+DELTA_KERNEL_DEFCONFIG = "vfcv61_delta_imx_v6_v7_defconfig.cfg"
 
 DEPENDS += "lzop-native bc-native u-boot-mkimage-native"
 

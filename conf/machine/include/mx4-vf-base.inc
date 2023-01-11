@@ -58,4 +58,4 @@ BBMASK += "recipes-bsp/u-boot/u-boot-hostmobility_2019.04.bb"
 BBMASK +=  "recipes-multimedia/gstreamer/"
 BBMASK +=  "recipes-core/fs-init/fs-init.bbappend"
 
-BBMASK:imx-mainline-bsp = "meta-imx/"
+BBMASK = "meta-imx/"

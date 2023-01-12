@@ -6,6 +6,7 @@ LICENSE = "GPLv2"
 LIC_FILES_CHKSUM = "file://COPYING;md5=bbea815ee2795b2f4230826c0c6b8814"
 
 FILESEXTRAPATHS:prepend := "${THISDIR}/linux-mobility-imx:"
+FILESEXTRAPATHS:prepend := "${THISDIR}/linux-hostmobility-mainline-4.19:"
 
 inherit kernel siteinfo
 
@@ -19,6 +20,7 @@ S = "${WORKDIR}/linux-${PV}"
 
 GENERIC_PATCHES = " \
     file://0002-Add-support-on-USB-for-EG25-modem.patch \
+    file://0003-Add-mx4_pic-and-can-xcvr-to-spidev.patch \
 "
 MACHINE_PATCHES:mx4-hostcom = " \
     file://0001-add-hostcom-device-tree.patch \

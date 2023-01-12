@@ -136,7 +136,7 @@ index 000000000000..a927c4ca3fd9
 +	mx4_io_spi: dspi@0 {
 +		compatible = "mx4_io_spi";
 +		reg = <0>;
-+		spi-max-frequency = <8000000>;
++		spi-max-frequency = <3000000>;
 +		pinctrl-names = "default";
 +		pinctrl-0 = <&pinctrl_mx4_io_int>;
 +		interrupt-parent = <&gpio0>;
@@ -146,7 +146,7 @@ index 000000000000..a927c4ca3fd9
 +	};
 +
 +	mx4_pic: dspi@1 {
-+		compatible = "toradex,evalspi";
++		compatible = "hostmobility,mx4_pic";
 +		reg = <1>;
 +		spi-max-frequency = <50000000>;
 +	};

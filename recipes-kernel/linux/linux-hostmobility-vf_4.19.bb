@@ -11,7 +11,7 @@ FILESEXTRAPATHS:prepend := "${THISDIR}/linux-hostmobility-mainline-4.19:"
 inherit kernel siteinfo
 
 COMPATIBLE_MACHINE = "(mx4-c61|mx4-hostcom)"
-LINUX_VERSION ?= "4.19.66"
+LINUX_VERSION ?= "4.19.270"
 
 LOCALVERSION = "-${PR}"
 
@@ -37,8 +37,8 @@ SRC_URI = " \
     ${GENERIC_PATCHES} \
     ${MACHINE_PATCHES} \
 "
-SRC_URI[md5sum] = "025c07e37cb89afa2b26bb4850ce7fa2"
-SRC_URI[sha256sum] = "c981abe15c4b9496cdadb04e4f4afb88b3a78f31ced8d07684ee9c58b3fadb64"
+SRC_URI[md5sum] = "28019f0595ded76ba53d2f4790ce2f7e"
+SRC_URI[sha256sum] = "2144843abc8e3ea2ae53bc1c76b73c033ac4eedb004125762a368fd3a60ed292"
 
 # For CI use one could use the following instead (plus patches still of course)
 LINUX_VERSION_use-head-next ?= "4.19"

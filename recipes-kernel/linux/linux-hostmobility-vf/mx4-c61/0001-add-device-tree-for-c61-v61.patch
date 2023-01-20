@@ -525,7 +525,7 @@ index 000000000000..8ba4c6131342
 +};
 +
 +&usbdev0 {
-+	dr_mode = "otg";
++	dr_mode = "host"; //should be otg but for mainline 4.19.270 it still not work like it should. Set this line to 'peripheral' will give you suport for USB rndis with a USBA-to-USBA cable.
 +	disable-over-current;
 +	status = "okay";
 +};

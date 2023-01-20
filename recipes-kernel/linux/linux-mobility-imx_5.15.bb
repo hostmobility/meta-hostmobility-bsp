@@ -19,8 +19,6 @@ MACHINE_PATCHES:mx5-pt= " \
     git://git@github.com/hostmobility/hm-commercial.git;name=hmcommercial;branch=${DRIVERBRANCH};subpath=drivers;protocol=ssh;destsuffix=git/drivers \
     file://0006-Add-device-tree-for-mx5-pt.patch \
     file://0007-imx6qdl-mx-v-hdmi-display-dtsi-file-for-mainline-linux.patch \
-    file://0001-Revert-usbnet-smsc95xx-Fix-deadlock-on-runtime-resum.patch \
-    file://0002-Revert-usbnet-smsc95xx-Forward-PHY-interrupts-to-PHY.patch \
 "
 
 SRC_URI = "git://github.com/Freescale/linux-fslc.git;name=linuxkernel;branch=${LINUXBRANCH};protocol=https;nocheckout=1  \
@@ -31,10 +29,10 @@ SRC_URI = "git://github.com/Freescale/linux-fslc.git;name=linuxkernel;branch=${L
 
 LIC_FILES_CHKSUM = "file://COPYING;md5=6bc538ed5bd9a7fc9398086aedcd7e46"
 
-PV = "5.15.63+git${SRCPV}"
+PV = "5.15.86+git${SRCPV}"
 
 LINUXBRANCH = "5.15.x+fslc"
-SRCREV_linuxkernel = "577e58342355e7c3870948a6c3c2b5840cf694ea"
+SRCREV_linuxkernel = "a86fe5cb4fe96228e358108d0ed91d2c49bce097"
 SRCREV = "${SRCREV_linuxkernel}"
 
 DRIVERBRANCH = "main"

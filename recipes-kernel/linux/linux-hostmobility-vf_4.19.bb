@@ -11,7 +11,7 @@ FILESEXTRAPATHS:prepend := "${THISDIR}/linux-hostmobility-mainline-4.19:"
 inherit kernel siteinfo
 
 COMPATIBLE_MACHINE = "(mx4-c61|mx4-hostcom)"
-LINUX_VERSION ?= "4.19.66"
+LINUX_VERSION ?= "4.19.270"
 
 LOCALVERSION = "-${PR}"
 
@@ -21,6 +21,7 @@ S = "${WORKDIR}/linux-${PV}"
 GENERIC_PATCHES = " \
     file://0002-Add-support-on-USB-for-EG25-modem.patch \
     file://0003-Add-mx4_pic-and-can-xcvr-to-spidev.patch \
+    file://0001-Update-rtc-pcf85063-from-upstream.patch \
 "
 MACHINE_PATCHES:mx4-hostcom = " \
     file://0001-add-hostcom-device-tree.patch \
@@ -37,8 +38,8 @@ SRC_URI = " \
     ${GENERIC_PATCHES} \
     ${MACHINE_PATCHES} \
 "
-SRC_URI[md5sum] = "025c07e37cb89afa2b26bb4850ce7fa2"
-SRC_URI[sha256sum] = "c981abe15c4b9496cdadb04e4f4afb88b3a78f31ced8d07684ee9c58b3fadb64"
+SRC_URI[md5sum] = "28019f0595ded76ba53d2f4790ce2f7e"
+SRC_URI[sha256sum] = "2144843abc8e3ea2ae53bc1c76b73c033ac4eedb004125762a368fd3a60ed292"
 
 # For CI use one could use the following instead (plus patches still of course)
 LINUX_VERSION_use-head-next ?= "4.19"

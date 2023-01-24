@@ -3,7 +3,6 @@ PREFERRED_PROVIDER_j1708-test = "j1708-test_1.0.6"
 
 MACHINE_EXTRA_RDEPENDS_append = " \
     kernel-modules \
-    u-boot-hostmobility-fw-utils \
     ${@bb.utils.contains('LICENSE_FLAGS_WHITELIST', 'commercial', \
                           'packagegroup-hostmobility-commercial', '', d)} \
     ${@bb.utils.contains('MACHINE_FEATURES', 'wifi', \

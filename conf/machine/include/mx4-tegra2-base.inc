@@ -17,3 +17,6 @@ DEFAULTTUNE = "armv7athf"
 TUNE_CCARGS += "-mfpu=vfpv3-d16"
 require conf/machine/include/tune-cortexa9.inc
 
+# Install NV binaries which contains tegra X-Server drivers when X11 is chosen
+MACHINE_EXTRA_RRECOMMENDS_append_tegra = " ${@bb.utils.contains('DISTRO_FEATURES', 'x11', 'tdx-nv-binaries', '', d)}"
+

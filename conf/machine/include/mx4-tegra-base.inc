@@ -23,9 +23,10 @@ KERNEL_IMAGETYPE = "uImage"
 # The kernel lives in a seperate FAT or UBI partition, don't deploy it in /boot
 RDEPENDS_${KERNEL_PACKAGE_NAME}-base = ""
 
+#Disable uboot for now!
 PREFERRED_PROVIDER_u-boot = "u-boot-hostmobility"
 PREFERRED_PROVIDER_virtual/bootloader = "u-boot-hostmobility"
-PREFERRED_PROVIDER_u-boot-fw-utils ?= "u-boot-hostmobility-fw-utils"
+#PREFERRED_PROVIDER_u-boot-fw-utils ?= "u-boot-hostmobility-fw-utils"
 
 PREFERRED_PROVIDER_lxde-icon-theme = "lxde-icon-theme"
 PREFERRED_PROVIDER_lxsession-lite = "lxsession"
@@ -34,6 +35,7 @@ PREFERRED_PROVIDER_psplash-support = "psplash-angstrom"
 
 PREFERRED_PROVIDER_virtual/mesa = "mesa"
 PREFERRED_PROVIDER_virtual/egl = "tdx-nv-binaries"
+PREFERRED_PROVIDER_virtual/libgl = "mesa"
 PREFERRED_PROVIDER_virtual/libgles1 = "tdx-nv-binaries"
 PREFERRED_PROVIDER_virtual/libgles2 = "tdx-nv-binaries"
 
@@ -46,3 +48,6 @@ SERIAL_CONSOLE = "115200 ttyS0"
 IMAGE_FSTYPES ?= "tar.xz"
 
 BBMASK += "recipes-bsp/u-boot/u-boot-hostmobility_2019.04.bb"
+
+PREFERRED_PROVIDER_j1708-lib = "j1708-lib_1.0.6"
+PREFERRED_PROVIDER_j1708-test = "j1708-test_1.0.6"

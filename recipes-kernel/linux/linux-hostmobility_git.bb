@@ -10,7 +10,7 @@ S = "${WORKDIR}/git"
 LOCALVERSION = "-${SRCBRANCH}"
 SRC_URI = "git://github.com/hostmobility/linux-toradex.git;protocol=https;branch=${SRCBRANCH}"
 SRCBRANCH = "mx4-bsp-2.0.x-tegra"
-SRCREV = "3a869dc23850b9fd50c0d552d0e5ee4e4093f13e"
+SRCREV = "9c621a006153482730d5d4577d747432bc100e03"
 
 COMPATIBLE_MACHINE = "(mx4-t30|mx4-t20|mx4-ct|mx4-vcc|mx4-gtt|mx4-mil)"
 

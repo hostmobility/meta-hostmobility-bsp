@@ -12,7 +12,7 @@ file://0009-Fix-tcan114x_mode_store-for-sleep-standby.patch \
 file://0010-HMX-DT-Set-wakeup-source-on-flexcan.patch \
 file://0012-HMX-DT-Setup-T1-phys.patch \
 file://0013-HMX-DT-USB-controllers-are-swapped-on-rev-4A.patch \
-file://0014-HMX-DT-fixed-T1-phy-100Mbps-workaround.patch   \
+file://0015-HMX-DT-Fixed-T1-PHYs-on-1Gbps.patch \
 "
 # file://0011-Add-control-for-selective-wakeup.patch
 

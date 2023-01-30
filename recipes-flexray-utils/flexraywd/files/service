@@ -7,8 +7,7 @@ After=sys-subsystem-net-devices-eth2.device
 Type=simple
 Restart=always
 RestartSec=1
-ExecStartPre=/usr/bin/flexray_boot.sh
-ExecStart=/usr/bin/flexraywd
+ExecStart=/usr/bin/flexray_boot.sh
 ExecStop=/usr/bin/flexray_shutdown.sh
 
 [Install]

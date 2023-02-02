@@ -15,6 +15,8 @@ v1.  Files merged to single file.
 
 v2. Add HMX eeprom BR24G04NUX. Pulldown on T1 phys wake.
 	Appears in sys/bus/i2c/devices/1-0054/eeprom
+
+v3. Set pinctrl for USB_UPGRADE_BUTTON
 ---
  arch/arm64/boot/dts/freescale/Makefile        |    2 +
  .../dts/freescale/imx8mp-var-dart-hmx1.dts    | 1098 +++++++++++++++++
@@ -36,7 +38,7 @@ new file mode 100644
 index 000000000000..ef4edecb9557
 --- /dev/null
 +++ b/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts
-@@ -0,0 +1,1098 @@
+@@ -0,0 +1,1099 @@
 +// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 +/*
 + * Copyright 2022 Host Mobility AB
@@ -730,6 +732,7 @@ index 000000000000..ef4edecb9557
 +
 +			MX8MP_IOMUXC_GPIO1_IO14__GPIO1_IO14	0x0
 +			MX8MP_IOMUXC_NAND_DATA02__GPIO3_IO08	PE_1_PULL_ENABLE 
++			MX8MP_IOMUXC_NAND_ALE__GPIO3_IO00	0x0 /* USB_UPGRADE_BUTTON */
 +
 +		>;
 +	};

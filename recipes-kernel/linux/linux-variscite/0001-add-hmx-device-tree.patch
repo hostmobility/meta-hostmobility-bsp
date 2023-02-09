@@ -700,7 +700,7 @@ index 000000000000..ef4edecb9557
 +   8.2.4.205 SW_PAD_CTL_PAD_NAND_CE0_B SW PAD Control
 +   Register (IOMUXC_SW_PAD_CTL_PAD_NAND_CE0_B) */
 +
-+#define PE_0_PULL_DISABLE (1<<8)
++#define PE_0_PULL_DISABLE (0<<8)
 +#define PE_1_PULL_ENABLE (1<<8)
 +#define HYS_0_CMOS (0<<7)
 +#define HYS_1_SCHMITT (1<<7)
@@ -805,7 +805,7 @@ index 000000000000..ef4edecb9557
 +	};
 +	pinctrl_usdhc2_gpio: usdhc2grp-gpio {
 +		fsl,pins = <
-+			MX8MP_IOMUXC_SD2_CD_B__GPIO2_IO12 				0x1c4
++			MX8MP_IOMUXC_SD2_CD_B__GPIO2_IO12 				(DSE_X2 | HYS_1_SCHMITT | PE_0_PULL_DISABLE)
 +			MX8MP_IOMUXC_SD2_RESET_B__GPIO2_IO19				0x40
 +		>;
 +	};

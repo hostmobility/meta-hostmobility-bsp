@@ -17,6 +17,10 @@ v2. Add HMX eeprom BR24G04NUX. Pulldown on T1 phys wake.
 	Appears in sys/bus/i2c/devices/1-0054/eeprom
 
 v3. Set pinctrl for USB_UPGRADE_BUTTON
+
+v4. Disable pull-up on SD-card Card Detect
+
+v5. Disable sound(sai3) since pins are used for other functions
 ---
  arch/arm64/boot/dts/freescale/Makefile        |    2 +
  .../dts/freescale/imx8mp-var-dart-hmx1.dts    | 1098 +++++++++++++++++
@@ -38,7 +42,7 @@ new file mode 100644
 index 000000000000..ef4edecb9557
 --- /dev/null
 +++ b/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts
-@@ -0,0 +1,1099 @@
+@@ -0,0 +1,1104 @@
 +// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 +/*
 + * Copyright 2022 Host Mobility AB
@@ -694,6 +698,11 @@ index 000000000000..ef4edecb9557
 +/* BT disabled since we use GPIO5_IO13 for 5V_nDROP_OUT*/
 +&uart4 {
 +       status = "disabled";
++};
++
++/* Disable sound since pins are used by accelerometer and HSM */
++&sai3 {
++	status = "disabled";
 +};
 +
 +/* From i.MX 8M Plus Applications Processor Reference Manual

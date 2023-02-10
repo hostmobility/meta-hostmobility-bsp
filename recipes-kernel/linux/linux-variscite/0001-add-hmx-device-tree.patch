@@ -21,6 +21,8 @@ v3. Set pinctrl for USB_UPGRADE_BUTTON
 v4. Disable pull-up on SD-card Card Detect
 
 v5. Disable sound(sai3) since pins are used for other functions
+
+v6. Set tcan4x5x rx-fifo to 24 messages to fit info m_can message RAM.
 ---
  arch/arm64/boot/dts/freescale/Makefile        |    2 +
  .../dts/freescale/imx8mp-var-dart-hmx1.dts    | 1098 +++++++++++++++++
@@ -629,7 +631,7 @@ index 000000000000..ef4edecb9557
 +		#size-cells = <1>;
 +		spi-max-frequency = <18000000>;
 +		clocks = <&can3_osc>;
-+		bosch,mram-cfg = <0x0 0 0 32 0 0 1 1>;
++		bosch,mram-cfg = <0x0 0 0 24 0 0 1 1>;
 +		interrupt-parent = <&gpio4>;
 +		clock-names = "cclk";
 +		interrupts = <27 IRQ_TYPE_LEVEL_LOW>;
@@ -641,7 +643,7 @@ index 000000000000..ef4edecb9557
 +		reg = <3>;
 +		#address-cells = <1>;
 +		#size-cells = <1>;
-+		bosch,mram-cfg = <0x0 0 0 32 0 0 1 1>;
++		bosch,mram-cfg = <0x0 0 0 24 0 0 1 1>;
 +		interrupt-parent = <&gpio4>;
 +		clock-names = "cclk";
 +		clocks = <&can5_osc>;
@@ -667,7 +669,7 @@ index 000000000000..ef4edecb9557
 +		spi-max-frequency = <18000000>;
 +		clock-names = "cclk";
 +		clocks = <&can0_osc>;
-+		bosch,mram-cfg = <0x0 0 0 32 0 0 1 1>;
++		bosch,mram-cfg = <0x0 0 0 24 0 0 1 1>;
 +		interrupt-parent = <&gpio4>;
 +		interrupts = <24 IRQ_TYPE_LEVEL_LOW>;
 +		device-wake-gpios = <&gpio5 28 GPIO_ACTIVE_HIGH>;
@@ -683,7 +685,7 @@ index 000000000000..ef4edecb9557
 +		spi-max-frequency = <18000000>;
 +		clock-names = "cclk";
 +		clocks = <&can4_osc>;
-+		bosch,mram-cfg = <0x0 0 0 32 0 0 1 1>;
++		bosch,mram-cfg = <0x0 0 0 24 0 0 1 1>;
 +		interrupt-parent = <&gpio4>;
 +		interrupts = <23 IRQ_TYPE_LEVEL_LOW>;
 +		status = "okay";

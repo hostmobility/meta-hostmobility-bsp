@@ -623,7 +623,7 @@ index 000000000000..ef4edecb9557
 +		spi-max-frequency = <3000000>;
 +		status = "okay";
 +	};
-+	/* CAN-FD controller 4 in schematics */
++	/* CAN-FD controller 5 in schematics */
 +	can3: tcan4x5x@2 {
 +		compatible = "ti,tcan4x5x";
 +		reg = <2>;
@@ -634,7 +634,7 @@ index 000000000000..ef4edecb9557
 +		bosch,mram-cfg = <0x0 0 0 24 0 0 1 1>;
 +		interrupt-parent = <&gpio4>;
 +		clock-names = "cclk";
-+		interrupts = <27 IRQ_TYPE_LEVEL_LOW>;
++		interrupts = <23 IRQ_TYPE_LEVEL_LOW>;
 +		status = "okay";
 +	};
 +	/* CAN-FD controller 6 in schematics */
@@ -648,7 +648,7 @@ index 000000000000..ef4edecb9557
 +		clock-names = "cclk";
 +		clocks = <&can5_osc>;
 +		/* TODO: Should this the IRQ_TYPE_LEVEL_LOW? */
-+		interrupts = <26 IRQ_TYPE_EDGE_FALLING>;
++		interrupts = <26 IRQ_TYPE_LEVEL_LOW>;
 +		spi-max-frequency = <18000000>;
 +	};
 +};
@@ -676,7 +676,7 @@ index 000000000000..ef4edecb9557
 +		reset-gpios = <&gpio5 29 GPIO_ACTIVE_HIGH>;
 +		status = "okay";
 +	};
-+	/* CAN-FD controller 5 in schematics */
++	/* CAN-FD controller 4 in schematics */
 +	can4: tcan4x5x@1 {
 +		compatible = "ti,tcan4x5x";
 +		reg = <1>;
@@ -687,7 +687,7 @@ index 000000000000..ef4edecb9557
 +		clocks = <&can4_osc>;
 +		bosch,mram-cfg = <0x0 0 0 24 0 0 1 1>;
 +		interrupt-parent = <&gpio4>;
-+		interrupts = <23 IRQ_TYPE_LEVEL_LOW>;
++		interrupts = <27 IRQ_TYPE_LEVEL_LOW>;
 +		status = "okay";
 +	};
 +};

@@ -1,61 +1,22 @@
-From 13fa6d3bf21bc6463413c0f85e009d16eb58ed66 Mon Sep 17 00:00:00 2001
-From: Mattias Busck <mattias.busck@hostmobility.com>
-Date: Wed, 28 Sep 2022 21:19:37 +0200
-Subject: [PATCH] Add-hmx1-device-tree-for-u-boot
+From fe13b93afce8d96b37a3a4618384d054f1e354cb Mon Sep 17 00:00:00 2001
+From: rikardo <rikard.olander@hostmobility.com>
+Date: Wed, 22 Feb 2023 07:28:59 +0000
+Subject: [PATCH 1/4] Add-hmx1-device-tree-for-u-boot
 
+v1.
+Change serial console
+ port to uart3 Disable fec
+
+ v2.
+ Fix so usb hubs is actived on boot. Add eeprom
+ support.
+ Fix so sdcard can be detected (change pinctrl)
 ---
- ...ar-dart-dt8mcustomboard-legacy-u-boot.dtsi |  7 +-
- ...mx8mp-var-dart-dt8mcustomboard-u-boot.dtsi |  4 +-
- .../dts/imx8mp-var-dart-dt8mcustomboard.dts   | 66 ++++---------------
- .../imx8mp_var_dart/imx8mp_var_dart.c         |  7 +-
- include/configs/imx8mp_var_dart.h             |  4 +-
- 5 files changed, 26 insertions(+), 62 deletions(-)
+ .../dts/imx8mp-var-dart-dt8mcustomboard.dts   | 103 +++++++++++-------
+ 1 file changed, 62 insertions(+), 41 deletions(-)
 
-diff --git a/arch/arm/dts/imx8mp-var-dart-dt8mcustomboard-legacy-u-boot.dtsi b/arch/arm/dts/imx8mp-var-dart-dt8mcustomboard-legacy-u-boot.dtsi
-index ad8f4fec1f..5e9cacdb8c 100644
---- a/arch/arm/dts/imx8mp-var-dart-dt8mcustomboard-legacy-u-boot.dtsi
-+++ b/arch/arm/dts/imx8mp-var-dart-dt8mcustomboard-legacy-u-boot.dtsi
-@@ -1,16 +1,17 @@
- // SPDX-License-Identifier: GPL-2.0+
- /*
-  * Copyright 2019 NXP
-- * Copyright 2020-2022 Variscite Ltd.
-+ * Copyright 2020-2021 Variscite Ltd.
-+ * Copyright 2022 Host Mobility.
-  */
- 
- #include "imx8mp-var-common-u-boot.dtsi"
- 
--&uart1 {
-+&uart3 {
- 	u-boot,dm-spl;
- };
- 
--&pinctrl_uart1 {
-+&pinctrl_uart3 {
- 	u-boot,dm-spl;
- };
- 
-diff --git a/arch/arm/dts/imx8mp-var-dart-dt8mcustomboard-u-boot.dtsi b/arch/arm/dts/imx8mp-var-dart-dt8mcustomboard-u-boot.dtsi
-index b581b8f76d..c009060b0e 100644
---- a/arch/arm/dts/imx8mp-var-dart-dt8mcustomboard-u-boot.dtsi
-+++ b/arch/arm/dts/imx8mp-var-dart-dt8mcustomboard-u-boot.dtsi
-@@ -6,11 +6,11 @@
- 
- #include "imx8mp-var-common-u-boot.dtsi"
- 
--&uart1 {
-+&uart3 {
- 	u-boot,dm-spl;
- };
- 
--&pinctrl_uart1 {
-+&pinctrl_uart3 {
- 	u-boot,dm-spl;
- };
- 
 diff --git a/arch/arm/dts/imx8mp-var-dart-dt8mcustomboard.dts b/arch/arm/dts/imx8mp-var-dart-dt8mcustomboard.dts
-index 1d683d9344..a278a6d148 100644
+index 1d683d9344..9ee25a53df 100644
 --- a/arch/arm/dts/imx8mp-var-dart-dt8mcustomboard.dts
 +++ b/arch/arm/dts/imx8mp-var-dart-dt8mcustomboard.dts
 @@ -2,20 +2,16 @@
@@ -82,9 +43,20 @@ index 1d683d9344..a278a6d148 100644
  	};
  
  	memory@40000000 {
-@@ -38,9 +34,9 @@
+@@ -37,10 +33,20 @@
+ 		off-on-delay-us = <12000>;
  	};
  };
++&gpio1 {
++	usbhubs_pwr_hog {
++		gpio-hog;
++		gpios = <12 GPIO_ACTIVE_HIGH>;
++		output-high;
++		line-name = "usbhubs_pwr_hog";
++		pinctrl-0 = <&pinctrl_usbhubs>;
++		pinctrl-names = "default";
++	};
++};
  
 -&uart1 {
 +&uart3 {
@@ -94,32 +66,19 @@ index 1d683d9344..a278a6d148 100644
  	status = "okay";
  };
  
-@@ -52,6 +48,7 @@
- 	scl-gpios = <&gpio5 16 GPIO_ACTIVE_HIGH>;
- 	sda-gpios = <&gpio5 17 GPIO_ACTIVE_HIGH>;
- 	status = "okay";
-+	/* TODO gpio-expander, rtc, temp sensor, check Linux device tree */
- 
- 	ptn5150: ptn5150@3d {
- 		compatible = "nxp,ptn5150";
-@@ -62,16 +59,6 @@
+@@ -60,6 +66,11 @@
+ 		i2c-bus = <0x1>;
+ 		status = "okay";
  	};
++	BR24G04NUX: eeprom@54 {
++		compatible = "atmel,24c04";
++		reg = <0x54>;
++		status = "okay";
++	};
  };
  
--&i2c3 {
--	clock-frequency = <100000>;
--	pinctrl-names = "default", "gpio";
--	pinctrl-0 = <&pinctrl_i2c3>;
--	pinctrl-1 = <&pinctrl_i2c3_gpio>;
--	scl-gpios = <&gpio5 18 GPIO_ACTIVE_HIGH>;
--	sda-gpios = <&gpio5 19 GPIO_ACTIVE_HIGH>;
--	status = "okay";
--};
--
- &i2c4 {
- 	clock-frequency = <100000>;
- 	pinctrl-names = "default", "gpio";
-@@ -80,27 +67,8 @@
+ &i2c3 {
+@@ -80,27 +91,7 @@
  	scl-gpios = <&gpio5 20 GPIO_ACTIVE_HIGH>;
  	sda-gpios = <&gpio5 21 GPIO_ACTIVE_HIGH>;
  	status = "okay";
@@ -145,104 +104,106 @@ index 1d683d9344..a278a6d148 100644
 -		};
 -	};
 +	
-+	/* TODO accelerometer, hsm, adapt from  Linux device tree*/
  };
  
  &usb3_phy0 {
-@@ -155,15 +123,16 @@
- 	};
+@@ -144,26 +135,27 @@
  };
  
-+/* TODO and phy and set to ok */
+ &eqos {
+-	mdio {
+-		ethphy1: ethernet-phy@1 {
+-			compatible = "ethernet-phy-ieee802.3-c22";
+-			reg = <1>;
+-			at803x,eee-disabled;
+-			at803x,vddio-1p8v;
+-			eee-broken-1000t;
+-		};
+-	};
++	status = "okay";
+ };
+ 
++
  &fec {
  	pinctrl-names = "default";
  	pinctrl-0 = <&pinctrl_fec>;
  	phy-mode = "rgmii";
  	phy-handle = <&ethphy1>;
 -	phy-reset-gpios = <&pca6408_2 0 GPIO_ACTIVE_LOW>;
-+	//TODO: phy-reset-gpios = <&pca6408_2 0 GPIO_ACTIVE_LOW>;
  	phy-reset-duration = <10>;
  	phy-reset-post-delay = <20>;
--	status = "okay";
-+	status = "disabled";
+ 	status = "okay";
++	mdio {
++		ethphy1: ethernet-phy@1 {
++			compatible = "ethernet-phy-ieee802.3-c22";
++			reg = <1>;
++			at803x,eee-disabled;
++			at803x,vddio-1p8v;
++			eee-broken-1000t;
++		};
++	};
  };
  
  &usdhc2 {
-@@ -179,10 +148,10 @@
+@@ -178,6 +170,21 @@
+ 	status = "okay";
  };
  
++#define PE_0_PULL_DISABLE (0<<8)
++#define PE_1_PULL_ENABLE (1<<8)
++#define HYS_0_CMOS (0<<7)
++#define HYS_1_SCHMITT (1<<7)
++#define PUE_0_WEAK_PULL_DOWN (0<<6)
++#define PUE_1_WEAK_PULL_UP (1<<6)
++#define ODE_0_OPEN_DRAIN_DISABLE (0<<5)
++#define ODE_1_OPEN_DRAIN_ENABLE (1<<5)
++#define FSEL_0_SLOW_SLEW_RATE (0<<4)
++#define FSEL_1_FAST_SLEW_RATE (1<<4)
++#define DSE_X1 (0<<1)
++#define DSE_X2 (2<<1)
++#define DSE_X4 (1<<1)
++#define DSE_X6 (3<<1)
++
  &iomuxc {
--	pinctrl_uart1: uart1grp {
-+	pinctrl_uart3: uart3grp {
+ 	pinctrl_uart1: uart1grp {
  		fsl,pins = <
--			MX8MP_IOMUXC_UART1_RXD__UART1_DCE_RX				0x40
--			MX8MP_IOMUXC_UART1_TXD__UART1_DCE_TX				0x40
+@@ -186,6 +193,13 @@
+ 		>;
+ 	};
+ 
++	pinctrl_uart3: uart3grp {
++		fsl,pins = <
 +			MX8MP_IOMUXC_UART3_RXD__UART3_DCE_RX				0x40
 +			MX8MP_IOMUXC_UART3_TXD__UART3_DCE_TX				0x40
- 		>;
- 	};
- 
-@@ -193,13 +162,6 @@
- 		>;
- 	};
- 
--	pinctrl_i2c3: i2c3grp {
--		fsl,pins = <
--			MX8MP_IOMUXC_I2C3_SCL__I2C3_SCL					0x400001c2
--			MX8MP_IOMUXC_I2C3_SDA__I2C3_SDA					0x400001c2
--		>;
--	};
--
- 	pinctrl_i2c4: i2c4grp {
++		>;
++	};
++
+ 	pinctrl_i2c2: i2c2grp {
  		fsl,pins = <
- 			MX8MP_IOMUXC_I2C4_SCL__I2C4_SCL					0x400001c2
-diff --git a/board/variscite/imx8mp_var_dart/imx8mp_var_dart.c b/board/variscite/imx8mp_var_dart/imx8mp_var_dart.c
-index e1a1215536..74d0b5da99 100644
---- a/board/variscite/imx8mp_var_dart/imx8mp_var_dart.c
-+++ b/board/variscite/imx8mp_var_dart/imx8mp_var_dart.c
-@@ -38,8 +38,8 @@ DECLARE_GLOBAL_DATA_PTR;
- #define GPIO_PAD_CTRL	(PAD_CTL_DSE1 | PAD_CTL_PUE | PAD_CTL_PE  | PAD_CTL_HYS)
+ 			MX8MP_IOMUXC_I2C2_SCL__I2C2_SCL					0x400001c2
+@@ -228,6 +242,13 @@
+ 		>;
+ 	};
  
- static iomux_v3_cfg_t const uart_pads_dart[] = {
--	MX8MP_PAD_UART1_RXD__UART1_DCE_RX | MUX_PAD_CTRL(UART_PAD_CTRL),
--	MX8MP_PAD_UART1_TXD__UART1_DCE_TX | MUX_PAD_CTRL(UART_PAD_CTRL),
-+	MX8MP_PAD_UART3_RXD__UART3_DCE_RX | MUX_PAD_CTRL(UART_PAD_CTRL),
-+	MX8MP_PAD_UART3_TXD__UART3_DCE_TX | MUX_PAD_CTRL(UART_PAD_CTRL),
- };
++	/* 0x146 == pull up, drive strength = 6 */
++	pinctrl_usbhubs: usbhubsgrp {
++		fsl,pins = <
++			MX8MP_IOMUXC_GPIO1_IO12__GPIO1_IO12 				0x146
++		>;
++	};
++
+ 	pinctrl_reg_usdhc2_vmmc: regusdhc2vmmc {
+ 		fsl,pins = <
+ 			MX8MP_IOMUXC_SD2_RESET_B__GPIO2_IO19				0x40
+@@ -272,7 +293,7 @@
  
- static iomux_v3_cfg_t const uart_pads_som[] = {
-@@ -99,7 +99,8 @@ int board_early_init_f(void)
- 	if (board_id == BOARD_ID_DART) {
- 		imx_iomux_v3_setup_multiple_pads(uart_pads_dart,
- 			ARRAY_SIZE(uart_pads_dart));
--		init_uart_clk(0);
-+		/* Init clock for HMX on UART3, also in CONFIG_MXC_UART_BASE */
-+		init_uart_clk(2);
- 	}
- 	else if (board_id == BOARD_ID_SOM) {
- 		imx_iomux_v3_setup_multiple_pads(uart_pads_som,
-diff --git a/include/configs/imx8mp_var_dart.h b/include/configs/imx8mp_var_dart.h
-index cf725dde22..aaf2c79039 100644
---- a/include/configs/imx8mp_var_dart.h
-+++ b/include/configs/imx8mp_var_dart.h
-@@ -83,7 +83,7 @@
- 	"image=Image.gz\0" \
- 	"img_addr=0x42000000\0" \
- 	"splashimage=0x50000000\0" \
--	"console=ttymxc0,115200\0" \
-+	"console=ttymxc2,115200\0" \
- 	"fdt_addr_r=0x43000000\0" \
- 	"fdt_addr=0x43000000\0"			\
- 	"fdt_high=0xffffffffffffffff\0"		\
-@@ -213,7 +213,7 @@
- #define PHYS_SDRAM			0x40000000
- #define DEFAULT_SDRAM_SIZE		(512 * SZ_1M)
+ 	pinctrl_usdhc2_gpio: usdhc2gpiogrp {
+ 		fsl,pins = <
+-			MX8MP_IOMUXC_SD2_CD_B__GPIO2_IO12				0x1c4
++			MX8MP_IOMUXC_SD2_CD_B__GPIO2_IO12				(DSE_X2 | HYS_1_SCHMITT | PE_0_PULL_DISABLE)
+ 		>;
+ 	};
  
--#define CONFIG_MXC_UART_BASE		UART1_BASE_ADDR
-+#define CONFIG_MXC_UART_BASE		UART3_BASE_ADDR
- 
- /* Monitor Command Prompt */
- #define CONFIG_SYS_PROMPT_HUSH_PS2	"> "
 -- 
-2.30.2
+2.17.1
 

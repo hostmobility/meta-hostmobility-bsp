@@ -1,0 +1,252 @@
+From 5432c08f7f3cc4134471d6bf2b3847503670aeb5 Mon Sep 17 00:00:00 2001
+From: rikardo <rikard.olander@hostmobility.com>
+Date: Wed, 22 Feb 2023 07:17:03 +0000
+Subject: [PATCH 1/1] HMX custom imx8mp_var_dart
+
+V1.
+change uart1 to uart3
+Update u-boot environment settings to set device tree to
+imx8mp-var-dart-hmx1.dtb if the Variscite carrier board eeprom cannot be
+read and fdt_file has not been set.
+
+V2.
+Add get environment HM variables from HMX eeprom
+Add set serial-number and part-number to device tree on boot
+Add check USB_UPGRADE_BUTTON (USB_BOOT) and set usb_flash_wanted
+Change bsp_script=hmx_boot.scr from boot.scr
+Add default usb_flash_wanted to false (this is set from c file)
+Add try_usb_flash try read bsp_script from USB memory.
+Add RGB LED handling. Set it to blue on boot and if
+we start to reflash set it to white with blink.
+Add watchdog_init
+---
+ .../imx8mp_var_dart/imx8mp_var_dart.c         | 89 ++++++++++++++++++-
+ include/configs/imx8mp_var_dart.h             | 22 +++--
+ 2 files changed, 102 insertions(+), 9 deletions(-)
+
+diff --git a/board/variscite/imx8mp_var_dart/imx8mp_var_dart.c b/board/variscite/imx8mp_var_dart/imx8mp_var_dart.c
+index e1a1215536..5adf71df87 100644
+--- a/board/variscite/imx8mp_var_dart/imx8mp_var_dart.c
++++ b/board/variscite/imx8mp_var_dart/imx8mp_var_dart.c
+@@ -29,17 +29,20 @@
+ #include "../common/imx8_eeprom.h"
+ #include "imx8mp_var_dart.h"
+ 
++//#include <watchdog.h>
++#include "../common/hmx_eeprom.h"
+ extern int var_setup_mac(struct var_eeprom *ep);
+ 
+ DECLARE_GLOBAL_DATA_PTR;
+ 
++
+ #define UART_PAD_CTRL	(PAD_CTL_DSE6 | PAD_CTL_FSEL1)
+ #define WDOG_PAD_CTRL	(PAD_CTL_DSE6 | PAD_CTL_ODE | PAD_CTL_PUE | PAD_CTL_PE)
+ #define GPIO_PAD_CTRL	(PAD_CTL_DSE1 | PAD_CTL_PUE | PAD_CTL_PE  | PAD_CTL_HYS)
+ 
+ static iomux_v3_cfg_t const uart_pads_dart[] = {
+-	MX8MP_PAD_UART1_RXD__UART1_DCE_RX | MUX_PAD_CTRL(UART_PAD_CTRL),
+-	MX8MP_PAD_UART1_TXD__UART1_DCE_TX | MUX_PAD_CTRL(UART_PAD_CTRL),
++	MX8MP_PAD_UART3_RXD__UART3_DCE_RX | MUX_PAD_CTRL(UART_PAD_CTRL),
++	MX8MP_PAD_UART3_TXD__UART3_DCE_TX | MUX_PAD_CTRL(UART_PAD_CTRL),
+ };
+ 
+ static iomux_v3_cfg_t const uart_pads_som[] = {
+@@ -62,6 +64,11 @@ static iomux_v3_cfg_t const board_detect_pads[] = {
+ };
+ #endif
+ 
++#define USB_UPGRADE_BUTTON_GPIO IMX_GPIO_NR(3, 0)
++static iomux_v3_cfg_t const usb_upgrade_button_pad[] = {
++	MX8MP_PAD_NAND_ALE__GPIO3_IO00 | MUX_PAD_CTRL(GPIO_PAD_CTRL),
++};
++
+ int var_detect_board_id(void)
+ {
+ 	static int board_id = BOARD_ID_UNDEF;
+@@ -99,7 +106,8 @@ int board_early_init_f(void)
+ 	if (board_id == BOARD_ID_DART) {
+ 		imx_iomux_v3_setup_multiple_pads(uart_pads_dart,
+ 			ARRAY_SIZE(uart_pads_dart));
+-		init_uart_clk(0);
++		/* Init clock for HMX on UART3, also in CONFIG_MXC_UART_BASE */
++		init_uart_clk(2);
+ 	}
+ 	else if (board_id == BOARD_ID_SOM) {
+ 		imx_iomux_v3_setup_multiple_pads(uart_pads_som,
+@@ -112,8 +120,55 @@ int board_early_init_f(void)
+ }
+ 
+ #ifdef CONFIG_OF_BOARD_SETUP
++/* Set serial number and part number from environment to device tree blob chosen.
++		serial-number = "23078888";
++		part-number = "hmp00xx"; 
++*/
+ int ft_board_setup(void *blob, struct bd_info *bd)
+ {
++#if defined(CONFIG_OF_LIBFDT)
++	char *serial;
++	char *part;
++	int offset;
++	int err = 1;
++	const char *path;
++
++	path = "/chosen";
++	offset = fdt_path_offset(blob, path);
++	if (offset < 0) {
++		debug("Node %s not found.\n", path);
++		return err;
++	}
++
++	debug("ft_board_setup: config FDT\n");
++
++	serial = env_get("serial");
++	if (serial) {
++		err = fdt_setprop(blob, offset, "serial-number", serial,
++				  strlen(serial) + 1);
++
++		if (err < 0) {
++			printf("WARNING: could not set serial-number %s.\n",
++			       fdt_strerror(err));
++			return err;
++		}
++	} else {
++		printf("WARNING: could not read serial-number from env list.\n");
++	}
++	part = env_get("part_nr");
++	if (part) {
++		err = fdt_setprop(blob, offset, "part-number", part,
++				  strlen(part) + 1);
++
++		if (err < 0) {
++			printf("WARNING: could not set part-number %s.\n",
++			       fdt_strerror(err));
++			return err;
++		}
++	} else {
++		printf("WARNING: could not read part-number from env list.\n");
++	}
++#endif
+ #ifdef CONFIG_IMX8M_DRAM_INLINE_ECC
+ 	int rc;
+ 	phys_addr_t ecc0_start = 0xb0000000;
+@@ -337,6 +392,9 @@ int board_init(void)
+ 	init_usb_clk();
+ #endif
+ 
++//does not compile. #if defined(CONFIG_HW_WATCHDOG) || defined(CONFIG_WATCHDOG)
++//	hw_watchdog_init();
++//#endif
+ 	return 0;
+ }
+ 
+@@ -350,6 +408,9 @@ int board_late_init(void)
+ 	struct var_carrier_eeprom carrier_eeprom;
+ 	char carrier_rev[CARRIER_REV_LEN] = {0};
+ 
++	uchar eeprom_data [0xffff];
++	int err = 1;
++
+ #ifdef CONFIG_ENV_IS_IN_MMC
+ 	board_late_mmc_env_init();
+ #endif
+@@ -382,6 +443,28 @@ int board_late_init(void)
+ 	var_setup_mac(ep);
+ 	var_eeprom_print_prod_info(ep);
+ 
++	/*HMX detect usb boot button for upgrade mmc from usb memory*/
++	imx_iomux_v3_setup_multiple_pads(usb_upgrade_button_pad,
++				ARRAY_SIZE(usb_upgrade_button_pad));
++	gpio_request(USB_UPGRADE_BUTTON_GPIO, "USB_UPGRADE_BUTTON");
++	gpio_direction_input(USB_UPGRADE_BUTTON_GPIO);
++	if (gpio_get_value(USB_UPGRADE_BUTTON_GPIO) == 0) {
++		env_set("usb_flash_wanted", "true");
++	}
++	gpio_free(USB_UPGRADE_BUTTON_GPIO);
++	/* HMX get env from eeprom serial number, partnumber and mac adress(eth2addr, eth3addr) and more */
++	err = get_environment_data_from_eeprom(eeprom_data);
++	if (err != 0) {
++		printf("Get environment data from eeprom failed, error:%x\n", err);
++	} else {
++		err = set_environment_data_from_eeprom((char *)eeprom_data);
++		if (err != 0) {
++			printf("Set environment data to environment area failed, error: %x\n", err);
++		}
++	}
+ 	return 0;
+ }
+ 
+diff --git a/include/configs/imx8mp_var_dart.h b/include/configs/imx8mp_var_dart.h
+index 85b4eb6100..a6e7e5bfcf 100644
+--- a/include/configs/imx8mp_var_dart.h
++++ b/include/configs/imx8mp_var_dart.h
+@@ -44,7 +44,7 @@
+ 
+ /* ENET Config */
+ #if defined(CONFIG_CMD_NET)
+-#define CONFIG_ETHPRIME			"eth0" /* Set eqos to primary since we use its MDIO */
++#define CONFIG_ETHPRIME			"eth2" /* Set eqos to primary since we use its MDIO */
+ #define CONFIG_FEC_XCV_TYPE		RGMII
+ #define PHY_ANEG_TIMEOUT		20000
+ #endif
+@@ -79,11 +79,11 @@
+ 	BOOTENV \
+ 	"scriptaddr=0x43500000\0" \
+ 	"kernel_addr_r=" __stringify(CONFIG_SYS_LOAD_ADDR) "\0" \
+-	"bsp_script=boot.scr\0" \
++	"bsp_script=hmx_boot.scr\0" \
+ 	"image=Image.gz\0" \
+ 	"img_addr=0x42000000\0" \
+ 	"splashimage=0x50000000\0" \
+-	"console=ttymxc0,115200\0" \
++	"console=ttymxc2,115200\0" \
+ 	"fdt_addr_r=0x43000000\0" \
+ 	"fdt_addr=0x43000000\0"			\
+ 	"fdt_high=0xffffffffffffffff\0"		\
+@@ -127,7 +127,7 @@
+ 				"setenv fdt_file imx8mp-var-som-symphony.dtb; " \
+ 			"else " \
+ 				"if test $carrier_rev = legacy; then " \
+-					"setenv fdt_file imx8mp-var-dart-dt8mcustomboard-legacy.dtb;" \
++					"setenv fdt_file imx8mp-var-dart-hmx1.dtb;" \
+ 				"else " \
+ 					"setenv fdt_file imx8mp-var-dart-dt8mcustomboard.dtb;" \
+ 				"fi; " \
+@@ -181,7 +181,12 @@
+ 				"echo WARN: Cannot load the DT; " \
+ 			"fi; " \
+ 		"fi;\0" \
+-	"bsp_bootcmd=echo Running BSP bootcmd ...; " \
++	"set_blue_led=i2c dev 1; if i2c probe 0x30 ; then i2c mw 0x30 6.1 0x50 1;i2c mw 0x30 4.1 1 1;fi\0" \
++	"set_white_flashing_led=i2c dev 1; if i2c probe 0x30 ; then i2c mw 0x30 6.1 0x50 1;i2c mw 0x30 7.1 0x50 1;i2c mw 0x30 8.1 0x50 1;i2c mw 0x30 4.1 0x2A 1;i2c mw 0x30 1.1 13 1;fi\0" \
++	"set_red_led=i2c mw 0x30 7.1 0x50 1;i2c mw 0x30 4.1 0x4 1\0" \
++	"white_blink_fast=i2c mw 0x30 1.1 1 1\0" \
++	"try_usb_flash=sleep 2; usb reset; if load usb 0 ${loadaddr} ${bsp_script} ; then source ${loadaddr}; else echo UPDATE ERROR: no ${bsp_script} on first USB device. ;fi\0" \
++	"bsp_bootcmd=echo Running BSP bootcmd ...; run set_blue_led; " \
+ 		"run ramsize_check; " \
+ 		"mmc dev ${mmcdev}; " \
+ 		"if mmc rescan; then " \
+@@ -189,7 +194,12 @@
+ 				"run runm7bin; " \
+ 			"fi; " \
+ 			"if run loadbootscript; then " \
++				"run set_white_flashing_led; " \
+ 				"run bootscript; " \
++			"fi; " \
++			"if test -n \"$usb_flash_wanted\"; then " \
++				"run set_white_flashing_led; " \
++				"run try_usb_flash; " \
+ 			"else " \
+ 				"if run loadimage; then " \
+ 					"run mmcboot; " \
+@@ -213,7 +223,7 @@
+ #define PHYS_SDRAM			0x40000000
+ #define DEFAULT_SDRAM_SIZE		(512 * SZ_1M)
+ 
+-#define CONFIG_MXC_UART_BASE		UART1_BASE_ADDR
++#define CONFIG_MXC_UART_BASE		UART3_BASE_ADDR
+ 
+ /* Monitor Command Prompt */
+ #define CONFIG_SYS_PROMPT_HUSH_PS2	"> "
+-- 
+2.17.1
+

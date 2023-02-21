@@ -41,6 +41,7 @@ MACHINE_EXTRA_RDEPENDS:append = " \
     cryptodev-module \
     cryptodev-tests \
     libubootenv \
+    flash-script \
 "
 
 KERNEL_MODULE_AUTOLOAD += "cryptodev"

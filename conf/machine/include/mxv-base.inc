@@ -41,9 +41,11 @@ MACHINE_EXTRA_RDEPENDS:append = " \
     cryptodev-module \
     cryptodev-tests \
     libubootenv \
-    flash-script \
 "
 
+IMAGE_INSTALL:append = " \
+    flash-script \
+"
 KERNEL_MODULE_AUTOLOAD += "cryptodev"
 # fix u-boot-fw-utils \ using libubootenv if we need fw_setenv?
 

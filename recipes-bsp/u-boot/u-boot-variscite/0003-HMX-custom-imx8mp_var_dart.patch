@@ -149,7 +149,7 @@ index e1a1215536..5adf71df87 100644
  #ifdef CONFIG_ENV_IS_IN_MMC
  	board_late_mmc_env_init();
  #endif
-@@ -382,6 +443,28 @@ int board_late_init(void)
+@@ -382,6 +443,25 @@ int board_late_init(void)
  	var_setup_mac(ep);
  	var_eeprom_print_prod_info(ep);
  

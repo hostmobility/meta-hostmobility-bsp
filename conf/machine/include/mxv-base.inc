@@ -45,6 +45,7 @@ MACHINE_EXTRA_RDEPENDS:append = " \
 
 IMAGE_INSTALL:append = " \
     flash-script \
+    hm-autostart \
 "
 KERNEL_MODULE_AUTOLOAD += "cryptodev"
 # fix u-boot-fw-utils \ using libubootenv if we need fw_setenv?

@@ -1,0 +1,10 @@
+[Unit]
+Description=Run autostart scripts
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart = /opt/hm/autostart.sh
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,51 @@
+From 03429e40d46433388bd57e78df5ceca3a33eabd2 Mon Sep 17 00:00:00 2001
+From: Mattias Busck <mattias.busck@hostmobility.com>
+Date: Tue, 1 Nov 2022 15:42:16 +0100
+Subject: [PATCH 09/11] Fix tcan114x_mode_store for sleep/standby
+
+---
+ drivers/misc/tcan114x.c | 12 ++++++------
+ 1 file changed, 6 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/misc/tcan114x.c b/drivers/misc/tcan114x.c
+index ec476e85ddf2..24adeea3bdc4 100644
+--- a/drivers/misc/tcan114x.c
++++ b/drivers/misc/tcan114x.c
+@@ -99,14 +99,14 @@ ssize_t tcan114x_mode_store(struct device *dev,
+ 			return ret;
+ 		}
+ 		dev_dbg(dev, "Switched to normal mode\n");
+-	} else if (!strcmp(mode, "sleep")) {
++	} else if (!strncmp(buf, "sleep", count - 1)) {
+ 		ret = tcan114x_write_reg(dev, TCAN114X_REG_MODE_CTRL, TCAN114X_MODE_SLEEP);
+ 		if (ret) {
+ 			dev_err(dev, "Cannot set operation mode to sleep\n");
+ 			return ret;
+ 		}
+ 		dev_dbg(dev, "Switch to normal sleep\n");
+-	} else if (!strcmp(mode, "standby")) {
++	} else if (!strncmp(buf, "standby", count - 1)) {
+ 		ret = tcan114x_write_reg(dev, TCAN114X_REG_MODE_CTRL, TCAN114X_MODE_STANDBY);
+ 		if (ret) {
+ 			dev_err(dev, "Cannot set operation mode to standby\n");
+@@ -134,13 +134,13 @@ ssize_t tcan114x_mode_show(struct device *dev,
+ 		return -EBUSY;
+ 	}
+ 
+-	switch(mode) {
++	switch (mode) {
+ 	case TCAN114X_MODE_STANDBY:
+-		return sprintf(buf, "standby");
++		return sprintf(buf, "normal sleep [standby]\n");
+ 	case TCAN114X_MODE_SLEEP:
+-		return sprintf(buf, "sleep");
++		return sprintf(buf, "normal [sleep] standby\n");
+ 	case TCAN114X_MODE_NORMAL:
+-		return sprintf(buf, "normal");
++		return sprintf(buf, "[normal] sleep standby\n");
+ 	}
+ 
+ 	
+-- 
+2.30.2
+

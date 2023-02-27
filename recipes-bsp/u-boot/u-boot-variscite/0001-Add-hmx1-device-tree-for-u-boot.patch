@@ -1,0 +1,209 @@
+From fe13b93afce8d96b37a3a4618384d054f1e354cb Mon Sep 17 00:00:00 2001
+From: rikardo <rikard.olander@hostmobility.com>
+Date: Wed, 22 Feb 2023 07:28:59 +0000
+Subject: [PATCH 1/4] Add-hmx1-device-tree-for-u-boot
+
+v1.
+Change serial console
+ port to uart3 Disable fec
+
+ v2.
+ Fix so usb hubs is actived on boot. Add eeprom
+ support.
+ Fix so sdcard can be detected (change pinctrl)
+---
+ .../dts/imx8mp-var-dart-dt8mcustomboard.dts   | 103 +++++++++++-------
+ 1 file changed, 62 insertions(+), 41 deletions(-)
+
+diff --git a/arch/arm/dts/imx8mp-var-dart-dt8mcustomboard.dts b/arch/arm/dts/imx8mp-var-dart-dt8mcustomboard.dts
+index 1d683d9344..9ee25a53df 100644
+--- a/arch/arm/dts/imx8mp-var-dart-dt8mcustomboard.dts
++++ b/arch/arm/dts/imx8mp-var-dart-dt8mcustomboard.dts
+@@ -2,20 +2,16 @@
+ /*
+  * Copyright 2019 NXP
+  * Copyright 2020-2022 Variscite Ltd.
++ * Copyright 2022 Host Mobility AB.
+  */
+ 
+ #include "imx8mp-var-dart.dtsi"
+ 
+ / {
+-	model = "Variscite DART-MX8M-PLUS on DT8MCustomBoard 2.0 and above";
+-
+-	aliases {
+-		gpio5 = &pca6408_1;
+-		gpio6 = &pca6408_2;
+-	};
++	model = "Host Mobility HMX1";
+ 
+ 	chosen {
+-		stdout-path = &uart1;
++		stdout-path = &uart3;
+ 	};
+ 
+ 	memory@40000000 {
+@@ -37,10 +33,20 @@
+ 		off-on-delay-us = <12000>;
+ 	};
+ };
++&gpio1 {
++	usbhubs_pwr_hog {
++		gpio-hog;
++		gpios = <12 GPIO_ACTIVE_HIGH>;
++		output-high;
++		line-name = "usbhubs_pwr_hog";
++		pinctrl-0 = <&pinctrl_usbhubs>;
++		pinctrl-names = "default";
++	};
++};
+ 
+-&uart1 {
++&uart3 {
+ 	pinctrl-names = "default";
+-	pinctrl-0 = <&pinctrl_uart1>;
++	pinctrl-0 = <&pinctrl_uart3>;
+ 	status = "okay";
+ };
+ 
+@@ -60,6 +66,11 @@
+ 		i2c-bus = <0x1>;
+ 		status = "okay";
+ 	};
++	BR24G04NUX: eeprom@54 {
++		compatible = "atmel,24c04";
++		reg = <0x54>;
++		status = "okay";
++	};
+ };
+ 
+ &i2c3 {
+@@ -80,27 +91,7 @@
+ 	scl-gpios = <&gpio5 20 GPIO_ACTIVE_HIGH>;
+ 	sda-gpios = <&gpio5 21 GPIO_ACTIVE_HIGH>;
+ 	status = "okay";
+-
+-	pca6408_1: gpio@20 {
+-		compatible = "ti,tca6408";
+-		reg = <0x20>;
+-		gpio-controller;
+-		#gpio-cells = <2>;
+-	};
+-
+-	pca6408_2: gpio@21 {
+-		compatible = "ti,tca6408";
+-		reg = <0x21>;
+-		gpio-controller;
+-		#gpio-cells = <2>;
+-
+-		eth1_phy_rst_hog {
+-			gpio-hog;
+-			gpios = <0 0>;
+-			output-high;
+-			line-name = "eth1_phy_rst";
+-		};
+-	};
++	
+ };
+ 
+ &usb3_phy0 {
+@@ -144,26 +135,27 @@
+ };
+ 
+ &eqos {
+-	mdio {
+-		ethphy1: ethernet-phy@1 {
+-			compatible = "ethernet-phy-ieee802.3-c22";
+-			reg = <1>;
+-			at803x,eee-disabled;
+-			at803x,vddio-1p8v;
+-			eee-broken-1000t;
+-		};
+-	};
++	status = "okay";
+ };
+ 
++
+ &fec {
+ 	pinctrl-names = "default";
+ 	pinctrl-0 = <&pinctrl_fec>;
+ 	phy-mode = "rgmii";
+ 	phy-handle = <&ethphy1>;
+-	phy-reset-gpios = <&pca6408_2 0 GPIO_ACTIVE_LOW>;
+ 	phy-reset-duration = <10>;
+ 	phy-reset-post-delay = <20>;
+ 	status = "okay";
++	mdio {
++		ethphy1: ethernet-phy@1 {
++			compatible = "ethernet-phy-ieee802.3-c22";
++			reg = <1>;
++			at803x,eee-disabled;
++			at803x,vddio-1p8v;
++			eee-broken-1000t;
++		};
++	};
+ };
+ 
+ &usdhc2 {
+@@ -178,6 +170,21 @@
+ 	status = "okay";
+ };
+ 
++#define PE_0_PULL_DISABLE (0<<8)
++#define PE_1_PULL_ENABLE (1<<8)
++#define HYS_0_CMOS (0<<7)
++#define HYS_1_SCHMITT (1<<7)
++#define PUE_0_WEAK_PULL_DOWN (0<<6)
++#define PUE_1_WEAK_PULL_UP (1<<6)
++#define ODE_0_OPEN_DRAIN_DISABLE (0<<5)
++#define ODE_1_OPEN_DRAIN_ENABLE (1<<5)
++#define FSEL_0_SLOW_SLEW_RATE (0<<4)
++#define FSEL_1_FAST_SLEW_RATE (1<<4)
++#define DSE_X1 (0<<1)
++#define DSE_X2 (2<<1)
++#define DSE_X4 (1<<1)
++#define DSE_X6 (3<<1)
++
+ &iomuxc {
+ 	pinctrl_uart1: uart1grp {
+ 		fsl,pins = <
+@@ -186,6 +193,13 @@
+ 		>;
+ 	};
+ 
++	pinctrl_uart3: uart3grp {
++		fsl,pins = <
++			MX8MP_IOMUXC_UART3_RXD__UART3_DCE_RX				0x40
++			MX8MP_IOMUXC_UART3_TXD__UART3_DCE_TX				0x40
++		>;
++	};
++
+ 	pinctrl_i2c2: i2c2grp {
+ 		fsl,pins = <
+ 			MX8MP_IOMUXC_I2C2_SCL__I2C2_SCL					0x400001c2
+@@ -228,6 +242,13 @@
+ 		>;
+ 	};
+ 
++	/* 0x146 == pull up, drive strength = 6 */
++	pinctrl_usbhubs: usbhubsgrp {
++		fsl,pins = <
++			MX8MP_IOMUXC_GPIO1_IO12__GPIO1_IO12 				0x146
++		>;
++	};
++
+ 	pinctrl_reg_usdhc2_vmmc: regusdhc2vmmc {
+ 		fsl,pins = <
+ 			MX8MP_IOMUXC_SD2_RESET_B__GPIO2_IO19				0x40
+@@ -272,7 +293,7 @@
+ 
+ 	pinctrl_usdhc2_gpio: usdhc2gpiogrp {
+ 		fsl,pins = <
+-			MX8MP_IOMUXC_SD2_CD_B__GPIO2_IO12				0x1c4
++			MX8MP_IOMUXC_SD2_CD_B__GPIO2_IO12				(DSE_X2 | HYS_1_SCHMITT | PE_0_PULL_DISABLE)
+ 		>;
+ 	};
+ 
+-- 
+2.17.1
+

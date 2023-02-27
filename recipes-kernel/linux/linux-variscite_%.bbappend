@@ -14,3 +14,8 @@ file://0017-Add-suspend-to-optimized-tcan4x5x-driver.patch \
 
 SRC_URI += "file://defconfig"
 
+SRCBRANCH = "5.15-2.0.x-imx_var01"
+KERNEL_SRC ?= "git://github.com/varigit/linux-imx;protocol=https"
+SRC_URI = "${KERNEL_SRC};branch=${SRCBRANCH}"
+SRCREV = "dd055f07f727803a7542541f560f69daed8209f4"
+LINUX_VERSION = "5.15.50"

@@ -1,7 +1,7 @@
-From b1298ce28a156eee41b2c5cbf2ca5f089fa28f48 Mon Sep 17 00:00:00 2001
-From: Mattias Busck <mattias.busck@hostmobility.com>
-Date: Fri, 27 Jan 2023 21:38:02 +0100
-Subject: [PATCH] add hmx device tree
+From 13d9027c9e8a90005cf30c1e438c109051b82e43 Mon Sep 17 00:00:00 2001
+From: rikardo <rikard.olander@hostmobility.com>
+Date: Thu, 2 Mar 2023 16:01:48 +0000
+Subject: [PATCH 1/1] add hmx device tree
 
 v1.  Files merged to single file.
 	0004-HMX-DT-update-for-ethernet-on-USB.patch
@@ -23,10 +23,21 @@ v4. Disable pull-up on SD-card Card Detect
 v5. Disable sound(sai3) since pins are used for other functions
 
 v6. Set tcan4x5x rx-fifo to 24 messages to fit info m_can message RAM.
+
+v7. Fix rtc and acc IRQ and declared SE05.
+    Lower i2c bus to 100kHz maximum.
+    For this processor is 384kHz according to IMX8MP_1P33A rev2.0 errata but
+    we can lower it a bit more.
+    fix supercap drop out signal (n_vcc_5v_drop_out) to reboot system
+    Add a software reboot button(usb_boot_button)
+    Reset-gpios for CAN is removed in node CAN0 and set signal to high and hoged.
+    Can_wake_extern: set to individual pinctrl and change logic to GPIO_ACTIVE_LOW(inverted signal).
+    Still driver(tcan4x5x) needs to be updated to make this signal toggle at a correct minimum time.
+    Turned off leds so only one led is set to heartbeat and the rest is off from start.
 ---
  arch/arm64/boot/dts/freescale/Makefile        |    2 +
- .../dts/freescale/imx8mp-var-dart-hmx1.dts    | 1098 +++++++++++++++++
- 2 files changed, 1100 insertions(+)
+ .../dts/freescale/imx8mp-var-dart-hmx1.dts    | 1180 +++++++++++++++++
+ 2 files changed, 1182 insertions(+)
  create mode 100644 arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts
 
 diff --git a/arch/arm64/boot/dts/freescale/Makefile b/arch/arm64/boot/dts/freescale/Makefile
@@ -41,10 +52,10 @@ index 6ce43e6646ea..9e92208b3a14 100644
 +dtb-$(CONFIG_ARCH_MXC) += imx8mp-var-dart-hmx1.dtb
 diff --git a/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts b/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts
 new file mode 100644
-index 000000000000..ef4edecb9557
+index 000000000000..2c124ddf7f46
 --- /dev/null
 +++ b/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts
-@@ -0,0 +1,1104 @@
+@@ -0,0 +1,1180 @@
 +// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 +/*
 + * Copyright 2022 Host Mobility AB
@@ -56,7 +67,7 @@ index 000000000000..ef4edecb9557
 +
 +/ {
 +	model = "Host Mobility HMX1 imx8mp";
-+	comment = "GPIO3_IO8 pull enable and eeprom@54";
++	comment = "";
 +
 +	aliases {
 +		rtc0 = &rtc_extern;
@@ -85,10 +96,17 @@ index 000000000000..ef4edecb9557
 +		};
 +	};
 +
++	/*dummy regulator*/
++	reg_base_3v3: regulator-base-3v3 {
++		compatible = "regulator-fixed";
++		regulator-name = "regulator-base-3v3";
++		regulator-always-on;
++	};
++
 +	gpio-keys {
 +		compatible = "gpio-keys";
 +		pinctrl-names = "default";
-+		pinctrl-0 = <&pinctrl_digital_input>;
++		pinctrl-0 = <&pinctrl_digital_input>, <&pinctrl_drop_out>, <&pinctrl_usb_button>;
 +		status = "okay";
 +
 +		in_start {
@@ -96,6 +114,8 @@ index 000000000000..ef4edecb9557
 +			linux,code = <KEY_MACRO1>;
 +			gpios = <&gpio4 21 GPIO_ACTIVE_HIGH>;
 +			wakeup-source;
++			debounce-interval = <100>;
++			wakeup-event-action = <0x01>;	/* asserted */
 +		};
 +
 +		in_pulldown1 {
@@ -103,6 +123,8 @@ index 000000000000..ef4edecb9557
 +			linux,code = <KEY_MACRO2>;
 +			gpios = <&gpio4 3 GPIO_ACTIVE_HIGH>;
 +			wakeup-source;
++			debounce-interval = <100>;
++			wakeup-event-action = <0x01>;	/* asserted */
 +		};
 +
 +		in_pulldown2 {
@@ -110,6 +132,8 @@ index 000000000000..ef4edecb9557
 +			linux,code = <KEY_MACRO3>;
 +			gpios = <&gpio4 2 GPIO_ACTIVE_HIGH>;
 +			wakeup-source;
++			debounce-interval = <100>;
++			wakeup-event-action = <0x01>;	/* asserted */
 +		};
 +
 +		in_pullup1 {
@@ -117,6 +141,8 @@ index 000000000000..ef4edecb9557
 +			linux,code = <KEY_MACRO4>;
 +			gpios = <&gpio3 20 GPIO_ACTIVE_HIGH>;
 +			wakeup-source;
++			debounce-interval = <100>;
++			wakeup-event-action = <0x01>;	/* asserted */
 +		};
 +
 +		in_pullup2 {
@@ -124,6 +150,8 @@ index 000000000000..ef4edecb9557
 +			linux,code = <KEY_MACRO5>;
 +			gpios = <&gpio3 22 GPIO_ACTIVE_HIGH>;
 +			wakeup-source;
++			debounce-interval = <100>;
++			wakeup-event-action = <0x01>;	/* asserted */
 +		};
 +
 +		in_hmi1 {
@@ -131,6 +159,8 @@ index 000000000000..ef4edecb9557
 +			linux,code = <KEY_MACRO6>;
 +			gpios = <&gpio4 0 GPIO_ACTIVE_HIGH>;
 +			wakeup-source;
++			debounce-interval = <100>;
++			wakeup-event-action = <0x01>;	/* asserted */
 +		};
 +
 +		in_hmi2 {
@@ -138,17 +168,23 @@ index 000000000000..ef4edecb9557
 +			linux,code = <KEY_MACRO7>;
 +			gpios = <&gpio4 1 GPIO_ACTIVE_HIGH>;
 +			wakeup-source;
++			debounce-interval = <100>;
++			wakeup-event-action = <0x01>;	/* asserted */
 +		};
 +
-+		/* TODO: Should be active low but it reboots system...
-+		Trigger restart if power is lost and living of super-cap */
-+		/*
++		/* Trigger restart if power is lost and living of super-cap */
 +		n_vcc_5v_drop_out {
 +			label = "5V_nDROP_OUT";
-+			gpios = <&gpio5 13 GPIO_ACTIVE_LOW>;
++			gpios = <&gpio1 13 GPIO_ACTIVE_LOW>;
 +			linux,code = <KEY_RESTART>;
++			debounce-interval = <250>;//250ms low to activate restart.
 +		};
-+		*/
++		usb_boot_button {
++			label = "SOFT_RESTART_BUTTON_USB_BOOT";
++			gpios = <&gpio3 0 GPIO_ACTIVE_LOW>;
++			linux,code = <KEY_RESTART>;
++			debounce-interval = <500>;//500ms low to activate restart.
++		};
 +	};
 +
 +	gpio-leds {
@@ -160,62 +196,62 @@ index 000000000000..ef4edecb9557
 +			color = <LED_COLOR_ID_GREEN>;
 +			function = "func";
 +			gpios = <&pca9535 15 GPIO_ACTIVE_LOW>;
-+			linux,default-trigger = "heartbeat";
-+			default-state = "on";
++			//linux,default-trigger = "heartbeat";
++			default-state = "off";
 +		};
 +
 +		green_func {
 +			color = <LED_COLOR_ID_RED>;
 +			function = "func";
 +			gpios = <&pca9535 14 GPIO_ACTIVE_LOW>;
-+			linux,default-trigger = "heartbeat";
-+			default-state = "on";
++			//linux,default-trigger = "heartbeat";
++			default-state = "off";
 +		};
 +
 +		red_gps {
 +			color = <LED_COLOR_ID_GREEN>;
 +			function = "gps";
 +			gpios = <&pca9535 13 GPIO_ACTIVE_LOW>;
-+			linux,default-trigger = "heartbeat";
-+			default-state = "on";
++			//linux,default-trigger = "heartbeat";
++			default-state = "off";
 +		};
 +		green_gps {
 +			color = <LED_COLOR_ID_RED>;
 +			function = "gps";
 +			gpios = <&pca9535 12 GPIO_ACTIVE_LOW>;
-+			linux,default-trigger = "heartbeat";
-+			default-state = "on";
++			//linux,default-trigger = "heartbeat";
++			default-state = "off";
 +		};
 +
 +		red_wifi {
 +			color = <LED_COLOR_ID_GREEN>;
 +			function = LED_FUNCTION_WLAN;
 +			gpios = <&pca9535 11 GPIO_ACTIVE_LOW>;
-+			linux,default-trigger = "phy0rx";
-+			default-state = "on";
++			//linux,default-trigger = "phy0rx";
++			default-state = "off";
 +		};
 +		green_wifi {
 +			color = <LED_COLOR_ID_RED>;
 +			function = LED_FUNCTION_WLAN;
 +			gpios = <&pca9535 10 GPIO_ACTIVE_LOW>;
 +			linux,default-trigger = "phy0rx";
-+			default-state = "on";
++			default-state = "off";
 +		};
 +		
 +		red_gsm {
 +			color = <LED_COLOR_ID_GREEN>;
 +			function = LED_FUNCTION_WAN;
 +			gpios = <&pca9535 9 GPIO_ACTIVE_LOW>;
-+			default-state = "on";
-+			linux,default-trigger = "heartbeat";
++			//linux,default-trigger = "heartbeat";
++			default-state = "off";
 +		};
 +
 +		green_gsm {
 +			color = <LED_COLOR_ID_RED>;
 +			function = LED_FUNCTION_WAN;
 +			gpios = <&pca9535 8 GPIO_ACTIVE_LOW>;
-+			linux,default-trigger = "heartbeat";
-+			default-state = "on";
++			default-state = "off";
++			//linux,default-trigger = "heartbeat";
 +		};
 +
 +		yellow_power {
@@ -230,22 +266,26 @@ index 000000000000..ef4edecb9557
 +		pwr_out_buzzer {
 +			function = "pwr_out_buzzer";
 +			gpios = <&gpio1 0 GPIO_ACTIVE_HIGH>;
++			default-state = "off";
 +		};
 +
 +		pwr_out_led_1 {
 +			function = "pwr_out_led_1";
 +			gpios = <&gpio1 7 GPIO_ACTIVE_HIGH>;
++			default-state = "off";
 +		};
 +
 +		pwr_out_led_2 {
 +			function = "pwr_out_led_2";
 +			gpios = <&gpio1 6 GPIO_ACTIVE_HIGH>;
++			default-state = "off";
 +		};
 +		
 +		/* pin = SOURCE_OUT_8, fault = SOURCE_6_FAULT */
 +		pwr_out_equipment {
 +			function = "pwr_out_equipment";
 +			gpios = <&gpio5 5 GPIO_ACTIVE_HIGH>;
++			default-state = "off";
 +		};
 +
 +		/* pins = SOURCE_OUT_4, SOURCE_OUT_5, SOURCE_OUT_6 */
@@ -289,7 +329,6 @@ index 000000000000..ef4edecb9557
 +		clock-frequency = <40000000>;
 +	};
 +};
-+
 +
 +/* First Automotive Ethernet Marvell 88Q2110 */
 +&fec {
@@ -349,12 +388,10 @@ index 000000000000..ef4edecb9557
 +};
 +
 +&i2c2 {
-+	clock-frequency = <400000>;
++	clock-frequency = <100000>;
 +	pinctrl-names = "default", "gpio";
 +	pinctrl-0 = <&pinctrl_i2c2>;
 +	pinctrl-1 = <&pinctrl_i2c2_gpio>;
-+	scl-gpios = <&gpio5 16 GPIO_ACTIVE_HIGH>;
-+	sda-gpios = <&gpio5 17 GPIO_ACTIVE_HIGH>;
 +	status = "okay";
 +
 +	/* A0 A1 A2 pins == 0 => addr 0x20 */
@@ -401,7 +438,7 @@ index 000000000000..ef4edecb9557
 +		pinctrl-names = "default";
 +		pinctrl-0 = <&pinctrl_rtc>;
 +		interrupt-parent = <&gpio1>;
-+		interrupts = <9 IRQ_TYPE_EDGE_FALLING>;
++		interrupts = <9 IRQ_TYPE_LEVEL_LOW>;
 +		interrupt-names = "RTC-INT";
 +		wakeup-source;
 +		status = "okay";
@@ -411,6 +448,7 @@ index 000000000000..ef4edecb9557
 +		compatible = "atmel,24c04";
 +		reg = <0x54>;
 +		status = "okay";
++		vcc-supply = <&reg_base_3v3>;
 +	};
 +
 +	/* TMP103D has address 0x73 */
@@ -422,25 +460,25 @@ index 000000000000..ef4edecb9557
 +};
 +
 +&i2c4 {
-+	clock-frequency = <400000>;
++	clock-frequency = <100000>;
 +	pinctrl-names = "default", "gpio";
 +	pinctrl-0 = <&pinctrl_i2c4>;
 +	pinctrl-1 = <&pinctrl_i2c4_gpio>;
-+	scl-gpios = <&gpio5 20 GPIO_ACTIVE_HIGH>;
-+	sda-gpios = <&gpio5 21 GPIO_ACTIVE_HIGH>;
 +	status = "okay";
 +
 +
-+	/* TODO check if interrupt is active low or high */
 +	accelerometer@1e {
 +		pinctrl-names = "default";
 +		pinctrl-0 = <&pinctrl_acc>;
 +		compatible = "st,lis2hh12";
 +		reg = <0x1e>;
-+		st,drdy-int-pin = <1>;
++		st,drdy-int-pin = <1>;/*Not working but set manually data ready 'i2cset -f -y 3 0x1e 0x22 1'*/
 +		interrupt-parent = <&gpio5>;
-+		interrupts = <2 IRQ_TYPE_EDGE_FALLING>;
-+		drive-open-drain = <1>;
++		interrupts = <2 IRQ_TYPE_EDGE_RISING>;
++		vdd-supply = <&buck4>;
++		vddio-supply = <&buck4>;
++		//drive-open-drain = <1>;
++		interrupt-names = "INT1";
 +		status = "okay";
 +	};
 +
@@ -662,6 +700,8 @@ index 000000000000..ef4edecb9557
 +
 +	/* CAN-FD controller 1 in schematics */
 +	can0: tcan4x5x@0 {
++		pinctrl-names = "default";
++		pinctrl-0 = <&pinctrl_can_wake_extern>;
 +		compatible = "ti,tcan4x5x";
 +		reg = <0>;
 +		#address-cells = <1>;
@@ -672,8 +712,7 @@ index 000000000000..ef4edecb9557
 +		bosch,mram-cfg = <0x0 0 0 24 0 0 1 1>;
 +		interrupt-parent = <&gpio4>;
 +		interrupts = <24 IRQ_TYPE_LEVEL_LOW>;
-+		device-wake-gpios = <&gpio5 28 GPIO_ACTIVE_HIGH>;
-+		reset-gpios = <&gpio5 29 GPIO_ACTIVE_HIGH>;
++		device-wake-gpios = <&gpio5 28 GPIO_ACTIVE_LOW>;
 +		status = "okay";
 +	};
 +	/* CAN-FD controller 4 in schematics */
@@ -697,7 +736,7 @@ index 000000000000..ef4edecb9557
 +	regulator-max-microvolt = <1800000>;
 +};
 +
-+/* BT disabled since we use GPIO5_IO13 for 5V_nDROP_OUT*/
++/* BT disabled not populated */
 +&uart4 {
 +       status = "disabled";
 +};
@@ -743,8 +782,6 @@ index 000000000000..ef4edecb9557
 +
 +			MX8MP_IOMUXC_GPIO1_IO14__GPIO1_IO14	0x0
 +			MX8MP_IOMUXC_NAND_DATA02__GPIO3_IO08	PE_1_PULL_ENABLE 
-+			MX8MP_IOMUXC_NAND_ALE__GPIO3_IO00	0x0 /* USB_UPGRADE_BUTTON */
-+
 +		>;
 +	};
 +
@@ -887,10 +924,20 @@ index 000000000000..ef4edecb9557
 +			/* can3, can5 irqs. Pull up + Schmitt trigger TODO: Needed with extern pullup?*/
 +			MX8MP_IOMUXC_SAI2_TXFS__GPIO4_IO24                           	0x1c0
 +			MX8MP_IOMUXC_SAI2_RXD0__GPIO4_IO23				0x1c0
++		>;
++	};
 +
-+			/* tcan4x5x wake device and reset */
-+			MX8MP_IOMUXC_UART4_RXD__GPIO5_IO28                          	0x102 
-+			MX8MP_IOMUXC_UART4_TXD__GPIO5_IO29                          	0x102 
++	/* tcan4x5x  HW reset device */
++	pinctrl_can_rst_extern: can_rst_extern {
++		fsl,pins = <
++			MX8MP_IOMUXC_UART4_TXD__GPIO5_IO29				(PE_1_PULL_ENABLE | HYS_1_SCHMITT | PUE_1_WEAK_PULL_UP|DSE_X2)
++		>;
++	};
++
++	/* tcan4x5x  wake device */
++	pinctrl_can_wake_extern: can_wake_extern {
++		fsl,pins = <
++			MX8MP_IOMUXC_UART4_RXD__GPIO5_IO28				(PE_1_PULL_ENABLE | HYS_1_SCHMITT | PUE_1_WEAK_PULL_UP |DSE_X2)
 +		>;
 +	};
 +
@@ -915,14 +962,22 @@ index 000000000000..ef4edecb9557
 +		>;
 +	};
 +
-+	/* Accelerometer IRQ line. 0x1c0 = pull up + Schmitt trigger */
++	/* Accelerometer IRQ line. pull down + Schmitt trigger */
 +	pinctrl_acc: acc_grp {
 +		fsl,pins = <
-+			MX8MP_IOMUXC_SAI3_MCLK__GPIO5_IO02				0x1c0
++			MX8MP_IOMUXC_SAI3_MCLK__GPIO5_IO02				(PE_1_PULL_ENABLE | HYS_1_SCHMITT | PUE_0_WEAK_PULL_DOWN)
 +		>;
 +	};
 +
-+	/* Inputs START, PULLDOWN1, PULLDOWN2, PULLUP1, PULLUP2, HMI1, HMI2, 5V_nDROP_OUT*/
++	/*5V_nDROP_OUT*/
++	pinctrl_drop_out: drop_out {
++		/* No pull, Schmitt trigger input = 0x80 */
++		fsl,pins = <
++			MX8MP_IOMUXC_GPIO1_IO13__GPIO1_IO13				0x80
++		>;
++	};
++
++	/* Inputs START, PULLDOWN1, PULLDOWN2, PULLUP1, PULLUP2, HMI1, HMI2*/
 +	/* Ref manual search: PAD_CTL_PAD_SAI2_RXFS */
 +			
 +	pinctrl_digital_input: digital_input_grp {
@@ -935,7 +990,13 @@ index 000000000000..ef4edecb9557
 +			MX8MP_IOMUXC_SAI5_RXD1__GPIO3_IO22			 	0x80
 +			MX8MP_IOMUXC_SAI1_RXFS__GPIO4_IO00 				0x80
 +			MX8MP_IOMUXC_SAI1_RXC__GPIO4_IO01 				0x80
-+			MX8MP_IOMUXC_ECSPI2_SS0__GPIO5_IO13				0x80
++		>;
++	};
++
++	pinctrl_usb_button: usb_button {
++		/* No pull, Schmitt trigger input = 0x80 */
++		fsl,pins = <
++			MX8MP_IOMUXC_NAND_ALE__GPIO3_IO00				0x80
 +		>;
 +	};
 +
@@ -944,7 +1005,6 @@ index 000000000000..ef4edecb9557
 +			MX8MP_IOMUXC_GPIO1_IO11__GPIO1_IO11				0x1c6
 +		>;
 +	};
-+
 +	/* SOURCE_OUT_4/5/6, SOURCE_OUT_8, pwr_out_led_2, pwr_out_led_1
 +	 * OUT_BUZZER,   
 +	/* 0x2 = drive strength x2, slow slew, no pull  */
@@ -962,7 +1022,7 @@ index 000000000000..ef4edecb9557
 +	/* 0x1c0 == Schmitt trigger hysteresis, pull up */
 +	pinctrl_rtc: rtcgrp {
 +		fsl,pins = <
-+			MX8MP_IOMUXC_GPIO1_IO09__GPIO1_IO09 				0x1c0
++			MX8MP_IOMUXC_GPIO1_IO09__GPIO1_IO09 				0x400001c0
 +		>;
 +	};
 +
@@ -970,6 +1030,13 @@ index 000000000000..ef4edecb9557
 +	pinctrl_usbhubs: usbhubsgrp {
 +		fsl,pins = <
 +			MX8MP_IOMUXC_GPIO1_IO12__GPIO1_IO12 				0x146
++		>;
++	};
++
++	/**/
++	pinctrl_se050_ena: se050enagrp {
++		fsl,pins = <
++			MX8MP_IOMUXC_SAI3_TXD__GPIO5_IO01	(PE_1_PULL_ENABLE | HYS_1_SCHMITT | DSE_X6)
 +		>;
 +	};
 +};
@@ -1147,8 +1214,28 @@ index 000000000000..ef4edecb9557
 +		"CAN_RST",
 +		"GPIO5_IO30",
 +		"GPIO5_IO31";
++	/*
++	 * The SE050 security element may be driven via I2C from user space.
++	 * The element itself is enabled here as it has no kernel driver.
++	TODO add se050_ena to u-boot level and set it d disable in linux
++	 */
++	se050_ena {
++		gpio-hog;
++		gpios = <1 GPIO_ACTIVE_HIGH>;
++		line-name = "nHSM_SLEEP_SE050_ENABLE";
++		output-high;
++		pinctrl-names = "default";
++		pinctrl-0 = <&pinctrl_se050_ena>;
++	};
++	can_rst {
++		gpio-hog;
++		gpios = <29 GPIO_ACTIVE_LOW>;
++		line-name = "CAN_RST";
++		pinctrl-names = "default";
++		pinctrl-0 = <&pinctrl_can_rst_extern>;
++	};
 +};
 +
 -- 
-2.30.2
+2.17.1
 

@@ -1,0 +1,36 @@
+From 04d5964bb4caef4a9d131828ebaf6967e1e29b73 Mon Sep 17 00:00:00 2001
+From: rikardo <rikard.olander@hostmobility.com>
+Date: Thu, 2 Mar 2023 16:14:20 +0000
+Subject: [PATCH 1/1] Set I2C1 for imx8mp-var-dart.dtsi to lower
+ clock-frequency
+
+clock-frequency is set to maximum 384Khz
+For this processor according to IMX8MP_1P33A rev2.0 errata.
+
+Removed sda-gpios and scl-gpios to remove boot warning in startup
+---
+ arch/arm64/boot/dts/freescale/imx8mp-var-dart.dtsi | 7 ++-----
+ 1 file changed, 2 insertions(+), 5 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/freescale/imx8mp-var-dart.dtsi b/arch/arm64/boot/dts/freescale/imx8mp-var-dart.dtsi
+index 87c0063af24f..4a8f337ee661 100644
+--- a/arch/arm64/boot/dts/freescale/imx8mp-var-dart.dtsi
++++ b/arch/arm64/boot/dts/freescale/imx8mp-var-dart.dtsi
+@@ -177,12 +177,9 @@
+ };
+ 
+ &i2c1 {
+-	clock-frequency = <400000>;
+-	pinctrl-names = "default", "gpio";
++	clock-frequency = <384000>;
++	pinctrl-names = "default";
+ 	pinctrl-0 = <&pinctrl_i2c1>;
+-	pinctrl-1 = <&pinctrl_i2c1_gpio>;
+-	scl-gpios = <&gpio5 14 GPIO_ACTIVE_HIGH>;
+-	sda-gpios = <&gpio5 15 GPIO_ACTIVE_HIGH>;
+ 	status = "okay";
+ 
+ 	pca9450@25 {
+-- 
+2.17.1
+

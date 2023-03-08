@@ -4,6 +4,7 @@ unset KBUILD_DEFCONFIG
 
 SRC_URI += "\
 file://0001-add-hmx-device-tree.patch \
+file://0002-Set-I2C1-for-imx8mp-var-dart.dtsi-to-lower-clock-fre.patch \
 file://0001-TCAN114x-driver-with-normal-standby-sleep-mode.patch \
 file://0009-Fix-tcan114x_mode_store-for-sleep-standby.patch \
 file://0016-improve-tcan4x5x-spi-performance.-coalesce-irqs.patch \

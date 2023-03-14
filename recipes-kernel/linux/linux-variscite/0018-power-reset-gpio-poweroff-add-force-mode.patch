@@ -1,0 +1,85 @@
+From f19ecb10409cc96ee83ac72fdc1cb20b1d36d3b7 Mon Sep 17 00:00:00 2001
+From: Mattias Busck <mattias.busck@hostmobility.com>
+Date: Wed, 14 Mar 2023 06:45:03 +0100
+Subject: [PATCH] power reset gpio poweroff add force mode
+
+Property "force-mode" tells the driver to replace previously
+initialized power-off kernel hook and allows gpio-poweroff to
+probe and operate successfully in any case.
+
+original by Oleksandr Suvorov <oleksandr.suvorov@toradex.com>
+---
+
+ drivers/power/reset/gpio-poweroff.c | 34 ++++++++++++++++++++++++-----
+ 1 file changed, 28 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/power/reset/gpio-poweroff.c b/drivers/power/reset/gpio-poweroff.c
+index 6a4bbb506551..94056af9ba0d 100644
+--- a/drivers/power/reset/gpio-poweroff.c
++++ b/drivers/power/reset/gpio-poweroff.c
+@@ -24,6 +24,7 @@ static struct gpio_desc *reset_gpio;
+ static u32 timeout = DEFAULT_TIMEOUT_MS;
+ static u32 active_delay = 100;
+ static u32 inactive_delay = 100;
++static void (*next_pm_power_off)(void);
+ 
+ static void gpio_poweroff_do_poweroff(void)
+ {
+@@ -43,20 +44,41 @@ static void gpio_poweroff_do_poweroff(void)
+ 	/* give it some time */
+ 	mdelay(timeout);
+ 
++	/*
++	 * The kernel should not reach this code. If it does, fall back to
++	 * the next registered power off method.
++	 */
++	if (next_pm_power_off)
++		next_pm_power_off();
++
+ 	WARN_ON(1);
+ }
+ 
+ static int gpio_poweroff_probe(struct platform_device *pdev)
+ {
+ 	bool input = false;
++	bool force = false;
+ 	enum gpiod_flags flags;
+ 
+-	/* If a pm_power_off function has already been added, leave it alone */
++
++	force = device_property_read_bool(&pdev->dev, "force-mode");
++
++	/*
++	 * If a pm_power_off function has already been added, leave it alone,
++	 * if force-mode is not enabled.
++	 */
+ 	if (pm_power_off != NULL) {
+-		dev_err(&pdev->dev,
+-			"%s: pm_power_off function already registered\n",
+-		       __func__);
+-		return -EBUSY;
++		if (force) {
++			dev_warn(&pdev->dev,
++				 "%s: pm_power_off function %pB replaced",
++				 __func__, pm_power_off);
++			next_pm_power_off = pm_power_off;
++		} else {
++			dev_err(&pdev->dev,
++				"%s: pm_power_off function already registered\n",
++				__func__);
++			return -EBUSY;
++		}
+ 	}
+ 
+ 	input = device_property_read_bool(&pdev->dev, "input");
+@@ -81,7 +103,7 @@ static int gpio_poweroff_probe(struct platform_device *pdev)
+ static int gpio_poweroff_remove(struct platform_device *pdev)
+ {
+ 	if (pm_power_off == &gpio_poweroff_do_poweroff)
+-		pm_power_off = NULL;
++		pm_power_off = next_pm_power_off;
+ 
+ 	return 0;
+ }
+-- 
+2.20.1

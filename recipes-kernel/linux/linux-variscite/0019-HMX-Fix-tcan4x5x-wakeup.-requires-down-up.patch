@@ -1,0 +1,192 @@
+From 4cebe24be84bbd7fd5cc8948f896a7fa6e0d7a68 Mon Sep 17 00:00:00 2001
+From: Mattias Busck <mattias.busck@hostmobility.com>
+Date: Wed, 22 Mar 2023 14:27:32 +0100
+Subject: [PATCH] HMX:Fix tcan4x5x wakeup. requires down/up
+
+Tested with:
+500000 kbps on variscite ref board
+for ((i=0;;i=(i+1)&255)); do read a; printf "sending %x" $i; cansend can2 123#$(printf %.2x $i); done
+
+root@imx8mp-var-dart-hmx1:~# cat canfromstart
+ip link set can2 up type can bitrate 500000
+
+* only connector 4 connected
+
+./sov 60; sleep 3; ip link set can2 down; sleep 0.2; ip link set can2 up
+---
+ drivers/net/can/m_can/m_can.c         | 26 ++++++---
+ drivers/net/can/m_can/tcan4x5x-core.c | 76 ++++++++++++++++++++++-----
+ 2 files changed, 82 insertions(+), 20 deletions(-)
+
+diff --git a/drivers/net/can/m_can/m_can.c b/drivers/net/can/m_can/m_can.c
+index c4596fbe6d2f..858a1d3b15ff 100644
+--- a/drivers/net/can/m_can/m_can.c
++++ b/drivers/net/can/m_can/m_can.c
+@@ -1065,8 +1065,9 @@ static irqreturn_t m_can_isr(int irq, void *dev_id)
+ 	if (pm_runtime_suspended(cdev->dev))
+ 		return IRQ_NONE;
+ 	ir = m_can_read(cdev, M_CAN_IR);
+-	if (!ir)
+-		return IRQ_NONE;
++	dev_err(cdev->dev, "m_can_isr ir = 0x%x\n", ir);
++	//TODO we need to clear tcan4x5x also if (!ir)
++	//TODO 	return IRQ_NONE;
+ 
+ 	/* ACK all irqs */
+ 	if (ir & IR_ALL_INT)
+@@ -2019,7 +2020,7 @@ int m_can_class_register(struct m_can_classdev *cdev)
+ 
+ 	of_can_transceiver(cdev->net);
+ 
+-	dev_info(cdev->dev, "%s device registered (irq=%d, version=%d)\n",
++	dev_info(cdev->dev, "MATTIAS %s device registered (irq=%d, version=%d)\n",
+ 		 KBUILD_MODNAME, cdev->net->irq, cdev->version);
+ 
+ 	/* Probe finished
+@@ -2051,12 +2052,23 @@ int m_can_class_suspend(struct device *dev)
+ {
+ 	struct m_can_classdev *cdev = dev_get_drvdata(dev);
+ 	struct net_device *ndev = cdev->net;
++	int err;
++	dev_err(dev, "Entering suspend\n");
+ 
+ 	if (netif_running(ndev)) {
+-		netif_stop_queue(ndev);
+-		netif_device_detach(ndev);
+-		m_can_stop(ndev);
+-		m_can_clk_stop(cdev);
++		if (1 || device_may_wakeup(dev))
++		{
++			dev_err(dev, "Entering suspend\n");
++			enable_irq_wake(ndev->irq);
++			//err = m_can_enter_sleep_mode(priv);
++			//if (err)
++		// TODO		return err;
++		} else {
++			netif_stop_queue(ndev);
++			netif_device_detach(ndev);
++			m_can_stop(ndev);
++			m_can_clk_stop(cdev);
++		}
+ 	}
+ 
+ 	pinctrl_pm_select_sleep_state(dev);
+diff --git a/drivers/net/can/m_can/tcan4x5x-core.c b/drivers/net/can/m_can/tcan4x5x-core.c
+index c06416959e52..214302bc6dc9 100644
+--- a/drivers/net/can/m_can/tcan4x5x-core.c
++++ b/drivers/net/can/m_can/tcan4x5x-core.c
+@@ -198,24 +198,26 @@ static int tcan4x5x_write_tcan_reg(struct m_can_classdev *cdev,
+ static int tcan4x5x_clear_interrupts(struct m_can_classdev *cdev)
+ {
+ 	int ret;
++	int status;
++	int flags;
++	struct tcan4x5x_priv *priv = cdev_to_priv(cdev);
++
++	regmap_read(priv->regmap, TCAN4X5X_STATUS, &status);
++	dev_err(cdev->dev, "Better Clearing interrupts, status = 0x%x\n", status);
+ 
+ 	ret = tcan4x5x_write_tcan_reg(cdev, TCAN4X5X_STATUS,
+ 				      TCAN4X5X_CLEAR_ALL_INT);
+ 	if (ret)
+ 		return ret;
+ 
+-	ret = tcan4x5x_write_tcan_reg(cdev, TCAN4X5X_MCAN_INT_REG,
+-				      TCAN4X5X_ENABLE_MCAN_INT);
++	ret = regmap_read(priv->regmap, TCAN4X5X_INT_FLAGS, &flags);
+ 	if (ret)
+-		return ret;
+-
+-	ret = tcan4x5x_write_tcan_reg(cdev, TCAN4X5X_INT_FLAGS,
++		dev_err(cdev->dev, "Could not read TCAN4X5X_INT_FLAGS ret = 0x%x\n", ret);
++	else
++		dev_warn(cdev->dev, "TCAN4X5X_INT_FLAGS = 0x%x\n", flags);
++	
++	return tcan4x5x_write_tcan_reg(cdev, TCAN4X5X_INT_FLAGS,
+ 				      TCAN4X5X_CLEAR_ALL_INT);
+-	if (ret)
+-		return ret;
+-
+-	return tcan4x5x_write_tcan_reg(cdev, TCAN4X5X_ERROR_STATUS,
+-				       TCAN4X5X_CLEAR_ALL_INT);
+ }
+ 
+ static int tcan4x5x_init(struct m_can_classdev *cdev)
+@@ -467,7 +469,7 @@ static int tcan4x5x_can_probe(struct spi_device *spi)
+ 	if (ret)
+ 		goto out_power;
+ 
+-	netdev_info(mcan_class->net, "Testing Normal TCAN4X5X successfully initialized.\n");
++	netdev_info(mcan_class->net, "MATTIAS wakeup %s TCAN4X5X successfully initialized.\n", __FILE__);
+ 	return 0;
+ 
+ out_power:
+@@ -510,15 +512,63 @@ static const struct spi_device_id tcan4x5x_id_table[] = {
+ };
+ MODULE_DEVICE_TABLE(spi, tcan4x5x_id_table);
+ 
++static int __maybe_unused tcan4x5x_suspend(struct device *dev)
++{
++	int ret;
++	struct spi_device *spi = to_spi_device(dev);
++	struct tcan4x5x_priv *priv = spi_get_drvdata(spi);
++	struct net_device *net = (priv->cdev).net;
++
++	disable_irq(spi->irq);
++	/* Note: at this point neither IST nor workqueues are running.
++	 * open/stop cannot be called anyway so locking is not needed
++	 */
++	if (netif_running(net)) {
++		ret = regmap_update_bits(priv->regmap, TCAN4X5X_CONFIG,
++				 TCAN4X5X_MODE_SEL_MASK, TCAN4X5X_MODE_SLEEP);
++		dev_err(dev, "Disabled irq Entering sleep(%d), enabling wake on 0x%x\n", ret, spi->irq);
++		enable_irq_wake(spi->irq);
++		//tcan4x5x_hw_sleep(spi);
++		netif_stop_queue(net);
++		netif_device_detach(net);
++	} else {
++		dev_err(dev, "Entering suspend, interface is down, no wake\n");
++	}
++
++
++	return 0;
++}
++
++static int __maybe_unused tcan4x5x_resume(struct device *dev)
++{
++	int ret;
++	struct spi_device *spi = to_spi_device(dev);
++	struct tcan4x5x_priv *priv = spi_get_drvdata(spi);
++	struct net_device *net = (priv->cdev).net;
++
++	if (netif_running(net)) {
++		ret = regmap_update_bits(priv->regmap, TCAN4X5X_CONFIG,
++				 TCAN4X5X_MODE_SEL_MASK, TCAN4X5X_MODE_NORMAL);
++		dev_err(dev, "ENABLING IRQ resuming, normal(%d), setting to normal\n", ret);
++		netif_device_attach(net);
++		netif_start_queue(net);
++		disable_irq_wake(spi->irq);
++	}
++	enable_irq(spi->irq);
++	return 0;
++}
++
++static SIMPLE_DEV_PM_OPS(tcan4x5x_pm_ops, tcan4x5x_suspend,
++	tcan4x5x_resume);
++
+ static struct spi_driver tcan4x5x_can_driver = {
+ 	.driver = {
+ 		.name = KBUILD_MODNAME,
+ 		.of_match_table = tcan4x5x_of_match,
+-		.pm = NULL,
++		.pm = &tcan4x5x_pm_ops,
+ 	},
+ 	.id_table = tcan4x5x_id_table,
+ 	.probe = tcan4x5x_can_probe,
+-	.remove = tcan4x5x_can_remove,
+ };
+ module_spi_driver(tcan4x5x_can_driver);
+ 
+-- 
+2.30.2
+

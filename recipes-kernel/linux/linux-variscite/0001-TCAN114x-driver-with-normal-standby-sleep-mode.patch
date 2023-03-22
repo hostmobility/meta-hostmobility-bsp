@@ -1,13 +1,16 @@
-From aaabcb593b531fdb941af8127b7bf387929a8e5a Mon Sep 17 00:00:00 2001
+From dd8374a89d069c6e748a1bbae27cbf723f7e2e5d Mon Sep 17 00:00:00 2001
 From: Mattias Busck <mattias.busck@hostmobility.com>
 Date: Thu, 6 Oct 2022 12:46:22 +0200
 Subject: [PATCH] tcan114x driver with normal/standby/sleep mode
 
+v1. First version
+v2. Fix tcan114x_mode_store for sleep/standby
+v3. Write register SWE_DIS to disable sleep timeout
 ---
  drivers/misc/Kconfig    |   7 +
  drivers/misc/Makefile   |   1 +
- drivers/misc/tcan114x.c | 312 ++++++++++++++++++++++++++++++++++++++++
- 3 files changed, 320 insertions(+)
+ drivers/misc/tcan114x.c | 320 ++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 328 insertions(+)
  create mode 100644 drivers/misc/tcan114x.c
 
 diff --git a/drivers/misc/Kconfig b/drivers/misc/Kconfig
@@ -42,10 +45,10 @@ index a086197af544..9c5a56b98650 100644
  obj-$(CONFIG_VMWARE_BALLOON)	+= vmw_balloon.o
 diff --git a/drivers/misc/tcan114x.c b/drivers/misc/tcan114x.c
 new file mode 100644
-index 000000000000..ec476e85ddf2
+index 000000000000..172318069b6a
 --- /dev/null
 +++ b/drivers/misc/tcan114x.c
-@@ -0,0 +1,312 @@
+@@ -0,0 +1,320 @@
 +/*
 + * Copyright (C) 2022 Host Mobility AB
 + *
@@ -79,6 +82,9 @@ index 000000000000..ec476e85ddf2
 +#define TCAN114X_MODE_SLEEP 0x01
 +#define TCAN114X_MODE_STANDBY 0x04
 +#define TCAN114X_MODE_NORMAL 0x07
++
++#define TCAN114X_REG_SWE_DIS 0x1c
++#define TCAN114X_REG_SWE_DIS_FIELD_SWE_DIS 0x80
 +
 +struct tcan114x_priv {
 +	struct device *dev;
@@ -147,14 +153,14 @@ index 000000000000..ec476e85ddf2
 +			return ret;
 +		}
 +		dev_dbg(dev, "Switched to normal mode\n");
-+	} else if (!strcmp(mode, "sleep")) {
++	} else if (!strncmp(buf, "sleep", count - 1)) {
 +		ret = tcan114x_write_reg(dev, TCAN114X_REG_MODE_CTRL, TCAN114X_MODE_SLEEP);
 +		if (ret) {
 +			dev_err(dev, "Cannot set operation mode to sleep\n");
 +			return ret;
 +		}
 +		dev_dbg(dev, "Switch to normal sleep\n");
-+	} else if (!strcmp(mode, "standby")) {
++	} else if (!strncmp(buf, "standby", count - 1)) {
 +		ret = tcan114x_write_reg(dev, TCAN114X_REG_MODE_CTRL, TCAN114X_MODE_STANDBY);
 +		if (ret) {
 +			dev_err(dev, "Cannot set operation mode to standby\n");
@@ -182,13 +188,13 @@ index 000000000000..ec476e85ddf2
 +		return -EBUSY;
 +	}
 +
-+	switch(mode) {
++	switch (mode) {
 +	case TCAN114X_MODE_STANDBY:
-+		return sprintf(buf, "standby");
++		return sprintf(buf, "normal sleep [standby]\n");
 +	case TCAN114X_MODE_SLEEP:
-+		return sprintf(buf, "sleep");
++		return sprintf(buf, "normal [sleep] standby\n");
 +	case TCAN114X_MODE_NORMAL:
-+		return sprintf(buf, "normal");
++		return sprintf(buf, "[normal] sleep standby\n");
 +	}
 +
 +	
@@ -231,6 +237,11 @@ index 000000000000..ec476e85ddf2
 +	unsigned int rval;
 +
 +	ret = tcan114x_write_reg(dev, TCAN114X_REG_MODE_CTRL, TCAN114X_MODE_NORMAL);
++	if (ret < 0) {
++		return ret;
++	}
++
++	ret = tcan114x_write_reg(dev, TCAN114X_REG_SWE_DIS, TCAN114X_REG_SWE_DIS_FIELD_SWE_DIS);
 +	if (ret < 0) {
 +		return ret;
 +	}

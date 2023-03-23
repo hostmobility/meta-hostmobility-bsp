@@ -1,10 +1,10 @@
 env set usbdev 0
 env set usbpart 1
 env set wic_file hmx-image.wic.gz
-env set set_red_led "i2c mw 0x30 7.1 0x50 1;i2c mw 0x30 4.1 0x4 1"
+env set set_red_led "i2c mw ${RGB_I2C_ID} 7.1 0x50 1;i2c mw ${RGB_I2C_ID} 4.1 0x4 1"
 
 #set white led flashing faster.
-env set white_blink_fast "i2c mw 0x30 1.1 1 1;"
+env set white_blink_fast "i2c mw ${RGB_I2C_ID} 1.1 1 1;"
 run set_white_flashing_led; 
 run white_blink_fast;
 

@@ -20,9 +20,9 @@ Add RGB LED handling. Set it to blue on boot and if
 we start to reflash set it to white with blink.
 Add watchdog_init
 ---
- .../imx8mp_var_dart/imx8mp_var_dart.c         | 89 ++++++++++++++++++-
+ .../imx8mp_var_dart/imx8mp_var_dart.c         | 90 ++++++++++++++++++-
  include/configs/imx8mp_var_dart.h             | 22 +++--
- 2 files changed, 102 insertions(+), 9 deletions(-)
+ 2 files changed, 103 insertions(+), 9 deletions(-)
 
 diff --git a/board/variscite/imx8mp_var_dart/imx8mp_var_dart.c b/board/variscite/imx8mp_var_dart/imx8mp_var_dart.c
 index e1a1215536..5adf71df87 100644
@@ -211,17 +211,18 @@ index 85b4eb6100..a6e7e5bfcf 100644
  				"else " \
  					"setenv fdt_file imx8mp-var-dart-dt8mcustomboard.dtb;" \
  				"fi; " \
-@@ -181,7 +181,12 @@
+@@ -181,7 +181,13 @@
  				"echo WARN: Cannot load the DT; " \
  			"fi; " \
  		"fi;\0" \
 -	"bsp_bootcmd=echo Running BSP bootcmd ...; " \
-+	"set_blue_led=i2c dev 1; if i2c probe 0x30 ; then i2c mw 0x30 6.1 0x50 1;i2c mw 0x30 4.1 1 1;fi\0" \
-+	"set_white_flashing_led=i2c dev 1; if i2c probe 0x30 ; then i2c mw 0x30 6.1 0x50 1;i2c mw 0x30 7.1 0x50 1;i2c mw 0x30 8.1 0x50 1;i2c mw 0x30 4.1 0x2A 1;i2c mw 0x30 1.1 13 1;fi\0" \
-+	"set_red_led=i2c mw 0x30 7.1 0x50 1;i2c mw 0x30 4.1 0x4 1\0" \
-+	"white_blink_fast=i2c mw 0x30 1.1 1 1\0" \
++	"set_blue_led=i2c dev 1; if i2c probe ${RGB_I2C_ID} ; then i2c mw ${RGB_I2C_ID} 6.1 0x50 1;i2c mw ${RGB_I2C_ID} 4.1 1 1;fi\0" \
++	"set_white_flashing_led=i2c dev 1; if i2c probe ${RGB_I2C_ID} ; then i2c mw ${RGB_I2C_ID} 6.1 0x50 1;i2c mw ${RGB_I2C_ID} 7.1 0x50 1;i2c mw ${RGB_I2C_ID} 8.1 0x50 1;i2c mw ${RGB_I2C_ID} 4.1 0x2A 1;i2c mw ${RGB_I2C_ID} 1.1 13 1;fi\0" \
++	"set_red_led=i2c mw ${RGB_I2C_ID} 7.1 0x50 1;i2c mw ${RGB_I2C_ID} 4.1 0x4 1\0" \
++	"white_blink_fast=i2c mw ${RGB_I2C_ID} 1.1 1 1\0" \
 +	"try_usb_flash=sleep 2; usb reset; if load usb 0 ${loadaddr} ${bsp_script} ; then source ${loadaddr}; else echo UPDATE ERROR: no ${bsp_script} on first USB device. ;fi\0" \
-+	"bsp_bootcmd=echo Running BSP bootcmd ...; run set_blue_led; " \
++	"set_RGB_ID=i2c dev 1; i2c probe 0x30 && setenv RGB_I2C_ID 0x30 || i2c probe 0x31 && setenv RGB_I2C_ID 0x31 || i2c probe 0x32 && setenv RGB_I2C_ID 0x32; if test -n \"${RGB_I2C_ID}\" ; then setenv first_time_boot_fix_RGB_ID 'i2c dev 1; echo RGB ID:$RGB_I2C_ID;'; saveenv;fi\0" \
++	"bsp_bootcmd=echo Running BSP bootcmd ...; run set_RGB_ID; run set_blue_led; " \
  		"run ramsize_check; " \
  		"mmc dev ${mmcdev}; " \
  		"if mmc rescan; then " \

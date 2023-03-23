@@ -1,0 +1,78 @@
+From 34c1b90914cb355b1f3cf2b3a538b17003283fc9 Mon Sep 17 00:00:00 2001
+From: Mattias Busck <mattias.busck@hostmobility.com>
+Date: Thu, 23 Mar 2023 15:23:04 +0100
+Subject: [PATCH] HMX:Add suspend to backported m_can driver
+
+---
+ drivers/net/can/m_can/tcan4x5x-core.c | 51 ++++++++++++++++++++++++++-
+ 1 file changed, 50 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/net/can/m_can/tcan4x5x-core.c b/drivers/net/can/m_can/tcan4x5x-core.c
+index 9677562f3725..301ca2177f91 100644
+--- a/drivers/net/can/m_can/tcan4x5x-core.c
++++ b/drivers/net/can/m_can/tcan4x5x-core.c
+@@ -409,11 +409,60 @@ static const struct spi_device_id tcan4x5x_id_table[] = {
+ };
+ MODULE_DEVICE_TABLE(spi, tcan4x5x_id_table);
+ 
++static int __maybe_unused tcan4x5x_suspend(struct device *dev)
++{
++	int ret;
++	struct spi_device *spi = to_spi_device(dev);
++	struct tcan4x5x_priv *priv = spi_get_drvdata(spi);
++	struct net_device *net = (priv->cdev).net;
++
++	disable_irq(spi->irq);
++	/* Note: at this point neither IST nor workqueues are running.
++	 * open/stop cannot be called anyway so locking is not needed
++	 */
++	if (netif_running(net)) {
++		ret = regmap_update_bits(priv->regmap, TCAN4X5X_CONFIG,
++				 TCAN4X5X_MODE_SEL_MASK, TCAN4X5X_MODE_SLEEP);
++		dev_err(dev, "Disabled irq Entering sleep(%d), enabling wake on 0x%x\n", ret, spi->irq);
++		enable_irq_wake(spi->irq);
++		//tcan4x5x_hw_sleep(spi);
++		netif_stop_queue(net);
++		netif_device_detach(net);
++	} else {
++		dev_err(dev, "Entering suspend, interface is down, no wake\n");
++	}
++
++
++	return 0;
++}
++
++static int __maybe_unused tcan4x5x_resume(struct device *dev)
++{
++	int ret;
++	struct spi_device *spi = to_spi_device(dev);
++	struct tcan4x5x_priv *priv = spi_get_drvdata(spi);
++	struct net_device *net = (priv->cdev).net;
++
++	if (netif_running(net)) {
++		ret = regmap_update_bits(priv->regmap, TCAN4X5X_CONFIG,
++				 TCAN4X5X_MODE_SEL_MASK, TCAN4X5X_MODE_NORMAL);
++		dev_err(dev, "ENABLING IRQ resuming, normal(%d), setting to normal\n", ret);
++		netif_device_attach(net);
++		netif_start_queue(net);
++		disable_irq_wake(spi->irq);
++	}
++	enable_irq(spi->irq);
++	return 0;
++}
++
++static SIMPLE_DEV_PM_OPS(tcan4x5x_pm_ops, tcan4x5x_suspend,
++	tcan4x5x_resume);
++
+ static struct spi_driver tcan4x5x_can_driver = {
+ 	.driver = {
+ 		.name = KBUILD_MODNAME,
+ 		.of_match_table = tcan4x5x_of_match,
+-		.pm = NULL,
++		.pm = &tcan4x5x_pm_ops,
+ 	},
+ 	.id_table = tcan4x5x_id_table,
+ 	.probe = tcan4x5x_can_probe,
+-- 
+2.30.2
+

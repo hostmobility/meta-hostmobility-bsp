@@ -42,6 +42,8 @@ v8. Add gpio-poweroff handler that pulls GPIO4_IO19 (POWER_OFF) low to
 
 v9. Make it possible to disable in_start and the other gpiokeys with
     linux,can-disable = <1>;
+
+v10. Add spi node aliases so CAN channels do not move.
 ---
  arch/arm64/boot/dts/freescale/Makefile        |    2 +
  .../dts/freescale/imx8mp-var-dart-hmx1.dts    | 1203 +++++++++++++++++
@@ -63,7 +65,7 @@ new file mode 100644
 index 000000000000..a10734241650
 --- /dev/null
 +++ b/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts
-@@ -0,0 +1,1203 @@
+@@ -0,0 +1,1205 @@
 +// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 +/*
 + * Copyright 2022 Host Mobility AB
@@ -82,6 +84,8 @@ index 000000000000..a10734241650
 +		rtc1 = &snvs_rtc;
 +		ethernet2 = &obdnet;
 +		ethernet3 = &usbnet;
++		spi1 = &ecspi1;
++		spi3 = &ecspi3;
 +	};
 +
 +	chosen {

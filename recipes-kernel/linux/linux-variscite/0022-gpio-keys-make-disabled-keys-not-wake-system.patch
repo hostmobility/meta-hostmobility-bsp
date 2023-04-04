@@ -1,0 +1,32 @@
+From 788e61a136a61fb6740b5ea077910938cff7e611 Mon Sep 17 00:00:00 2001
+From: Mattias Busck <mattias.busck@hostmobility.com>
+Date: Tue, 28 Mar 2023 16:42:25 +0200
+Subject: [PATCH] gpio-keys: make disabled keys not wake system
+
+Keys can be disabled from generating event, e.g. when KEY_MACRO1(defined
+in /usr/include/linux/input-event-codes.h) is mapped to IN_START, the
+following line will stop it from generating events in /dev/input/event1.
+However, the system still wakes up.
+echo 656 >/sys/devices/platform/gpio-keys/disabled_keys
+
+Modify driver so wake-up only occurs if a key has NOT been disabled.
+---
+ drivers/input/keyboard/gpio_keys.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/input/keyboard/gpio_keys.c b/drivers/input/keyboard/gpio_keys.c
+index 22a91db645b8..32016efc375b 100644
+--- a/drivers/input/keyboard/gpio_keys.c
++++ b/drivers/input/keyboard/gpio_keys.c
+@@ -957,7 +957,7 @@ gpio_keys_enable_wakeup(struct gpio_keys_drvdata *ddata)
+ 
+ 	for (i = 0; i < ddata->pdata->nbuttons; i++) {
+ 		bdata = &ddata->data[i];
+-		if (bdata->button->wakeup) {
++		if (bdata->button->wakeup && !bdata->disabled) {
+ 			error = gpio_keys_button_enable_wakeup(bdata);
+ 			if (error)
+ 				goto err_out;
+-- 
+2.30.2
+

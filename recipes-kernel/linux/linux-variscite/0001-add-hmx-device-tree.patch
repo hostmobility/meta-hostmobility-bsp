@@ -43,7 +43,7 @@ v8. Add gpio-poweroff handler that pulls GPIO4_IO19 (POWER_OFF) low to
 v9. Make it possible to disable in_start and the other gpiokeys with
     linux,can-disable = <1>;
 
-v10. Add spi node aliases so CAN channels do not move.
+v10. Add spi node aliases and priorities so CAN channels do not move.
 ---
  arch/arm64/boot/dts/freescale/Makefile        |    2 +
  .../dts/freescale/imx8mp-var-dart-hmx1.dts    | 1203 +++++++++++++++++
@@ -65,7 +65,7 @@ new file mode 100644
 index 000000000000..a10734241650
 --- /dev/null
 +++ b/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts
-@@ -0,0 +1,1205 @@
+@@ -0,0 +1,1207 @@
 +// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 +/*
 + * Copyright 2022 Host Mobility AB
@@ -674,6 +674,7 @@ index 000000000000..a10734241650
 +		   <&gpio1 15 GPIO_ACTIVE_LOW>,
 +		   <&gpio3 21 GPIO_ACTIVE_LOW>,
 +		   <&gpio3 23 GPIO_ACTIVE_LOW>;
++	priority = <0>;
 +	status = "okay";
 +
 +	/* Note: can1 and can2 are on SOC internal flexcan1,flexcan2 */
@@ -725,6 +726,7 @@ index 000000000000..a10734241650
 +	pinctrl-0 = <&pinctrl_ecspi3>;
 +	cs-gpios = <&gpio5 25 GPIO_ACTIVE_LOW>,
 +		   <&gpio3 19 GPIO_ACTIVE_LOW>;
++	priority = <1>;
 +	status = "okay";
 +
 +	/* CAN-FD controller 1 in schematics */

@@ -10,6 +10,9 @@ file://0018-power-reset-gpio-poweroff-add-force-mode.patch  \
 file://0020-HMX-backport-m_can-from-linux-can-next.patch  \
 file://0021-HMX-Add-suspend-to-backported-m_can-driver.patch \
 file://0022-gpio-keys-make-disabled-keys-not-wake-system.patch  \
+file://0024-can-m_can-Write-transmit-header-and-data-in-one-tran.patch  \
+file://0025-can-m_can-Keep-interrupts-enabled-during-peripheral-.patch  \
+file://0026-HMX-m_can-do-not-init-registers-until-bus-on.patch \
 "
 # file://0011-Add-control-for-selective-wakeup.patch
 # 

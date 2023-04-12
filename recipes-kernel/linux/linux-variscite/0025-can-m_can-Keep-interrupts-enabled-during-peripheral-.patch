@@ -1,0 +1,51 @@
+From e1568e2b15f7bab7e231f94465a8ce0f610ca71a Mon Sep 17 00:00:00 2001
+From: Markus Schneider-Pargmann <msp@xxxxxxxxxxxx>
+Date: Wed, 15 Mar 2023 12:05:35 +0100
+Subject: [PATCH 25/27] can: m_can: Keep interrupts enabled during peripheral
+ read
+
+Interrupts currently get disabled if the interrupt status shows new
+received data. Non-peripheral chips handle receiving in a worker thread,
+but peripheral chips are handling the receive process in the threaded
+interrupt routine itself without scheduling it for a different worker.
+So there is no need to disable interrupts for peripheral chips.
+
+Signed-off-by: Markus Schneider-Pargmann <msp@xxxxxxxxxxxx>
+---
+ drivers/net/can/m_can/m_can.c | 11 ++++++-----
+ 1 file changed, 6 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/net/can/m_can/m_can.c b/drivers/net/can/m_can/m_can.c
+index 33ad1db6032b..a7c27fb6dd37 100644
+--- a/drivers/net/can/m_can/m_can.c
++++ b/drivers/net/can/m_can/m_can.c
+@@ -972,8 +972,8 @@ static int m_can_rx_peripheral(struct net_device *dev, u32 irqstatus)
+ 	/* Don't re-enable interrupts if the driver had a fatal error
+ 	 * (e.g., FIFO read failure).
+ 	 */
+-	if (work_done >= 0)
+-		m_can_enable_all_interrupts(cdev);
++	if (work_done < 0)
++		m_can_disable_all_interrupts(cdev);
+ 
+ 	return work_done;
+ }
+@@ -1096,11 +1096,12 @@ static irqreturn_t m_can_isr(int irq, void *dev_id)
+ 	 */
+ 	if ((ir & IR_RF0N) || (ir & IR_ERR_ALL_30X)) {
+ 		cdev->irqstatus = ir;
+-		m_can_disable_all_interrupts(cdev);
+-		if (!cdev->is_peripheral)
++		if (!cdev->is_peripheral) {
++			m_can_disable_all_interrupts(cdev);
+ 			napi_schedule(&cdev->napi);
+-		else if (m_can_rx_peripheral(dev, ir) < 0)
++		} else if (m_can_rx_peripheral(dev, ir) < 0) {
+ 			goto out_fail;
++		}
+ 	}
+ 
+ 	if (cdev->version == 30) {
+-- 
+2.30.2
+

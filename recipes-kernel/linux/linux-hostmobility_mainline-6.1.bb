@@ -21,6 +21,7 @@ GENERIC_PATCHES = " \
 "
 MACHINE_PATCHES_tegra3 = " \
     file://defconfig \
+    file://0001-Add-pps-generator-gpio-for-flexray.patch \
     file://0002-Add-support-for-flexray-device-driver.patch \
     file://0003-Add-mx4_pic-and-can-xcvr-to-spidev.patch \
     file://0004-T30-Update-device-tree-with-better-suspend-routine.patch \

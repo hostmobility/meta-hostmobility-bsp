@@ -1,17 +1,17 @@
-From a1aeed47ed31f9589fecd9a6e81641e133137fbc Mon Sep 17 00:00:00 2001
+From 78daa05ee258b18c4faa1604edbb640e86cef15f Mon Sep 17 00:00:00 2001
 From: rikardo <rikard.olander@hostmobility.com>
-Date: Tue, 9 May 2023 12:53:44 +0000
-Subject: [PATCH 1/4] Add pps generator gpio for flexray
+Date: Mon, 15 May 2023 16:02:00 +0000
+Subject: [PATCH 1/1] Add pps generator gpio for flexray
 
 ---
  drivers/pps/generators/Kconfig          |   7 +
  drivers/pps/generators/LICENSE          | 339 ++++++++++++++++++++++++
- drivers/pps/generators/Makefile         |   1 +
+ drivers/pps/generators/Makefile         |   5 +-
  drivers/pps/generators/README.md        |  34 +++
  drivers/pps/generators/pps-gen-gpio.txt |  19 ++
- drivers/pps/generators/pps_gen_gpio.c   | 291 ++++++++++++++++++++
+ drivers/pps/generators/pps_gen_gpio.c   | 290 ++++++++++++++++++++
  include/linux/pps_gen_gpio.h            |  18 ++
- 7 files changed, 709 insertions(+)
+ 7 files changed, 709 insertions(+), 3 deletions(-)
  create mode 100644 drivers/pps/generators/LICENSE
  create mode 100644 drivers/pps/generators/README.md
  create mode 100644 drivers/pps/generators/pps-gen-gpio.txt
@@ -380,17 +380,19 @@ index 000000000000..22fbe5dbacbe
 +Public License instead of this License.
 \ No newline at end of file
 diff --git a/drivers/pps/generators/Makefile b/drivers/pps/generators/Makefile
-index 2d56dd0495d5..9662a89e5b7a 100644
+index 2d56dd0495d5..77572fc6692f 100644
 --- a/drivers/pps/generators/Makefile
 +++ b/drivers/pps/generators/Makefile
-@@ -4,6 +4,7 @@
+@@ -4,7 +4,6 @@
  #
  
  obj-$(CONFIG_PPS_GENERATOR_PARPORT) += pps_gen_parport.o
 +obj-$(CONFIG_PPS_GENERATOR_GPIO) += pps_gen_gpio.o
  
- ifeq ($(CONFIG_PPS_DEBUG),y)
- EXTRA_CFLAGS += -DDEBUG
+-ifeq ($(CONFIG_PPS_DEBUG),y)
+-EXTRA_CFLAGS += -DDEBUG
+-endif
++ccflags-$(CONFIG_PPS_DEBUG) := -DDEBUG
 diff --git a/drivers/pps/generators/README.md b/drivers/pps/generators/README.md
 new file mode 100644
 index 000000000000..441f1d354f9e
@@ -458,10 +460,10 @@ index 000000000000..973e5e78aa1a
 +	};
 diff --git a/drivers/pps/generators/pps_gen_gpio.c b/drivers/pps/generators/pps_gen_gpio.c
 new file mode 100644
-index 000000000000..3f824c9e152f
+index 000000000000..89027f56cb05
 --- /dev/null
 +++ b/drivers/pps/generators/pps_gen_gpio.c
-@@ -0,0 +1,291 @@
+@@ -0,0 +1,290 @@
 +/*
 + * pps_gen_gpio.c -- kernel GPIO PPS signal generator
 + *
@@ -549,9 +551,8 @@ index 000000000000..3f824c9e152f
 +	    ktime_compare(ktime_sub(ktime_expire_req, ktime_expire_real),
 +			   ktime_set(0, time_gpio_assert_ns)) < 0) {
 +		local_irq_restore(irq_flags);
-+		pr_warn("We are late this time [%lld.%09ld]\n",
-+		       ktime_to_ns(ktime_expire_real) / NSEC_PER_SEC,
-+		       ktime_to_ns(ktime_expire_real) % NSEC_PER_SEC);
++		pr_warn("We are late this time [%09lld]\n",
++			ktime_to_ns(ktime_expire_real));
 +		goto done;
 +	}
 +
@@ -560,7 +561,7 @@ index 000000000000..3f824c9e152f
 +		ktime1 = ktime_get();
 +	while (ktime_compare(ktime_to_ns(ktime1),
 +			      ktime_to_ns(ktime_expire_req)) == 0 &&
-+	       ktime_compare(ktime_sub(ktime1, ktime_expire_real),
++		ktime_compare(ktime_sub(ktime1, ktime_expire_real),
 +			      ktime_set(0, time_gpio_assert_ns)) < 0);
 +
 +	/* Assert PPS GPIO. */
@@ -571,7 +572,7 @@ index 000000000000..3f824c9e152f
 +		ktime1 = ktime_get();
 +	while (ktime_compare(ktime_to_ns(ktime1),
 +			      ktime_to_ns(ktime_expire_req)) == 0 &&
-+	       ktime_compare(ktime_sub(ktime1, ktime_expire_real),
++		ktime_compare(ktime_sub(ktime1, ktime_expire_real),
 +			      ktime_set(0, time_gpio_deassert_ns)) < 0);
 +
 +	/* Deassert PPS GPIO. */
@@ -646,8 +647,8 @@ index 000000000000..3f824c9e152f
 +	 * now, synchronized to the tv_sec increment of the wall-clock time.
 +	 */
 +    return ktime_add(ktime_set(ts + 1, 0), ktime_set(0,
-+                  NSEC_PER_SEC - gpio_pulse_width_ns
-+                  - devdata->gpio_instr_time - 3 * SAFETY_INTERVAL_NS));
++				NSEC_PER_SEC - gpio_pulse_width_ns
++				- devdata->gpio_instr_time - 3 * SAFETY_INTERVAL_NS));
 +}
 +
 +static int pps_gen_gpio_probe(struct platform_device *pdev)
@@ -658,8 +659,8 @@ index 000000000000..3f824c9e152f
 +
 +	/* Allocate space for device info. */
 +	devdata = devm_kzalloc(dev,
-+			       sizeof(struct pps_gen_gpio_devdata),
-+			       GFP_KERNEL);
++				sizeof(struct pps_gen_gpio_devdata),
++				GFP_KERNEL);
 +	if (!devdata) {
 +		ret = -ENOMEM;
 +		goto err_alloc;
@@ -736,7 +737,7 @@ index 000000000000..3f824c9e152f
 +	pr_info(DRVDESC "\n");
 +	if (gpio_pulse_width_ns > GPIO_PULSE_WIDTH_MAX_NS) {
 +		pr_err("pps_gen_gpio: width value should be not greater than %ldns\n",
-+		       GPIO_PULSE_WIDTH_MAX_NS);
++			GPIO_PULSE_WIDTH_MAX_NS);
 +		return -EINVAL;
 +	}
 +	platform_driver_register(&pps_gen_gpio_driver);

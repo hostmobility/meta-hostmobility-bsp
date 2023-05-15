@@ -1495,8 +1495,8 @@ index 000000000000..c000e51444cb
 +		emc-timings-0 {
 +			nvidia,ram-code = <0>; /* NANYA RAM nt5cc256m16c <5>;?!*/
 +
-+			timing-800000000 {
-+				clock-frequency = <800000000>;
++			timing-400000000 {
++				clock-frequency = <400000000>;
 +
 +				nvidia,emem-configuration = <
 +					0x00000006 /* MC_EMEM_ARB_CFG */
@@ -1525,8 +1525,8 @@ index 000000000000..c000e51444cb
 +		emc-timings-0 {
 +			nvidia,ram-code = <0>;  /* NANYA RAM nt5cc256m16c <5>;?!*/
 +
-+			timing-800000000 {
-+				clock-frequency = <800000000>;
++			timing-400000000 {
++				clock-frequency = <400000000>;
 +				nvidia,emc-auto-cal-interval = <0x001fffff>;
 +				nvidia,emc-mode-1 = <0x80100002>;
 +				nvidia,emc-mode-2 = <0x80200018>;
@@ -1725,8 +1725,8 @@ index 000000000000..c000e51444cb
 +		nvidia,audio-codec = <&sgtl5000>;
 +		clocks = <&tegra_car TEGRA30_CLK_PLL_A>,
 +			 <&tegra_car TEGRA30_CLK_PLL_A_OUT0>,
-+			 <&tegra_car TEGRA30_CLK_EXTERN1>;
-+		clock-names = "pll_a", "pll_a_out0", "mclk";
++			 <&tegra_pmc TEGRA_PMC_CLK_OUT_1>;
++		clock-names = "pll_a", "pll_a_out0", "mclk";assigned-clocks = <&tegra_car TEGRA30_CLK_EXTERN1>,<&tegra_pmc TEGRA_PMC_CLK_OUT_1>;assigned-clock-parents = <&tegra_car TEGRA30_CLK_PLL_A_OUT0>,<&tegra_car TEGRA30_CLK_EXTERN1>;
 +	};
 +
 +	cpus {

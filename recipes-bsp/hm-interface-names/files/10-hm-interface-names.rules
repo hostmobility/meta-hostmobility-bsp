@@ -1,0 +1,12 @@
+# Example file
+# SUBSYSTEM=="net", ACTION=="add",  KERNELS=="spi3.0", NAME="cano1"
+# SUBSYSTEM=="net", ACTION=="add",  KERNELS=="308d0000.can", NAME="cano2"
+# SUBSYSTEM=="net", ACTION=="add",  KERNELS=="308c0000.can", NAME="cano3"
+# SUBSYSTEM=="net", ACTION=="add",  KERNELS=="spi3.1", NAME="cano4"
+# SUBSYSTEM=="net", ACTION=="add",  KERNELS=="spi1.2", NAME="cano5"
+# SUBSYSTEM=="net", ACTION=="add",  KERNELS=="spi1.3", NAME="cano6"
+# SUBSYSTEM=="net", ACTION=="add",  KERNELS=="30be0000.ethernet", NAME="ent1_1"
+# SUBSYSTEM=="net", ACTION=="add",  KERNELS=="30bf0000.ethernet", NAME="ent1_2"
+# SUBSYSTEM=="net", ACTION=="add",  KERNELS=="1-1.2.1:1.0", NAME="enobd"
+# SUBSYSTEM=="net", ACTION=="add",  KERNELS=="1-1.1:1.0", NAME="eno1"
+

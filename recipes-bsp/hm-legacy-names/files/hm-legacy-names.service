@@ -1,0 +1,10 @@
+[Unit]
+Description=Legacy Network Names Service
+After=systemd-udevd.service
+Before=network.target
+
+[Service]
+ExecStart=/opt/hm/legacy-network-names.sh
+
+[Install]
+WantedBy=network.target

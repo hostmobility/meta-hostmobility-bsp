@@ -1,3 +1,5 @@
+
+
 FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 
 SRC_URI += "\
@@ -9,3 +11,5 @@ SRC_URI += "\
 #Keep this version untill we can step up u-boot hm patches.
 SRCBRANCH = "lf_v2022.04_var01"
 SRCREV = "09207fe3fd0110748280dcff64e3fd6d2e0a4b3b"
+
+COMPATIBLE_MACHINE = "(imx8mp-var-dart-hmx1)"

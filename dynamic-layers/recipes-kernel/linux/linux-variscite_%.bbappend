@@ -21,3 +21,5 @@ SRCBRANCH = "5.15-2.0.x-imx_var01"
 KERNEL_SRC ?= "git://github.com/varigit/linux-imx;protocol=https"
 SRCREV = "dd055f07f727803a7542541f560f69daed8209f4"
 LINUX_VERSION = "5.15.50"
+
+COMPATIBLE_MACHINE = "(imx8mp-var-dart-hmx1)"

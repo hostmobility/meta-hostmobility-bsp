@@ -65,7 +65,7 @@ new file mode 100644
 index 000000000000..a10734241650
 --- /dev/null
 +++ b/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts
-@@ -0,0 +1,1207 @@
+@@ -0,0 +1,1215 @@
 +// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 +/*
 + * Copyright 2022 Host Mobility AB
@@ -82,8 +82,16 @@ index 000000000000..a10734241650
 +	aliases {
 +		rtc0 = &rtc_extern;
 +		rtc1 = &snvs_rtc;
-+		ethernet2 = &obdnet;
-+		ethernet3 = &usbnet;
++		ethernet0 = &eth0;
++		ethernet1 = &eth1;
++		ethernet2 = &fec;
++		ethernet3 = &eqos;
++		can0 = &can0;
++		can1 = &flexcan2;
++		can2 = &flexcan1;
++		can3 = &can3;
++		can4 = &can4;
++		can5 = &can5;
 +		spi1 = &ecspi1;
 +		spi3 = &ecspi3;
 +	};
@@ -610,7 +618,7 @@ index 000000000000..a10734241650
 +		wakeup-source;
 +		vdd-supply = <&reg_usb_hubs>;
 +
-+		usbnet: usbether@1 {
++		eth1: usbether@1 {
 +			compatible = "usb424,ec00";
 +			reg =<1>;
 +			local-mac-address = [ 00 00 00 00 00 00 ];
@@ -625,7 +633,7 @@ index 000000000000..a10734241650
 +			#size-cells = <0>;
 +			wakeup-source;
 +
-+			obdnet: obdether@1 {
++			eth0: obdether@1 {
 +				compatible = "usb424,ec00";
 +				reg =<1>;
 +				local-mac-address = [ 00 00 00 00 00 00 ];

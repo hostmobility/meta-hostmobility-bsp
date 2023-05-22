@@ -4,7 +4,7 @@ After=systemd-udevd.service
 Before=network.target
 
 [Service]
-ExecStart=/opt/hm/legacy-network-names.sh
+ExecStart=/opt/hm/hm-stable-names.sh
 
 [Install]
 WantedBy=network.target

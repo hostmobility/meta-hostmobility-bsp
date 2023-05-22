@@ -11,10 +11,14 @@ prepare_rename()
     fi
     syspath="$1"
 
-    if [[ ! -r "$syspath" ]]; then
-        echo "$syspath does not exist"
-        return 3
-    fi
+    (( t_timeout=SECONDS+7 ))
+    while [[ ! -r "$syspath" ]]; do
+        if ((SECONDS>t_timeout)); then
+            echo "$syspath does not exist"
+            return 3
+        fi
+        sleep 0.2
+    done
 
     current_name=$(basename "$1")
     right_name="$2"

@@ -1,5 +1,11 @@
-SUMMARY = "Legacy Network Names Script and Service"
-DESCRIPTION = "A script to handle legacy network names"
+SUMMARY = "Legacy Network Names Renaming Script"
+
+DESCRIPTION = "\
+	       A bash script (/opt/hm/hm-stable-names.sh) intended to be run \
+	       after the interfaces have been found but before network \
+	       interfaces are brought up. The script renames ethX and canX \
+	       interfaces so they always appear at the same physical connection \
+	       "
 LICENSE = "CLOSED"
 PR = "r0"
 
@@ -8,7 +14,6 @@ SRC_URI = "\
         "
 
 S = "${WORKDIR}"
-
 
 RDEPENDS:${PN} = "bash"
 
@@ -23,6 +28,8 @@ FILES:${PN} += "\
 "
 
 RPROVIDES:${PN} = "hm-stable-names"
+
+COMPATIBLE_MACHINE = "(imx8mp-var-dart-hmx1)"
 
 
 

@@ -44,6 +44,8 @@ v9. Make it possible to disable in_start and the other gpiokeys with
     linux,can-disable = <1>;
 
 v10. Add spi node aliases and priorities so CAN channels do not move.
+
+v11. Add aliases and correct CAN labels
 ---
  arch/arm64/boot/dts/freescale/Makefile        |    2 +
  .../dts/freescale/imx8mp-var-dart-hmx1.dts    | 1203 +++++++++++++++++
@@ -700,7 +702,7 @@ index 000000000000..a10734241650
 +		status = "okay";
 +	};
 +	/* CAN-FD controller 5 in schematics */
-+	can3: tcan4x5x@2 {
++	can4: tcan4x5x@2 {
 +		compatible = "ti,tcan4x5x";
 +		reg = <2>;
 +		#address-cells = <1>;
@@ -755,7 +757,7 @@ index 000000000000..a10734241650
 +		status = "okay";
 +	};
 +	/* CAN-FD controller 4 in schematics */
-+	can4: tcan4x5x@1 {
++	can3: tcan4x5x@1 {
 +		compatible = "ti,tcan4x5x";
 +		reg = <1>;
 +		#address-cells = <1>;

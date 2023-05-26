@@ -26,6 +26,7 @@ MACHINE_PATCHES_tegra3 = " \
     file://0003-Add-mx4_pic-and-can-xcvr-to-spidev.patch \
     file://0004-T30-Update-device-tree-with-better-suspend-routine.patch \
     file://0005-To-get-the-SD-MMC-host-device-ID-read-the-alias-from.patch \
+    file://0009-Change-asix-driver-to-version-4.23.patch \
 "
 
 

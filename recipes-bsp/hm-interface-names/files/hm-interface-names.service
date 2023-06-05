@@ -1,10 +1,11 @@
 [Unit]
 Description=Legacy Network Names Service
-Before=network-pre.target
-Wants=network-pre.target
 
 [Service]
 ExecStart=/opt/hm/hm-stable-names.sh
 Type=oneshot
 RemainAfterExit=true
+
+[Install]
+WantedBy=network-pre.target
 

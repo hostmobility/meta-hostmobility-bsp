@@ -9,6 +9,7 @@ file://0001-TCAN114x-driver-with-normal-standby-sleep-mode.patch \
 file://0018-power-reset-gpio-poweroff-add-force-mode.patch  \
 file://0022-gpio-keys-make-disabled-keys-not-wake-system.patch  \
 file://0020-HMX-backport-m_can-from-linux-can-next.patch  \
+file://0021-HMX-Add-suspend-to-backported-m_can-driver.patch \
 "
 
 SRC_URI += "file://defconfig"

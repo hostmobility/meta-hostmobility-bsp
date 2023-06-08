@@ -12,6 +12,7 @@ file://0020-HMX-backport-m_can-from-linux-can-next.patch  \
 file://0021-HMX-Add-suspend-to-backported-m_can-driver.patch \
 file://0026-HMX-m_can-do-not-init-registers-until-bus-on.patch \
 file://0027-tcan4x5x-add-direct-register-read-debug.patch \
+file://0028-tcan4x4-stop-queue-first-in-transmit-to-avoid-race.patch \
 "
 
 SRC_URI += "file://defconfig"

@@ -1,10 +1,11 @@
-DESCRIPTION = "udev rule and script for persistent names of CAN and Ethernet"
+SUMMARY = "Service and script for persistent names of CAN and Ethernet"
+DESCRIPTION = "A service that runs script for reordering network and CAN interfaces to keep the canX and ethX names but order them in the same order regardless of which gets created first by the drivers "
+
 SECTION = "udev"
 LICENSE = "CLOSED"
 SRC_URI = "\
-	file://10-hm-interface-names.rules \
-	file://hm-interface-names.service \
-	"
+    file://hm-interface-names.service \
+"
 
 inherit systemd
 SYSTEMD_PACKAGES = "${PN}"
@@ -16,8 +17,6 @@ FILES:${PN} += "\
 
 
 do_install() {
-    install -d ${D}/${sysconfdir}/udev/rules.d
-    install -m 0644 ${WORKDIR}/10-hm-interface-names.rules ${D}/${sysconfdir}/udev/rules.d/
     install -d ${D}${systemd_unitdir}/system
     install -m 0644 ${WORKDIR}/hm-interface-names.service ${D}${systemd_unitdir}/system/
 }

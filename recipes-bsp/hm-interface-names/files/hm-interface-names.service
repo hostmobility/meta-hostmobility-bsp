@@ -1,10 +1,11 @@
 [Unit]
 Description=Legacy Network Names Service
-After=systemd-udevd.service
-Before=network.target
 
 [Service]
 ExecStart=/opt/hm/hm-stable-names.sh
+Type=oneshot
+RemainAfterExit=true
 
 [Install]
-WantedBy=network.target
+WantedBy=network-pre.target
+

@@ -1,2 +1,0 @@
-SUBSYSTEM=="net", ACTION=="add" RUN+="systemctl start hm-interface-names"
-

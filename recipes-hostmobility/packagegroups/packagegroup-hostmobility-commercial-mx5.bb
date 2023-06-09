@@ -14,4 +14,5 @@ RDEPENDS_${PN} += "\
     ${@bb.utils.contains('MACHINE_FEATURES', 'j1708', 'j1708-lib j1708-test', '', d)} \
     ${@bb.utils.contains('MACHINE_FEATURES', 'hm-cocpu_updater', 'mx5-hm-cocpu-updater', '', d)} \
     ${@bb.utils.contains('MACHINE_FEATURES', 'hm-cocpu_updater-service', 'mx5-hm-cocpu-updater-service', '', d)} \
+    qfirehose \
 "

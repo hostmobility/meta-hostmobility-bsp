@@ -46,7 +46,10 @@ v9. Make it possible to disable in_start and the other gpiokeys with
 v10. Add spi node aliases and priorities so CAN channels do not move.
 
 v11. Add aliases and correct CAN labels
+
+v12. Correct MAC addresses on eth0 and eth1, move USB nodes to &usb_dwc3_1
 ---
+
  arch/arm64/boot/dts/freescale/Makefile        |    2 +
  .../dts/freescale/imx8mp-var-dart-hmx1.dts    | 1203 +++++++++++++++++
  2 files changed, 1205 insertions(+)
@@ -612,6 +615,12 @@ index 000000000000..a10734241650
 +
 +&usb3_1 {
 +	status = "okay";
++
++};
++
++&usb_dwc3_1 {
++	dr_mode = "host";
++	status = "okay";
 +	lan9513i@1 {
 +		compatible = "usb424,9514";
 +		reg =<1>;
@@ -655,12 +664,6 @@ index 000000000000..a10734241650
 +		};
 +
 +	}; 
-+
-+};
-+
-+&usb_dwc3_1 {
-+	dr_mode = "host";
-+	status = "okay";
 +};
 +/* TODO change ports if needed and check power logic for USB host/peripheral */
 +

@@ -1,0 +1,5772 @@
+From 56645592cc0d7a5cfa768862016d4ad077bb9fb7 Mon Sep 17 00:00:00 2001
+From: rikardo <rikard.olander@hostmobility.com>
+Date: Tue, 9 May 2023 13:02:54 +0000
+Subject: [PATCH 2/4] Add support for flexray device driver
+
+---
+ Documentation/networking/flexray.rst |   24 +
+ drivers/net/Makefile                 |    1 +
+ drivers/net/flexray/Kconfig          |   41 +
+ drivers/net/flexray/Makefile         |   12 +
+ drivers/net/flexray/dev.c            |  700 ++++++++
+ drivers/net/flexray/flexcard_fr.c    | 2480 ++++++++++++++++++++++++++
+ drivers/net/flexray/vflexray.c       |  134 ++
+ include/linux/flexray.h              |   77 +
+ include/linux/flexray/Kbuild         |    4 +
+ include/linux/flexray/core.h         |   53 +
+ include/linux/flexray/dev.h          |   64 +
+ include/linux/flexray/netlink.h      |  213 +++
+ include/linux/flexray/raw.h          |   20 +
+ include/linux/socket.h               |    6 +-
+ include/net/net_namespace.h          |    4 +
+ include/net/netns/flexray.h          |   39 +
+ include/uapi/linux/if_arp.h          |    3 +-
+ include/uapi/linux/if_ether.h        |    1 +
+ net/Kconfig                          |    1 +
+ net/Makefile                         |    1 +
+ net/core/sock.c                      |    2 +-
+ net/flexray/Kconfig                  |   30 +
+ net/flexray/Makefile                 |    9 +
+ net/flexray/af_flexray.c             |  687 +++++++
+ net/flexray/af_flexray.h             |   54 +
+ net/flexray/proc.c                   |  163 ++
+ net/flexray/raw.c                    |  675 +++++++
+ 27 files changed, 5494 insertions(+), 4 deletions(-)
+ create mode 100644 Documentation/networking/flexray.rst
+ create mode 100644 drivers/net/flexray/Kconfig
+ create mode 100644 drivers/net/flexray/Makefile
+ create mode 100644 drivers/net/flexray/dev.c
+ create mode 100644 drivers/net/flexray/flexcard_fr.c
+ create mode 100644 drivers/net/flexray/vflexray.c
+ create mode 100644 include/linux/flexray.h
+ create mode 100644 include/linux/flexray/Kbuild
+ create mode 100644 include/linux/flexray/core.h
+ create mode 100644 include/linux/flexray/dev.h
+ create mode 100644 include/linux/flexray/netlink.h
+ create mode 100644 include/linux/flexray/raw.h
+ create mode 100644 include/net/netns/flexray.h
+ create mode 100644 net/flexray/Kconfig
+ create mode 100644 net/flexray/Makefile
+ create mode 100644 net/flexray/af_flexray.c
+ create mode 100644 net/flexray/af_flexray.h
+ create mode 100644 net/flexray/proc.c
+ create mode 100644 net/flexray/raw.c
+
+diff --git a/Documentation/networking/flexray.rst b/Documentation/networking/flexray.rst
+new file mode 100644
+index 000000000000..9c0b844656bf
+--- /dev/null
++++ b/Documentation/networking/flexray.rst
+@@ -0,0 +1,24 @@
++============================================================================
++
++flexray.txt
++
++Readme file for the FlexRay Protocol Family (aka Socket FlexRay)
++
++This file contains
++
++  1 Overview / What is Socket FlexRay
++
++============================================================================
++
++1 Overview / What is Socket FlexRay
++-----------------------------------
++
++The socket FlexRay package is an implementation of FlexRay protocols
++for Linux. FlexRay is a networking technology used in automotive fields as
++successor of the Controller Area Network (CAN). It is designed to be faster
++and more reliable than CAN.
++The Socket FlexRay implementation uses the Berkeley socket API, the Linux
++network stack and implements the FlexRay device drivers as network interfaces.
++The FlexRay socket API has been designed as similar as possible to the TCP/IP
++protocols to allow programmers, familiar with network programming, to easily
++learn how to use FlexRay sockets.
+diff --git a/drivers/net/Makefile b/drivers/net/Makefile
+index 6ce076462dbf..6d87bdaed7b4 100644
+--- a/drivers/net/Makefile
++++ b/drivers/net/Makefile
+@@ -89,3 +89,4 @@ thunderbolt-net-y += thunderbolt.o
+ obj-$(CONFIG_USB4_NET) += thunderbolt-net.o
+ obj-$(CONFIG_NETDEVSIM) += netdevsim/
+ obj-$(CONFIG_NET_FAILOVER) += net_failover.o
++obj-$(CONFIG_FLEXRAY) += flexray/
+diff --git a/drivers/net/flexray/Kconfig b/drivers/net/flexray/Kconfig
+new file mode 100644
+index 000000000000..5b70746ff568
+--- /dev/null
++++ b/drivers/net/flexray/Kconfig
+@@ -0,0 +1,41 @@
++menu "FlexRay Device Drivers"
++	depends on FLEXRAY
++
++config FLEXRAY_VFLEXRAY
++	tristate "Virtual Local FlexRay Interface (vflexray)"
++	depends on FLEXRAY
++	help
++	  Similar to the network loopback devices, vflexray offers a
++	  virtual local FlexRay interface.
++
++	  This driver can also be built as a module.  If so, the module
++	  will be called vflexray.
++
++config FLEXRAY_DEV
++	tristate "Platform FlexRay drivers with Netlink support"
++	depends on FLEXRAY
++	default y
++	help
++	  Enables the common framework for platform FlexRay drivers with
++	  Netlink support. This is the standard library for FlexRay drivers.
++	  If unsure, say Y.
++
++config FLEXRAY_FLEXCARD
++	tristate "Support for the Flexcard FlexRay function"
++	depends on FLEXRAY_DEV
++	help
++	  Driver for Eberspächer FlexCard PMC II, it supports Flexray and
++	  CAN busses.
++	  This driver can also be built as a module. If so, the module
++	  will be called flexcard_fr.
++
++config FLEXRAY_DEBUG_DEVICES
++	bool "FlexRay devices debugging messages"
++	depends on FLEXRAY
++	help
++	  Say Y here if you want the Flexray device drivers to produce a bunch
++	  of debug messages to the system log.  Select this if you are having
++	  a problem with FlexRay support and want to see more of what is going
++	  on.
++
++endmenu
+diff --git a/drivers/net/flexray/Makefile b/drivers/net/flexray/Makefile
+new file mode 100644
+index 000000000000..97e253866326
+--- /dev/null
++++ b/drivers/net/flexray/Makefile
+@@ -0,0 +1,12 @@
++#
++#  Makefile for the Linux FlexRay drivers.
++#
++
++obj-$(CONFIG_FLEXRAY_VFLEXRAY)		+= vflexray.o
++
++obj-$(CONFIG_FLEXRAY_DEV)		+= flexray-dev.o
++flexray-dev-y				:= dev.o
++
++obj-$(CONFIG_FLEXRAY_FLEXCARD)		+= flexcard_fr.o
++
++ccflags-$(CONFIG_FLEXRAY_DEBUG_DEVICES) := -DDEBUG
+diff --git a/drivers/net/flexray/dev.c b/drivers/net/flexray/dev.c
+new file mode 100644
+index 000000000000..77e834b9e091
+--- /dev/null
++++ b/drivers/net/flexray/dev.c
+@@ -0,0 +1,700 @@
++/* Copyright 2012 Eberspächer Electronics GmbH & Co. KG. All Rights Reserved.
++ *
++ * valid flexray paramter ranges are from
++ * FlexRay - Protocol Specification - V2.1rev A
++ * FlexRay - Protocol Specification - V3.0.1
++ * eray-specific: Bosch E-Ray FlexRay IP-Module, User's Manual,
++ *		  Revision 1.2.7 (06.02.2009)
++*/
++
++#include <linux/module.h>
++#include <linux/kernel.h>
++#include <linux/slab.h>
++#include <linux/netdevice.h>
++#include <linux/if_arp.h>
++#include <linux/flexray.h>
++#include <linux/flexray/dev.h>
++#include <linux/flexray/netlink.h>
++#include <net/rtnetlink.h>
++
++static int flexray_check_cluster_params(struct flexray_cluster_param *cp,
++					struct net_device *dev);
++static int flexray_check_node_params(struct flexray_node_param *np,
++				     struct net_device *dev);
++
++static void flexray_setup(struct net_device *dev)
++{
++	dev->type = ARPHRD_FLEXRAY;
++	dev->mtu = sizeof(struct flexray_frame);
++	dev->hard_header_len = 0;
++	dev->addr_len = 0;
++	dev->tx_queue_len = 10;
++	dev->flags = IFF_NOARP;
++	dev->features = NETIF_F_HW_CSUM;
++}
++
++struct sk_buff *alloc_flexray_skb(struct net_device *dev,
++				  struct flexray_frame **cf)
++{
++	struct sk_buff *skb;
++
++	skb = netdev_alloc_skb(dev, sizeof(struct flexray_frame));
++	if (unlikely(!skb))
++		return NULL;
++
++	skb->protocol = htons(ETH_P_FLEXRAY);
++	skb->pkt_type = PACKET_BROADCAST;
++	skb->ip_summed = CHECKSUM_UNNECESSARY;
++	*cf = (struct flexray_frame *)skb_put(skb,
++					      sizeof(struct flexray_frame));
++	memset(*cf, 0, sizeof(struct flexray_frame));
++
++	return skb;
++}
++EXPORT_SYMBOL_GPL(alloc_flexray_skb);
++
++/* Allocate and setup space for the FLEXRAY network device */
++struct net_device *alloc_flexraydev(int sizeof_priv, u8 version)
++{
++	struct net_device *dev;
++	struct flexray_priv *priv;
++
++	if (version != 2 && version != 3)
++		return NULL;
++
++	/* 3 TXs queues: Key, Fixed, Dynamic */
++	dev = alloc_netdev_mqs(sizeof_priv, "flexray%d", NET_NAME_UNKNOWN, flexray_setup, 3, 1);
++	if (!dev)
++		return NULL;
++
++	priv = netdev_priv(dev);
++	priv->state = FLEXRAY_STATE_UNSPEC;
++	priv->version = version;
++
++	return dev;
++}
++EXPORT_SYMBOL_GPL(alloc_flexraydev);
++
++/* Free space of the FLEXRAY network device */
++void free_flexraydev(struct net_device *dev)
++{
++	free_netdev(dev);
++}
++EXPORT_SYMBOL_GPL(free_flexraydev);
++
++int open_flexraydev(struct net_device *dev)
++{
++	/* Switch carrier on if device was stopped while in bus-off state */
++	if (!netif_carrier_ok(dev))
++		netif_carrier_on(dev);
++
++	return 0;
++}
++EXPORT_SYMBOL_GPL(open_flexraydev);
++
++void close_flexraydev(struct net_device *dev)
++{
++}
++EXPORT_SYMBOL_GPL(close_flexraydev);
++
++/* debug functionality */
++
++#define PRINT_PARAM(name, p)	pr_debug(#name" = %d\n", p->name);
++
++void print_cluster_config(struct flexray_cluster_param *cp, int is_v3)
++{
++	pr_debug("Cluster configuration:\n");
++
++	PRINT_PARAM(gColdstartAttempts, cp);
++	PRINT_PARAM(gdActionPointOffset, cp);
++	PRINT_PARAM(gdCASRxLowMax, cp);
++	PRINT_PARAM(gdDynamicSlotIdlePhase, cp);
++	PRINT_PARAM(gdMinislot, cp);
++	PRINT_PARAM(gdMinislotActionPointOffset, cp);
++	PRINT_PARAM(gdStaticSlot, cp);
++	PRINT_PARAM(gdSymbolWindow, cp);
++	PRINT_PARAM(gdTSSTransmitter, cp);
++	PRINT_PARAM(gListenNoise, cp);
++	PRINT_PARAM(gMacroPerCycle, cp);
++	PRINT_PARAM(gMaxWithoutClockCorrectionFatal, cp);
++	PRINT_PARAM(gMaxWithoutClockCorrectionPassive, cp);
++	PRINT_PARAM(gNumberOfMinislots, cp);
++	PRINT_PARAM(gNumberOfStaticSlots, cp);
++	PRINT_PARAM(gPayloadLengthStatic, cp);
++	PRINT_PARAM(gChannels, cp);
++	PRINT_PARAM(gClusterDriftDamping, cp);
++	PRINT_PARAM(gdBit, cp);
++	PRINT_PARAM(gdCycle, cp);
++	PRINT_PARAM(gdMacrotick, cp);
++	PRINT_PARAM(gdNIT, cp);
++	PRINT_PARAM(gdSampleClockPeriod, cp);
++	PRINT_PARAM(gNetworkManagementVectorLength, cp);
++	if (!is_v3) {
++		PRINT_PARAM(v2.gAssumedPrecision, cp);
++		PRINT_PARAM(v2.gdMaxInitializationError, cp);
++		PRINT_PARAM(v2.gdMaxMicrotick, cp);
++		PRINT_PARAM(v2.gdMaxPropagationDelay, cp);
++		PRINT_PARAM(v2.gdMinPropagationDelay, cp);
++		PRINT_PARAM(v2.gdWakeupSymbolRxIdle, cp);
++		PRINT_PARAM(v2.gdWakeupSymbolRxLow, cp);
++		PRINT_PARAM(v2.gdWakeupSymbolRxWindow, cp);
++		PRINT_PARAM(v2.gdWakeupSymbolTxIdle, cp);
++		PRINT_PARAM(v2.gdWakeupSymbolTxLow, cp);
++		PRINT_PARAM(v2.gOffsetCorrectionMax, cp);
++		PRINT_PARAM(v2.gOffsetCorrectionStart, cp);
++		PRINT_PARAM(v2.gSyncNodeMax, cp);
++	} else {
++		PRINT_PARAM(v3.gClockDeviationMax, cp);
++		PRINT_PARAM(v3.gCycleCountMax, cp);
++		PRINT_PARAM(v3.gdIgnoreAfterTx, cp);
++		PRINT_PARAM(v3.gdSymbolWindowActionPointOffset, cp);
++		PRINT_PARAM(v3.gdWakeupRxIdle, cp);
++		PRINT_PARAM(v3.gdWakeupRxLow, cp);
++		PRINT_PARAM(v3.gdWakeupRxWindow, cp);
++		PRINT_PARAM(v3.gdWakeupTxActive, cp);
++		PRINT_PARAM(v3.gdWakeupTxIdle, cp);
++		PRINT_PARAM(v3.gExternOffsetCorrection, cp);
++		PRINT_PARAM(v3.gExternRateCorrection, cp);
++		PRINT_PARAM(v3.gSyncFrameIDCountMax, cp);
++	}
++}
++EXPORT_SYMBOL_GPL(print_cluster_config);
++
++void print_node_config(struct flexray_node_param *np, int is_v3)
++{
++	pr_debug("Node configuration:\n");
++
++	PRINT_PARAM(pAllowHaltDueToClock, np);
++	PRINT_PARAM(pAllowPassiveToActive, np);
++	PRINT_PARAM(pChannels, np);
++	PRINT_PARAM(pClusterDriftDamping, np);
++	PRINT_PARAM(pdAcceptedStartupRange, np);
++	PRINT_PARAM(pDecodingCorrection, np);
++	PRINT_PARAM(pDelayCompensationA, np);
++	PRINT_PARAM(pDelayCompensationB, np);
++	PRINT_PARAM(pdListenTimeout, np);
++	PRINT_PARAM(pExternOffsetCorrection, np);
++	PRINT_PARAM(pExternRateCorrection, np);
++	PRINT_PARAM(pKeySlotID, np);
++	PRINT_PARAM(pKeySlotUsedForStartup, np);
++	PRINT_PARAM(pKeySlotUsedForSync, np);
++	PRINT_PARAM(pLatestTx, np);
++	PRINT_PARAM(pMacroInitialOffsetA, np);
++	PRINT_PARAM(pMacroInitialOffsetB, np);
++	PRINT_PARAM(pMicroInitialOffsetA, np);
++	PRINT_PARAM(pMicroInitialOffsetB, np);
++	PRINT_PARAM(pMicroPerCycle, np);
++	PRINT_PARAM(vExternOffsetControl, np);
++	PRINT_PARAM(pOffsetCorrectionOut, np);
++	PRINT_PARAM(vExternRateControl, np);
++	PRINT_PARAM(pRateCorrectionOut, np);
++	PRINT_PARAM(pWakeupChannel, np);
++	PRINT_PARAM(pWakeupPattern, np);
++	PRINT_PARAM(pdMicrotick, np);
++	PRINT_PARAM(pPayloadLengthDynMax, np);
++	PRINT_PARAM(pSamplesPerMicrotick, np);
++
++	if (is_v3) {
++		PRINT_PARAM(v3.pExternalSync, np);
++		PRINT_PARAM(v3.pFallBackInternal, np);
++		PRINT_PARAM(v3.pKeySlotOnlyEnabled, np);
++		PRINT_PARAM(v3.pNMVectorEarlyUpdate, np);
++		PRINT_PARAM(v3.pOffsetCorrectionStart, np);
++		PRINT_PARAM(v3.pSecondKeySlotID, np);
++		PRINT_PARAM(v3.pTwoKeySlotMode, np);
++	} else {
++		PRINT_PARAM(v2.pdMaxDrift, np);
++		PRINT_PARAM(v2.pMicroPerMacroNom, np);
++		PRINT_PARAM(v2.pSingleSlotEnabled, np);
++	}
++}
++EXPORT_SYMBOL_GPL(print_node_config);
++
++void print_symbol_config(struct flexray_symbol_param *sp)
++{
++	pr_debug("Symbol configuration:\n");
++
++	PRINT_PARAM(pChannelsMTS, sp);
++}
++EXPORT_SYMBOL_GPL(print_symbol_config);
++
++/* Parameter check and set functions */
++
++#define FR_CHECK_PARAM(p, name, min, max)				\
++	do {								\
++		if (p->name < min || p->name > max) {			\
++			netdev_info(dev, #name" (0x%x) out of range\n",	\
++					p->name);			\
++			return -EINVAL;					\
++		}							\
++	} while (0)
++
++static int flexray_check_cluster_params(struct flexray_cluster_param *cp,
++					struct net_device *dev)
++{
++	struct flexray_priv *priv = netdev_priv(dev);
++
++	FR_CHECK_PARAM(cp, gColdstartAttempts, 2, 31);
++	FR_CHECK_PARAM(cp, gdActionPointOffset, 1, 63);
++	FR_CHECK_PARAM(cp, gdMinislot, 2, 63);
++	FR_CHECK_PARAM(cp, gdMinislotActionPointOffset, 1, 31);
++	FR_CHECK_PARAM(cp, gListenNoise, 2, 16);
++	FR_CHECK_PARAM(cp, gMacroPerCycle, 10, 16000);
++	FR_CHECK_PARAM(cp, gMaxWithoutClockCorrectionFatal, 1, 15);
++	FR_CHECK_PARAM(cp, gMaxWithoutClockCorrectionPassive, 1, 15);
++	FR_CHECK_PARAM(cp, gNumberOfMinislots, 0, 7986);
++	FR_CHECK_PARAM(cp, gNumberOfStaticSlots, 2, 1023);
++	FR_CHECK_PARAM(cp, gPayloadLengthStatic, 0, 127);
++	FR_CHECK_PARAM(cp, gClusterDriftDamping, 0, 5);
++	FR_CHECK_PARAM(cp, gdNIT, 2, 805);
++	FR_CHECK_PARAM(cp, gNetworkManagementVectorLength, 0, 12);
++	FR_CHECK_PARAM(cp, gdDynamicSlotIdlePhase, 0, 2);
++
++	if (priv->version == 2) {
++		FR_CHECK_PARAM(cp, v2.gdMaxInitializationError, 0, 117);
++		FR_CHECK_PARAM(cp, v2.gdMinPropagationDelay, 0,
++			       cp->v2.gdMaxPropagationDelay);
++		FR_CHECK_PARAM(cp, v2.gdWakeupSymbolRxIdle, 14, 59);
++		FR_CHECK_PARAM(cp, v2.gdWakeupSymbolRxWindow, 76, 301);
++		FR_CHECK_PARAM(cp, v2.gdWakeupSymbolTxIdle, 45, 180);
++		FR_CHECK_PARAM(cp, v2.gdWakeupSymbolTxLow, 15, 60);
++		FR_CHECK_PARAM(cp, v2.gOffsetCorrectionStart, 9, 15999);
++		FR_CHECK_PARAM(cp, v2.gSyncNodeMax, 2, 15);
++		FR_CHECK_PARAM(cp, gdCASRxLowMax, 67, 99);
++		FR_CHECK_PARAM(cp, gdTSSTransmitter, 3, 15);
++#ifndef CONFIG_MFD_EBEL_FLEXCARD_PROTPARAM
++		FR_CHECK_PARAM(cp, v2.gdWakeupSymbolRxLow, 11, 59);
++		FR_CHECK_PARAM(cp, gdStaticSlot, 4, 661);
++#else
++		FR_CHECK_PARAM(cp, v2.gdWakeupSymbolRxLow, 10, 55);
++		FR_CHECK_PARAM(cp, gdStaticSlot, 4, 659);
++#endif /* CONFIG_MFD_EBEL_FLEXCARD_PROTPARAM */
++	}
++
++	if (priv->version == 3) {
++		FR_CHECK_PARAM(cp, v3.gCycleCountMax, 7, 63);
++		FR_CHECK_PARAM(cp, v3.gdSymbolWindowActionPointOffset, 1, 63);
++		FR_CHECK_PARAM(cp, v3.gdWakeupRxIdle, 8, 59);
++		FR_CHECK_PARAM(cp, v3.gdWakeupRxLow, 8, 59);
++		FR_CHECK_PARAM(cp, v3.gdWakeupRxWindow, 76, 485);
++		FR_CHECK_PARAM(cp, v3.gdWakeupTxActive, 15, 60);
++		FR_CHECK_PARAM(cp, v3.gdWakeupTxIdle, 45, 180);
++		FR_CHECK_PARAM(cp, v3.gSyncFrameIDCountMax, 2, 15);
++		FR_CHECK_PARAM(cp, v3.gClockDeviationMax, 1, 1500);
++		FR_CHECK_PARAM(cp, v3.gExternOffsetCorrection, 0, 35);
++		FR_CHECK_PARAM(cp, v3.gdIgnoreAfterTx, 0, 15);
++		FR_CHECK_PARAM(cp, gdCASRxLowMax, 28, 254);
++		FR_CHECK_PARAM(cp, gdStaticSlot, 3, 664);
++		FR_CHECK_PARAM(cp, gdTSSTransmitter, 1, 15);
++		if (!(cp->v3.gCycleCountMax % 2)) {
++			netdev_info(dev, "gCycleCountMax is even\n");
++			return -EINVAL;
++		}
++	}
++
++	return 0;
++}
++
++static int flexray_set_cluster_params(struct flexray_cluster_param *cp,
++				      struct net_device *dev)
++{
++	struct flexray_priv *priv = netdev_priv(dev);
++
++	memcpy(&priv->cluster, cp, sizeof(*cp));
++
++	return 0;
++}
++
++static int
++flexray_check_and_set_cluster_params(struct flexray_cluster_param *cp,
++				     struct net_device *dev)
++{
++	int ret;
++
++	ret = flexray_check_cluster_params(cp, dev);
++	if (ret)
++		return ret;
++
++	return flexray_set_cluster_params(cp, dev);
++}
++
++static int flexray_check_node_params(struct flexray_node_param *np,
++				     struct net_device *dev)
++{
++	struct flexray_priv *priv = netdev_priv(dev);
++
++	FR_CHECK_PARAM(np, pAllowPassiveToActive, 0, 31);
++	FR_CHECK_PARAM(np, pClusterDriftDamping, 0, 20);
++	FR_CHECK_PARAM(np, pExternRateCorrection, 0, 28);
++	FR_CHECK_PARAM(np, vExternOffsetControl, -1, 1);
++	FR_CHECK_PARAM(np, vExternRateControl, -1, 1);
++	FR_CHECK_PARAM(np, pWakeupPattern, 2, 63);
++	FR_CHECK_PARAM(np, pPayloadLengthDynMax, 0, 254);
++	FR_CHECK_PARAM(np, pAllowPassiveToActive, 0, 31);
++	FR_CHECK_PARAM(np, pChannels, 0, 3);
++	FR_CHECK_PARAM(np, pWakeupChannel, 0, 3);
++	FR_CHECK_PARAM(np, pKeySlotUsedForStartup, 0, 1);
++	FR_CHECK_PARAM(np, pKeySlotUsedForSync, 0, 1);
++#ifndef CONFIG_MFD_EBEL_FLEXCARD_PROTPARAM
++	FR_CHECK_PARAM(np, pMacroInitialOffsetA, 2, 68);
++	FR_CHECK_PARAM(np, pMacroInitialOffsetB, 2, 68);
++	FR_CHECK_PARAM(np, pMicroInitialOffsetA, 0, 239);
++	FR_CHECK_PARAM(np, pMicroInitialOffsetB, 0, 239);
++#else
++	FR_CHECK_PARAM(np, pMacroInitialOffsetA, 2, 72);
++	FR_CHECK_PARAM(np, pMacroInitialOffsetB, 2, 72);
++	FR_CHECK_PARAM(np, pMicroInitialOffsetA, 0, 240);
++	FR_CHECK_PARAM(np, pMicroInitialOffsetB, 0, 240);
++#endif /* CONFIG_MFD_EBEL_FLEXCARD_PROTPARAM */
++
++	if (priv->version == 2) {
++		FR_CHECK_PARAM(np, v2.pdMaxDrift, 2, 1923);
++		FR_CHECK_PARAM(np, pdAcceptedStartupRange, 0, 1875);
++		FR_CHECK_PARAM(np, pDecodingCorrection, 14, 143);
++		FR_CHECK_PARAM(np, pdListenTimeout, 1284, 1283846);
++		FR_CHECK_PARAM(np, pExternOffsetCorrection, 0, 7);
++		FR_CHECK_PARAM(np, pKeySlotID, 0, 1023);
++		FR_CHECK_PARAM(np, pMicroPerCycle, 640, 640000);
++		FR_CHECK_PARAM(np, pRateCorrectionOut, 2, 1923);
++#ifndef CONFIG_MFD_EBEL_FLEXCARD_PROTPARAM
++		FR_CHECK_PARAM(np, pLatestTx, 0, 7980);
++		FR_CHECK_PARAM(np, pOffsetCorrectionOut, 13, 15567);
++#else
++		FR_CHECK_PARAM(np, pLatestTx, 0, 7981);
++		FR_CHECK_PARAM(np, pOffsetCorrectionOut, 5, 15266);
++#endif /* CONFIG_MFD_EBEL_FLEXCARD_PROTPARAM */
++	}
++	if (priv->version == 3) {
++		FR_CHECK_PARAM(np, v3.pOffsetCorrectionStart, 7, 15999);
++		FR_CHECK_PARAM(np, v3.pSecondKeySlotID, 0, 1023);
++		FR_CHECK_PARAM(np, pdAcceptedStartupRange, 29, 2743);
++		FR_CHECK_PARAM(np, pDecodingCorrection, 12, 136);
++		FR_CHECK_PARAM(np, pdListenTimeout, 1926, 2567692);
++		FR_CHECK_PARAM(np, pExternOffsetCorrection, 0, 28);
++		FR_CHECK_PARAM(np, pKeySlotID, 0, 1023);
++		FR_CHECK_PARAM(np, pMicroPerCycle, 960, 1280000);
++		FR_CHECK_PARAM(np, pRateCorrectionOut, 3, 3846);
++		FR_CHECK_PARAM(np, pLatestTx, 0, 7988);
++		FR_CHECK_PARAM(np, pOffsetCorrectionOut, 15, 16082);
++	}
++
++	return 0;
++}
++
++static int flexray_set_node_params(struct flexray_node_param *np,
++			    struct net_device *dev)
++{
++	struct flexray_priv *priv = netdev_priv(dev);
++
++	memcpy(&priv->node, np, sizeof(*np));
++
++	return 0;
++}
++
++static int flexray_check_and_set_node_params(struct flexray_node_param *np,
++					     struct net_device *dev)
++{
++	int ret;
++
++	ret = flexray_check_node_params(np, dev);
++	if (ret)
++		return ret;
++
++	return flexray_set_node_params(np, dev);
++}
++
++static int flexray_check_symbol_params(struct flexray_symbol_param *sp,
++				       struct net_device *dev)
++{
++	FR_CHECK_PARAM(sp, pChannelsMTS, 0, 3);
++
++	return 0;
++}
++
++static int flexray_set_symbol_params(struct flexray_symbol_param *sp,
++				     struct net_device *dev)
++{
++	struct flexray_priv *priv = netdev_priv(dev);
++
++	memcpy(&priv->symbol, sp, sizeof(*sp));
++
++	return 0;
++}
++
++static int flexray_check_and_set_symbol_params(struct flexray_symbol_param *sp,
++					       struct net_device *dev)
++{
++	int ret;
++
++	ret = flexray_check_symbol_params(sp, dev);
++	if (ret)
++		return ret;
++
++	return flexray_set_symbol_params(sp, dev);
++}
++
++/* FLEXRAY netlink interface */
++static const struct nla_policy flexray_policy[IFLA_FLEXRAY_MAX + 1] = {
++	[IFLA_FLEXRAY_STATE] = {.type = NLA_U32},
++	[IFLA_FLEXRAY_VERSION] = {.type = NLA_U8},
++	[IFLA_FLEXRAY_CLUSTER] = {.len = sizeof(struct flexray_cluster_param)},
++	[IFLA_FLEXRAY_NODE] = {.len = sizeof(struct flexray_node_param)},
++	[IFLA_FLEXRAY_SYMBOL] = {.len = sizeof(struct flexray_symbol_param)},
++	[IFLA_FLEXRAY_SW_FILTER] = {.type = NLA_NESTED},
++};
++
++static const struct nla_policy flexray_filt_pol[IFLA_FLEXRAY_FILTER_MAX + 1] = {
++	[IFLA_FLEXRAY_FILTER_ENTRY] = { .len = sizeof(struct flexray_filter) },
++};
++
++static int validate_and_set_sw_filter(struct flexray_sw_filter *sw, u32 *id)
++{
++	int i;
++
++	if (sw->pos >= FLEXRAY_MAX_SW_FILTER)
++		return -EINVAL;
++
++	if (sw->id != 0)
++		for (i = 0; i < sw->pos; i++)
++			if (id[i] > sw->id)
++				return -EINVAL;
++
++	id[sw->pos] = sw->id;
++
++	return 0;
++}
++
++static int flexray_changelink(struct net_device *dev,
++			      struct nlattr *tb[], struct nlattr *data[], struct netlink_ext_ack *extack)
++{
++	struct flexray_priv *priv = netdev_priv(dev);
++	struct nlattr *attr;
++	int rem, ret = 0;
++
++	/* We need synchronization with dev->stop() */
++	ASSERT_RTNL();
++
++	if (data[IFLA_FLEXRAY_STATE]) {
++		enum flexray_state state;
++
++		state = nla_get_u32(data[IFLA_FLEXRAY_STATE]);
++		if (priv->do_set_state)
++			ret = priv->do_set_state(dev, state);
++		if (ret)
++			return ret;
++		priv->state = state;
++	}
++
++	if (data[IFLA_FLEXRAY_CLUSTER]) {
++		struct flexray_cluster_param cp;
++
++		memcpy(&cp, nla_data(data[IFLA_FLEXRAY_CLUSTER]), sizeof(cp));
++		ret = flexray_check_and_set_cluster_params(&cp, dev);
++		if (ret)
++			return ret;
++	}
++
++	if (data[IFLA_FLEXRAY_NODE]) {
++		struct flexray_node_param np;
++
++		memcpy(&np, nla_data(data[IFLA_FLEXRAY_NODE]), sizeof(np));
++		ret = flexray_check_and_set_node_params(&np, dev);
++		if (ret)
++			return ret;
++	}
++
++	if (data[IFLA_FLEXRAY_SYMBOL]) {
++		struct flexray_symbol_param sp;
++
++		memcpy(&sp, nla_data(data[IFLA_FLEXRAY_SYMBOL]), sizeof(sp));
++		ret = flexray_check_and_set_symbol_params(&sp, dev);
++		if (ret)
++			return ret;
++	}
++
++	if (data[IFLA_FLEXRAY_SW_FILTER]) {
++		struct flexray_sw_filter *sw;
++
++		nla_for_each_nested(attr, data[IFLA_FLEXRAY_SW_FILTER], rem) {
++			sw = nla_data(attr);
++			ret = validate_and_set_sw_filter(sw, priv->sw_filter);
++			if (ret)
++				return ret;
++		}
++	}
++
++	return ret;
++}
++
++static inline int flexray_validate_sw_filter(struct nlattr *nest)
++{
++	struct flexray_sw_filter *sw;
++	struct nlattr *attr;
++	int rem, ret;
++	u32 id = 0;
++
++	if (!nest)
++		return 0;
++
++	ret = nla_validate_nested(nest, FLEXRAY_MAX_SW_FILTER,
++				  flexray_filt_pol, NULL); // posible issue NULL(struct netlink_ext_ack *extack)
++	if (ret)
++		return ret;
++
++	nla_for_each_nested(attr, nest, rem) {
++		sw = nla_data(attr);
++		if (sw->id < id)
++			return -EINVAL;
++
++		id = sw->id;
++	}
++
++	return 0;
++}
++
++static int flexray_validate(struct nlattr *tb[], struct nlattr *data[], struct netlink_ext_ack *extack)
++{
++	int ret;
++
++	ret = flexray_validate_sw_filter(data[IFLA_FLEXRAY_SW_FILTER]);
++	if (ret)
++		return ret;
++
++	return 0;
++}
++
++static size_t flexray_get_size(const struct net_device *dev)
++{
++	size_t size;
++
++	size = nla_total_size(sizeof(u32));
++	size += nla_total_size(sizeof(struct flexray_cluster_param));
++	size += nla_total_size(sizeof(struct flexray_node_param));
++
++	return size;
++}
++
++static int flexray_fill_info(struct sk_buff *skb, const struct net_device *dev)
++{
++	struct flexray_priv *priv = netdev_priv(dev);
++	enum flexray_state state = priv->state;
++	struct flexray_cluster_param *cp = &priv->cluster;
++	struct flexray_node_param *np = &priv->node;
++	struct flexray_symbol_param *sp = &priv->symbol;
++	struct flexray_sw_filter sw;
++	struct nlattr *nest;
++	int i, ret = 0;
++
++	if (priv->do_get_state)
++		ret = priv->do_get_state(dev, &state);
++	if (nla_put_u32(skb, IFLA_FLEXRAY_STATE, state))
++		goto nla_put_failure;
++	if (nla_put_u8(skb, IFLA_FLEXRAY_VERSION, priv->version))
++		goto nla_put_failure;
++	if (nla_put(skb, IFLA_FLEXRAY_CLUSTER, sizeof(*cp), cp))
++		goto nla_put_failure;
++	if (nla_put(skb, IFLA_FLEXRAY_NODE, sizeof(*np), np))
++		goto nla_put_failure;
++	if (nla_put(skb, IFLA_FLEXRAY_SYMBOL, sizeof(*sp), sp))
++		goto nla_put_failure;
++
++	nest = nla_nest_start(skb, IFLA_FLEXRAY_SW_FILTER);
++	if (nest == NULL)
++		goto nla_put_failure;
++
++	for (i = 0; i < FLEXRAY_MAX_SW_FILTER; i++) {
++		sw.pos = i;
++		sw.id = priv->sw_filter[i];
++		if (nla_put(skb, IFLA_FLEXRAY_FILTER_ENTRY, sizeof(sw), &sw))
++			goto nla_put_failure;
++
++		if (sw.id == 0)
++			break;
++	}
++	nla_nest_end(skb, nest);
++
++	return ret;
++
++nla_put_failure:
++
++	return -EMSGSIZE;
++}
++
++static size_t flexray_get_xstats_size(const struct net_device *dev)
++{
++	return sizeof(struct flexray_device_stats);
++}
++
++static int flexray_fill_xstats(struct sk_buff *skb,
++			       const struct net_device *dev)
++{
++	struct flexray_priv *priv = netdev_priv(dev);
++
++	if (nla_put(skb, IFLA_INFO_XSTATS,
++		    sizeof(priv->flexray_stats), &priv->flexray_stats))
++		goto nla_put_failure;
++
++	return 0;
++
++nla_put_failure:
++	return -EMSGSIZE;
++}
++
++static int flexray_newlink(struct net *src_net, struct net_device *dev,
++		       struct nlattr *tb[], struct nlattr *data[], struct netlink_ext_ack *extack)
++{
++	return -EOPNOTSUPP;
++}
++
++static struct rtnl_link_ops flexray_link_ops __read_mostly = {
++	.kind		= "flexray",
++	.maxtype	= IFLA_FLEXRAY_MAX,
++	.policy		= flexray_policy,
++	.setup		= flexray_setup,
++	.validate	= flexray_validate,
++	.newlink	= flexray_newlink,
++	.changelink	= flexray_changelink,
++	.get_size	= flexray_get_size,
++	.fill_info	= flexray_fill_info,
++	.get_xstats_size = flexray_get_xstats_size,
++	.fill_xstats	= flexray_fill_xstats,
++};
++
++/* Register the FLEXRAY network device */
++int register_flexraydev(struct net_device *dev)
++{
++	dev->rtnl_link_ops = &flexray_link_ops;
++	return register_netdev(dev);
++}
++EXPORT_SYMBOL_GPL(register_flexraydev);
++
++/* Unregister the FLEXRAY network device */
++void unregister_flexraydev(struct net_device *dev)
++{
++	unregister_netdev(dev);
++}
++EXPORT_SYMBOL_GPL(unregister_flexraydev);
++
++static __init int flexray_dev_init(void)
++{
++	int ret;
++
++	ret = rtnl_link_register(&flexray_link_ops);
++	if (!ret)
++		pr_info("FlexRay netlink interface\n");
++
++	return ret;
++}
++module_init(flexray_dev_init);
++
++static __exit void flexray_dev_exit(void)
++{
++	rtnl_link_unregister(&flexray_link_ops);
++}
++module_exit(flexray_dev_exit);
++
++MODULE_ALIAS_RTNL_LINK("flexray");
++
++MODULE_DESCRIPTION("FlexRay device driver interface");
++MODULE_LICENSE("GPL v2");
++MODULE_AUTHOR("Benedikt Spranger <b.spranger@linutronix.de>");
+diff --git a/drivers/net/flexray/flexcard_fr.c b/drivers/net/flexray/flexcard_fr.c
+new file mode 100644
+index 000000000000..1f879ae3e31d
+--- /dev/null
++++ b/drivers/net/flexray/flexcard_fr.c
+@@ -0,0 +1,2480 @@
++/* Copyright 2012 Eberspächer Electronics GmbH & Co. KG. All Rights Reserved */
++
++#include <linux/netdevice.h>
++#include <linux/flexray.h>
++#include <linux/flexray/dev.h>
++#include <linux/clk.h>
++#include <linux/delay.h>
++#include <linux/if_arp.h>
++#include <linux/if_ether.h>
++#include <linux/interrupt.h>
++#include <linux/io.h>
++#include <linux/kernel.h>
++#include <linux/list.h>
++#include <linux/module.h>
++#include <linux/platform_device.h>
++#include <linux/eray.h>
++#include <linux/flexcard.h>
++#include <linux/flexray/flexcard_netlink.h>
++#include <net/netlink.h>
++#include <net/genetlink.h>
++
++#define FC_MSGBUF_DUMP_CFG
++
++static int cc_change_state(struct eray_cc *cc, enum eray_cc_state state,
++			   int retry);
++static void cc_get_conf(struct net_device *dev);
++
++struct fc_enum2name {
++	int type;
++	char *name;
++};
++#define FC_ENUM2NAME(x)		{x, #x}
++
++static struct fc_enum2name flexray_state[] = {
++	FC_ENUM2NAME(FLEXRAY_STATE_UNSPEC),
++	FC_ENUM2NAME(FLEXRAY_STATE_DEFAULT_CONFIG),
++	FC_ENUM2NAME(FLEXRAY_STATE_CONFIG),
++	FC_ENUM2NAME(FLEXRAY_STATE_READY),
++	FC_ENUM2NAME(FLEXRAY_STATE_WAKEUP),
++	FC_ENUM2NAME(FLEXRAY_STATE_STARTUP),
++	FC_ENUM2NAME(FLEXRAY_STATE_NORMAL_ACTIVE),
++	FC_ENUM2NAME(FLEXRAY_STATE_NORMAL_PASSIVE),
++	FC_ENUM2NAME(FLEXRAY_STATE_HALT),
++	FC_ENUM2NAME(FLEXRAY_STATE_MONITOR_MODE),
++	FC_ENUM2NAME(FLEXRAY_STATE_COLDSTART),
++	FC_ENUM2NAME(FLEXRAY_STATE_MAX),
++};
++
++static inline char *fc_flexray_state_name(enum flexray_state cmd)
++{
++	if (cmd < 0)
++		cmd = FLEXRAY_STATE_UNSPEC;
++	if (cmd > FLEXRAY_STATE_MAX)
++		cmd = FLEXRAY_STATE_UNSPEC;
++
++	return flexray_state[cmd].name;
++}
++
++static struct fc_enum2name eray_state[] = {
++	FC_ENUM2NAME(ERAY_CMD_INVALID),
++	FC_ENUM2NAME(ERAY_CMD_CONFIG),
++	FC_ENUM2NAME(ERAY_CMD_READY),
++	FC_ENUM2NAME(ERAY_CMD_WAKEUP),
++	FC_ENUM2NAME(ERAY_CMD_RUN),
++	FC_ENUM2NAME(ERAY_CMD_ALL_SLOTS),
++	FC_ENUM2NAME(ERAY_CMD_HALT),
++	FC_ENUM2NAME(ERAY_CMD_FREEZE),
++	FC_ENUM2NAME(ERAY_CMD_SEND_MTS),
++	FC_ENUM2NAME(ERAY_CMD_ALLOW_COLDSTART),
++	FC_ENUM2NAME(ERAY_CMD_RESET_STATUS_INDICATORS),
++	FC_ENUM2NAME(ERAY_CMD_MONITOR_MODE),
++	FC_ENUM2NAME(ERAY_CMD_CLEAR_RAMS),
++};
++
++static inline char *fc_eray_cmd_name(enum eray_cc_state cmd)
++{
++	if (cmd < 0)
++		cmd = ERAY_CMD_INVALID;
++	if (cmd > ERAY_CMD_CLEAR_RAMS)
++		cmd = ERAY_CMD_INVALID;
++
++	return eray_state[cmd].name;
++}
++
++struct fc_msg {
++	u32 buf_id;
++	u8 data[254];
++} __packed;
++
++struct flexcard_priv {
++	struct flexray_priv flexray;
++	struct net_device *dev;
++	struct eray_cc *cc;
++	int id;
++	void __iomem *conf;
++};
++
++static int _fc_write_data(struct flexcard_priv *priv, unsigned int msgbuf_id,
++			  unsigned char *payload, size_t byte_len);
++
++static struct nla_policy fc_msgbuf_genl_policy[__FC_MSGBUF_ATTR_MAX] = {
++	[FC_MSGBUF_ATTR_BUF_ID] = {
++		.type = NLA_U8,
++	},
++	[FC_MSGBUF_ATTR_DEV_ID] = {
++		.type = NLA_U32,
++	},
++	[FC_MSGBUF_ATTR_DEV_NAME] = {
++		.type = NLA_NUL_STRING,
++	},
++	[FC_MSGBUF_ATTR_CFG] = {
++		.type = NLA_BINARY,
++		.len = sizeof(struct fc_msgbuf_cfg),
++	},
++};
++
++static struct genl_family fc_msgbuf_genl_family = {
++	.id = GENL_ID_GENERATE,
++	.hdrsize = 0,
++	.name = "FC_MSGBUF",
++	.version = FC_MSGBUF_VERSION,
++	.maxattr = FC_MSGBUF_ATTR_MAX,
++};
++
++#ifdef FC_MSGBUF_DUMP_CFG
++
++#define ERAY_MSGBUF_PRINT_FLAGS(x)			\
++	do {						\
++		if (cfg->flags & x)			\
++			pr_cont(#x " ");		\
++	} while (0)
++
++static void eray_dump_msg_cfg(struct eray_msgbuf_cfg *cfg, int buf,
++		const char *func)
++{
++	pr_debug("%s: msg. buffer dump %03d\n", func, buf);
++	pr_debug("eray_msgbuf_cfg: cfg = %p\n", cfg);
++	if (!cfg)
++		return;
++	pr_debug("flags   : ");
++	ERAY_MSGBUF_PRINT_FLAGS(ERAY_MSGBUF_USED);
++	ERAY_MSGBUF_PRINT_FLAGS(ERAY_MSGBUF_STARTUP);
++	ERAY_MSGBUF_PRINT_FLAGS(ERAY_MSGBUF_SYNC);
++	ERAY_MSGBUF_PRINT_FLAGS(ERAY_MSGBUF_PPIT);
++	ERAY_MSGBUF_PRINT_FLAGS(ERAY_MSGBUF_TXCONT);
++	ERAY_MSGBUF_PRINT_FLAGS(ERAY_MSGBUF_FIFOREJ_NULL);
++	ERAY_MSGBUF_PRINT_FLAGS(ERAY_MSGBUF_FIFOREJ_INSEG);
++	pr_cont("\n");
++	pr_debug("id      : %d\n", cfg->id);
++	pr_debug("cyc     : %d\n", cfg->cyc);
++	pr_debug("len     : %d\n", cfg->len);
++	pr_debug("max     : %d\n", cfg->max);
++	pr_debug("frame_id: %d\n", cfg->frame_id);
++	pr_debug("wrhs1   : 0x%08x\n", cfg->wrhs1);
++	pr_debug("wrhs2   : 0x%08x\n", cfg->wrhs2);
++	pr_debug("wrhs3   : 0x%08x\n", cfg->wrhs3);
++	pr_debug("type    : ");
++	switch (cfg->type) {
++	case eray_msgbuf_type_none:
++		pr_cont("NONE\n");
++		break;
++	case eray_msgbuf_type_fifo:
++		pr_cont("FIFO\n");
++		break;
++	case eray_msgbuf_type_rx:
++		pr_cont("RX\n");
++		break;
++	case eray_msgbuf_type_tx:
++		pr_cont("TX\n");
++		break;
++	default:
++		pr_cont("UNKNOWN (%d)\n", cfg->type);
++		break;
++	}
++	pr_debug("channel : ");
++	switch (cfg->channel) {
++	case eray_msgbuf_ch_none:
++		pr_cont("NONE\n");
++		break;
++	case eray_msgbuf_ch_a:
++		pr_cont("CH A\n");
++		break;
++	case eray_msgbuf_ch_b:
++		pr_cont("CH B\n");
++		break;
++	case eray_msgbuf_ch_both:
++		pr_cont("BOTH\n");
++		break;
++	default:
++		pr_cont("UNKNOWN (%d)\n", cfg->channel);
++		break;
++	}
++}
++#else
++static inline void eray_dump_msg_cfg(struct eray_msgbuf_cfg *cfg, int buf,
++		const char *func)
++{ }
++#endif
++
++static struct net_device *get_dev(struct genl_info *info)
++{
++	struct net_device *dev = NULL;
++	struct nlattr *nla;
++
++	nla = info->attrs[FC_MSGBUF_ATTR_DEV_NAME];
++	if (nla)
++		dev = dev_get_by_name(&init_net, nla_data(nla));
++	if (dev)
++		return dev;
++	nla = info->attrs[FC_MSGBUF_ATTR_DEV_ID];
++	if (nla)
++		dev = dev_get_by_index(&init_net, nla_get_u32(nla));
++
++	return dev;
++}
++
++static void fc2eray(struct fc_msgbuf_cfg *src, struct eray_msgbuf_cfg *dest)
++{
++	dest->flags = src->flags;
++	dest->cyc = src->cyc;
++	dest->len = src->len;
++	dest->max = src->max;
++	dest->frame_id = src->frame_id;
++	dest->reject_mask = src->reject_mask;
++	dest->type = src->type;
++	dest->channel = src->channel;
++}
++
++static void eray2fc(struct eray_msgbuf_cfg *src, struct fc_msgbuf_cfg *dest)
++{
++	dest->flags = src->flags;
++	dest->cyc = src->cyc;
++	dest->len = src->len;
++	dest->max = src->max;
++	dest->frame_id = src->frame_id;
++	dest->reject_mask = src->reject_mask;
++	dest->type = src->type;
++	dest->channel = src->channel;
++}
++
++static int remain_buffer_entries(struct eray_cc *cc)
++{
++	int i, fill;
++
++	/* calculate buffer fill value */
++	fill = 0;
++	for (i = 0; i < cc->act_cfg; i++) {
++		fill += ERAY_MSGBUF_CFG_LEN;
++		if (cc->cfg[i].type == eray_msgbuf_type_rx ||
++		    cc->cfg[i].type == eray_msgbuf_type_tx)
++			fill += DIV_ROUND_UP(cc->cfg[i].max, 2);
++		else
++			fill += DIV_ROUND_UP(cc->fifo_len, 2);
++	}
++
++	return ERAY_MAX_MEM - fill;
++}
++
++static int fc_msgbuf_get_cfg(struct sk_buff *_skb, struct genl_info *info)
++{
++	struct fc_msgbuf_cfg cfg;
++	struct fc_msgbuf_cfg *nlcfg;
++	struct flexcard_priv *priv;
++	struct net_device *dev;
++	struct eray_cc *cc;
++	struct sk_buff *skb;
++	struct nlattr *nla;
++	unsigned long flags;
++	void *msg_head;
++	int ret;
++	u8 buf_id;
++
++	dev = get_dev(info);
++	if (!dev)
++		return -ENODEV;
++
++	priv = netdev_priv(dev);
++	cc = priv->cc;
++
++	if (dev->type != ARPHRD_FLEXRAY) {
++		ret = -EINVAL;
++		goto out;
++	}
++
++	nla = info->attrs[FC_MSGBUF_ATTR_BUF_ID];
++	if (!nla) {
++		ret = -ENOMSG;
++		goto out;
++	}
++	buf_id = nla_get_u8(nla);
++
++	nla = info->attrs[FC_MSGBUF_ATTR_CFG];
++	if (!nla) {
++		netdev_warn(dev, "no config\n");
++		ret = -ENOMSG;
++		goto out;
++	}
++	nlcfg = nla_data(nla);
++
++	spin_lock_irqsave(&cc->lock, flags);
++
++	if (nlcfg->flags & FC_MSGBUF_SELFSYNC) {
++		if (buf_id >= cc->ssync_num) {
++			netdev_warn(dev, "invalid self sync buffer id %d\n",
++					buf_id);
++			ret = -ENOMSG;
++			spin_unlock_irqrestore(&cc->lock, flags);
++			goto out;
++		}
++
++		eray2fc(&cc->ssync_cfg[buf_id], &cfg);
++		cfg.buf_id = buf_id;
++	} else {
++		if (buf_id >= cc->act_cfg) {
++			netdev_warn(dev, "invalid buffer id %d\n", buf_id);
++			ret = -ENOMSG;
++			spin_unlock_irqrestore(&cc->lock, flags);
++			goto out;
++		}
++
++		eray2fc(&cc->cfg[buf_id], &cfg);
++		cfg.buf_id = buf_id;
++		/* re-adjust length of fifo buffers */
++		if (cfg.type == eray_msgbuf_type_fifo)
++			cfg.len = cc->fifo_len;
++	}
++	spin_unlock_irqrestore(&cc->lock, flags);
++
++	skb = genlmsg_new(NLMSG_GOODSIZE, GFP_KERNEL);
++	if (!skb) {
++		ret = -ENOMEM;
++		goto out;
++	}
++
++	msg_head = genlmsg_put_reply(skb, info, &fc_msgbuf_genl_family,
++				      0, FC_MSGBUF_CMD_GET_CFG);
++	if (!msg_head) {
++		ret = -ENOMEM;
++		goto free_skb_out;
++	}
++
++	ret = nla_put_u8(skb, FC_MSGBUF_ATTR_BUF_ID, buf_id);
++	if (ret)
++		goto free_skb_out;
++
++	ret = nla_put(skb, FC_MSGBUF_ATTR_CFG, sizeof(cfg), &cfg);
++	if (ret)
++		goto free_skb_out;
++
++	genlmsg_end(skb, msg_head);
++
++	ret = genlmsg_reply(skb, info);
++out:
++	dev_put(dev);
++
++	return ret;
++
++free_skb_out:
++	kfree_skb(skb);
++	goto out;
++}
++
++static int fc_msgbuf_reset_cfg(struct sk_buff *_skb, struct genl_info *info)
++{
++	struct eray_msgbuf_cfg *cfg;
++	struct fc_msgbuf_cfg *nlcfg;
++	struct flexcard_priv *priv;
++	struct net_device *dev;
++	struct nlattr *nla;
++	struct eray_cc *cc;
++	unsigned long flags;
++	int i, ret = -EINVAL;
++
++	dev = get_dev(info);
++	if (!dev)
++		return -ENODEV;
++
++	if (dev->type != ARPHRD_FLEXRAY)
++		goto out;
++
++	priv = netdev_priv(dev);
++	cc = priv->cc;
++
++	nla = info->attrs[FC_MSGBUF_ATTR_CFG];
++	if (!nla) {
++		netdev_warn(dev, "no config\n");
++		ret = -ENOMSG;
++		goto out;
++	}
++	nlcfg = nla_data(nla);
++
++	spin_lock_irqsave(&cc->lock, flags);
++
++	if (nlcfg->flags & FC_MSGBUF_SELFSYNC) {
++		cc->ssync_start = 0;
++		cc->ssync_num = 0;
++		memset(&cc->ssync_cfg, 0x0, sizeof(cc->ssync_cfg));
++
++		ret = 0;
++		goto out_unlock;
++	}
++
++	cc->ready = 0;
++
++	for (i = 0; i < ERAY_MAX_BUFS; i++) {
++		cc->cfg[i].flags = 0;
++		cc->cfg[i].len = 0;
++		cc->cfg[i].max = 0;
++		cc->cfg[i].cyc = 0;
++		cc->cfg[i].channel = eray_msgbuf_ch_none;
++	}
++	cc->act_cfg = 1;
++	cc->fifo_len = 0;
++	cc->sync_start = 0;
++	cc->sync_num = 0;
++	memset(&cc->sync_cfg, 0x0, sizeof(cc->sync_cfg));
++
++	cc->fifo_threshold = ERAY_FIFO_THRESHOLD;
++
++	cfg = &cc->cfg[0];
++	cfg->flags |= ERAY_MSGBUF_USED;
++	cfg->type = eray_msgbuf_type_fifo;
++	cfg->max = 127;
++
++	/* CLEAR_RAMS can only be called in DEFAULT_CONFIG or CONFIG mode */
++	ret = cc_change_state(cc, ERAY_CMD_CONFIG, 5);
++	if (ret < 0) {
++		netdev_err(dev, "CC DEFAULT_CONFIG failed\n");
++		goto out_unlock;
++	}
++
++	ret = cc_change_state(cc, ERAY_CMD_CLEAR_RAMS, 15);
++	if (ret < 0)
++		netdev_err(dev, "%s: CC CLEAR_RAMS failed\n", __func__);
++out_unlock:
++	spin_unlock_irqrestore(&cc->lock, flags);
++out:
++	dev_put(dev);
++	return ret;
++}
++
++static int fc_msgbuf_read_cfg(struct sk_buff *_skb, struct genl_info *info)
++{
++	struct eray_msgbuf_cfg *cfg;
++	struct flexcard_priv *priv;
++	struct net_device *dev;
++	struct eray_cc *cc;
++	unsigned long flags;
++	u32 reg;
++	u8 fdb, ffb, lcb, splm, act = 1;
++	int i, ret = -EINVAL;
++
++	dev = get_dev(info);
++	if (!dev)
++		return -ENODEV;
++
++	if (dev->type != ARPHRD_FLEXRAY)
++		goto out;
++
++	priv = netdev_priv(dev);
++	cc = priv->cc;
++
++	spin_lock_irqsave(&cc->lock, flags);
++
++	for (i = 0; i < ERAY_MAX_BUFS; i++) {
++		cc->cfg[i].flags = 0;
++		cc->cfg[i].len = 0;
++		cc->cfg[i].max = 0;
++		cc->cfg[i].cyc = 0;
++		cc->cfg[i].channel = eray_msgbuf_ch_both;
++	}
++
++	cc->fifo_threshold = ERAY_FIFO_THRESHOLD;
++
++	/* The FlexCard firmware needs one or more configured FIFO buffer
++	 * to receive FlexRay frames.
++	 */
++
++	cfg = &cc->cfg[0];
++	cfg->flags |= ERAY_MSGBUF_USED;
++	cfg->type = eray_msgbuf_type_fifo;
++	cfg->max = 127;
++
++	reg = eray_readl(cc, ERAY_FRF);
++	cfg->channel = (reg & ERAY_FRF_CH_MASK) >> ERAY_FRF_CH_SHIFT;
++	cfg->frame_id = (reg & ERAY_FRF_FID_MASK) >> ERAY_FRF_FID_SHIFT;
++	cfg->cyc = (reg & ERAY_FRF_CYC_MASK) >> ERAY_FRF_CYC_SHIFT;
++	if (reg & ERAY_FRF_RNF_MASK)
++		cfg->flags |= ERAY_MSGBUF_FIFOREJ_NULL;
++	if (reg & ERAY_FRF_RSS_MASK)
++		cfg->flags |= ERAY_MSGBUF_FIFOREJ_INSEG;
++
++	reg = eray_readl(cc, ERAY_FRFM);
++	cfg->reject_mask = (reg & ERAY_FRFM_MFID_MASK) >> ERAY_FRFM_MFID_SHIFT;
++
++	cc->act_cfg = 1;
++
++	reg = eray_readl(cc, ERAY_MRC);
++	lcb = (reg & ERAY_MRC_LCB_MASK) >> ERAY_MRC_LCB_SHIFT;
++	ffb = (reg & ERAY_MRC_FFB_MASK) >> ERAY_MRC_FFB_SHIFT;
++	fdb = (reg & ERAY_MRC_FDB_MASK) >> ERAY_MRC_FDB_SHIFT;
++	splm = (reg & ERAY_MRC_SPLM_MASK) >> ERAY_MRC_SPLM_SHIFT;
++
++	for (i = 0; i < lcb + 1; i++) {
++		eray_writel(ERAY_OBCM_RHSS_MASK, cc, ERAY_OBCM);
++		eray_writel(i | ERAY_OBCR_REQ_MASK, cc, ERAY_OBCR);
++		ret = eray_wait_clear(cc, ERAY_OBCR, ERAY_OBCR_OBSYS_MASK, 10);
++		if (ret)
++			goto out_unlock;
++
++		eray_writel(ERAY_OBCR_VIEW_MASK, cc, ERAY_OBCR);
++		eray_readl(cc, ERAY_OBCR);
++
++		cfg = &cc->cfg[act];
++
++		cfg->wrhs1 = eray_readl(cc, ERAY_RDHS1);
++		cfg->wrhs2 = eray_readl(cc, ERAY_RDHS2);
++		cfg->wrhs3 = eray_readl(cc, ERAY_RDHS3);
++
++		cfg->id = i;
++		cc->rev_id[i] = cfg->id;
++		cfg->flags |= ERAY_MSGBUF_USED;
++
++		if (i > ffb) {
++			cfg->type = eray_msgbuf_type_fifo;
++			cfg->max = (cfg->wrhs2 >> ERAY_WRHS2_PLC_SHIFT) &
++				ERAY_WRHS2_PLC_MASK;
++			if (!cc->fifo_len)
++				cc->fifo_len = cfg->max;
++
++			/* copy fifo reject configuration from message buffer 0
++			 */
++			cfg->channel = cc->cfg[0].channel;
++			cfg->frame_id = cc->cfg[0].frame_id;
++			cfg->cyc = cc->cfg[0].cyc;
++			cfg->reject_mask = cc->cfg[0].reject_mask;
++
++			if (cc->fifo_threshold)
++				cc->fifo_threshold--;
++		} else {
++			if (cfg->wrhs1 & ERAY_WRHS1_CFG_MASK)
++				cfg->type = eray_msgbuf_type_tx;
++			else
++				cfg->type = eray_msgbuf_type_rx;
++
++			/* WRHS1:
++			 * 31-16: MBI:TXM:PPIT:CFG:CHB:CHA:0:CYC[6..0]
++			 * 15- 0: 00000:FID[10..0]
++			 */
++			cfg->frame_id = (cfg->wrhs1 & ERAY_WRHS1_FID_MASK) >>
++				ERAY_WRHS1_FID_SHIFT;
++
++			if (!cfg->frame_id)
++				continue;
++
++			cfg->cyc = (cfg->wrhs1 & ERAY_WRHS1_CYC_MASK) >>
++				ERAY_WRHS1_CYC_SHIFT;
++			cfg->channel = (cfg->wrhs1 & ERAY_WRHS1_CH_MASK) >>
++				ERAY_WRHS1_CH_SHIFT;
++			if (cfg->wrhs1 & ERAY_WRHS1_PPIT_MASK)
++				cfg->flags |= ERAY_MSGBUF_PPIT;
++
++			/* if ERAY_WRHS1_TXM is *not* set the ERAY core
++			 * works in continous mode.
++			 */
++			if ((cfg->type == eray_msgbuf_type_tx) &&
++			    !(cfg->wrhs1 & ERAY_WRHS1_TXM_MASK))
++				cfg->flags |= ERAY_MSGBUF_TXCONT;
++
++			/* WRHS2:
++			 * 31- 0: 000000000:PLC[6-0]:00000:CRC[10..0]
++			 */
++			cfg->max = (cfg->wrhs2 & ERAY_WRHS2_PLC_MASK) >>
++				ERAY_WRHS2_PLC_SHIFT;
++		}
++		cfg->len = cfg->max;
++		act++;
++
++		eray_dump_msg_cfg(cfg, i, __func__);
++	}
++
++	reg = eray_read_succ1(cc, 10);
++	if (reg < 0) {
++		ret = -EBUSY;
++		goto out_unlock;
++	}
++
++	if (reg & ERAY_SUCC1_TXST_MASK) {
++		cc->sync_start |= ERAY_MSGBUF_STARTUP;
++		cc->cfg[1].flags |= ERAY_MSGBUF_STARTUP;
++		if (splm)
++			cc->cfg[2].flags |= ERAY_MSGBUF_STARTUP;
++	}
++
++	if (reg & ERAY_SUCC1_TXSY_MASK) {
++		cc->sync_start |= ERAY_MSGBUF_SYNC;
++		cc->cfg[1].flags |= ERAY_MSGBUF_SYNC;
++		if (splm)
++			cc->cfg[2].flags |= ERAY_MSGBUF_SYNC;
++	}
++
++	cc_get_conf(dev);
++	ret = 0;
++	cc->ready = 1;
++	cc->act_cfg = act;
++
++out_unlock:
++	spin_unlock_irqrestore(&cc->lock, flags);
++out:
++	dev_put(dev);
++	return ret;
++}
++
++static int is_double_sync(struct fc_msgbuf_cfg *cfg,
++		struct eray_msgbuf_cfg *sync_cfg, int sync_num)
++{
++	if (!sync_num)
++		return 0;
++
++	if (sync_num > 1)
++		return 1;
++
++	if ((cfg->cyc != sync_cfg->cyc) ||
++	    (cfg->len != sync_cfg->len) ||
++	    (cfg->max != sync_cfg->max) ||
++	    (cfg->frame_id != sync_cfg->frame_id))
++		return 1;
++
++	if (cfg->channel == eray_msgbuf_ch_both)
++		return 1;
++
++	if ((sync_cfg->channel == eray_msgbuf_ch_a) &&
++	    (cfg->channel == eray_msgbuf_ch_a))
++		return 1;
++
++	if ((sync_cfg->channel == eray_msgbuf_ch_b) &&
++	    (cfg->channel == eray_msgbuf_ch_b))
++		return 1;
++
++	return 0;
++}
++
++static int fc_msgbuf_set_cfg_ssync(struct net_device *dev,
++		struct fc_msgbuf_cfg *cfg, struct eray_cc *cc, int aquire)
++{
++	u8 buf_id;
++
++	if (aquire) {
++		buf_id = cc->ssync_num;
++	} else {
++		buf_id = cfg->buf_id;
++
++		if (!(cc->ssync_start & ERAY_MSGBUF_SYNC)) {
++			netdev_warn(dev, "self sync not yet configured\n");
++			return -ENOMSG;
++		}
++
++		if (buf_id > cc->ssync_num) {
++			netdev_warn(dev, "unused buffer id %d\n", buf_id);
++			return -ENOMSG;
++		}
++	}
++
++	if (buf_id > ERAY_MAX_BUFS_SSYNC) {
++		netdev_warn(dev, "invalid buffer id %d\n", buf_id);
++		return -EINVAL;
++	}
++
++	if (!(cfg->flags & ERAY_MSGBUF_SYNC) ||
++	    !(cfg->flags & ERAY_MSGBUF_STARTUP)) {
++		netdev_warn(dev, "no sync/start frame\n");
++		return -EINVAL;
++	}
++
++	if (cfg->type != eray_msgbuf_type_tx) {
++		netdev_warn(dev, "wrong type (!tx)\n");
++		return -EINVAL;
++	}
++
++	if (cfg->cyc > 1) {
++		netdev_warn(dev, "cycle counter filter not valid\n");
++		return -EINVAL;
++	}
++
++	if (cfg->channel == eray_msgbuf_ch_none) {
++		netdev_warn(dev, "channel not valid for sync (none)\n");
++		return -EINVAL;
++	}
++
++	/* cc->ssync_num == 0 is coverd by is_double_sync() */
++	if (is_double_sync(cfg, &cc->ssync_cfg[0], cc->ssync_num)) {
++		netdev_warn(dev, "double sync frame\n");
++		return -EINVAL;
++	}
++
++	if (cfg->frame_id > cc->static_id) {
++		netdev_warn(dev, "sync frame not in static segment\n");
++		return -EINVAL;
++	}
++
++	cfg->buf_id = buf_id;
++
++	cc->ssync_start |= ERAY_MSGBUF_SYNC;
++	cc->ssync_start |= ERAY_MSGBUF_STARTUP;
++
++	fc2eray(cfg, &cc->ssync_cfg[buf_id]);
++	cc->ssync_cfg[buf_id].flags |= ERAY_MSGBUF_USED;
++
++	if (aquire)
++		cc->ssync_num++;
++
++	return 0;
++}
++
++static int fc_msgbuf_set_cfg(struct sk_buff *_skb, struct genl_info *info)
++{
++	struct fc_msgbuf_cfg *cfg;
++	struct flexcard_priv *priv;
++	struct net_device *dev;
++	struct eray_cc *cc;
++	struct sk_buff *skb;
++	struct nlattr *nla;
++	unsigned long flags;
++	void *msg_head;
++	int aquire, ret;
++	int i;
++	u8 buf_id;
++
++	dev = get_dev(info);
++	if (!dev)
++		return -ENODEV;
++
++	if (dev->type != ARPHRD_FLEXRAY) {
++		netdev_warn(dev, "device is not a FlexRay device\n");
++		ret = -EINVAL;
++		goto out;
++	}
++	priv = netdev_priv(dev);
++	cc = priv->cc;
++
++	spin_lock_irqsave(&cc->lock, flags);
++	cc->ready = 0;
++	nla = info->attrs[FC_MSGBUF_ATTR_BUF_ID];
++	if (nla) {
++		buf_id = nla_get_u8(nla);
++		aquire = 0;
++	} else {
++		buf_id = cc->act_cfg;
++		aquire = 1;
++	}
++
++	nla = info->attrs[FC_MSGBUF_ATTR_CFG];
++	if (!nla) {
++		netdev_warn(dev, "no config\n");
++		ret = -ENOMSG;
++		goto out_unlock;
++	}
++	cfg = nla_data(nla);
++
++	if (cfg->flags & FC_MSGBUF_SELFSYNC) {
++		ret = fc_msgbuf_set_cfg_ssync(dev, cfg, cc, aquire);
++		if (ret)
++			goto out_unlock;
++
++		buf_id = cfg->buf_id;
++		goto nlreply_unlock;
++	}
++
++	if (aquire) {
++		/* The ERAY core can only allocate memory in 32-bit chunks,
++		 * while FlexRay is based on 16-bit words. To allocate a
++		 * proper amount of chunks use M = (N + 1)/2
++		 * M = number of chunks (32bit)
++		 * N = number of FlexRay words (16bit)
++		 */
++
++		if (remain_buffer_entries(cc) < 0) {
++			netdev_warn(dev, "no room for header\n");
++			ret = -ENOMEM;
++			goto out_unlock;
++		}
++	}
++
++	if (buf_id >= ERAY_MAX_BUFS) {
++		netdev_warn(dev, "invalid buffer id %d\n", buf_id);
++		ret = -ERANGE;
++		goto out_unlock;
++	}
++
++	if (!aquire && !(cc->cfg[buf_id].flags & ERAY_MSGBUF_USED)) {
++		netdev_warn(dev, "buffer %d not in use\n", buf_id);
++		ret = -ENOMSG;
++		goto out_unlock;
++	}
++
++	if (cfg->max > 254) {
++		netdev_warn(dev,
++			  "payload len %d no valid\n", cfg->max);
++		ret = -EINVAL;
++		goto out_unlock;
++	}
++
++	if (cfg->type == eray_msgbuf_type_fifo) {
++		cfg->flags &= ~ERAY_MSGBUF_STARTUP;
++		cfg->flags &= ~ERAY_MSGBUF_SYNC;
++
++		if (cc->fifo_threshold)
++			cc->fifo_threshold--;
++	}
++
++	if ((cc->act_cfg + cc->fifo_threshold) >= ERAY_MAX_BUFS) {
++		netdev_warn(dev, "min fifo limit reached\n");
++		ret = -E2BIG;
++		goto out_unlock;
++	}
++
++	if (cfg->flags & ERAY_MSGBUF_SYNC) {
++		if (cfg->channel == eray_msgbuf_ch_none) {
++			netdev_warn(dev,
++				    "channel not valid for sync (none)\n");
++			ret = -EINVAL;
++			goto out_unlock;
++		}
++		if (is_double_sync(cfg, &cc->sync_cfg, cc->sync_num)) {
++			netdev_warn(dev, "double sync frame\n");
++			ret = -EINVAL;
++			goto out_unlock;
++		}
++		cc->sync_start |= ERAY_MSGBUF_SYNC;
++		cc->sync_num++;
++		fc2eray(cfg, &cc->sync_cfg);
++	}
++
++	if (cfg->flags & ERAY_MSGBUF_STARTUP) {
++		if (!(cfg->flags & ERAY_MSGBUF_SYNC)) {
++			netdev_warn(dev,
++				    "startup frame is not sync frame\n");
++			ret = -EINVAL;
++			goto out_unlock;
++		}
++		cc->sync_start |= ERAY_MSGBUF_STARTUP;
++	}
++
++	if ((cfg->flags & ERAY_MSGBUF_SYNC) &&
++	    (cfg->frame_id > cc->static_id)) {
++		netdev_warn(dev, "sync frame not in static segment\n");
++		ret = -EINVAL;
++		goto out_unlock;
++	}
++
++
++	/* avoid duplicate configuration */
++	if (aquire && cfg->type != eray_msgbuf_type_fifo) {
++		for (i = 0; i < cc->act_cfg; i++) {
++			if ((cc->cfg[i].frame_id == cfg->frame_id) &&
++			    (cc->cfg[i].channel & cfg->channel) &&
++			    (cc->cfg[i].cyc ==  cfg->cyc)) {
++				netdev_warn(dev, "duplicate configuration\n");
++				ret = -EINVAL;
++				goto out_unlock;
++			}
++		}
++	}
++
++	if (cfg->type == eray_msgbuf_type_fifo) {
++		if (!cc->fifo_len)
++			cc->fifo_len = cfg->max;
++		else if (cfg->max != cc->fifo_len) {
++			netdev_warn(dev, "payload len %d != %d\n",
++				  cfg->max, cc->fifo_len);
++			ret = -EINVAL;
++			goto out_unlock;
++		}
++		/* copy fifo reject configuration to message buffer 0 */
++		cc->cfg[0].channel = cfg->channel;
++		cc->cfg[0].frame_id = cfg->frame_id;
++		cc->cfg[0].cyc = cfg->cyc;
++		cc->cfg[0].reject_mask = cfg->reject_mask;
++	}
++
++	if (cfg->type == eray_msgbuf_type_tx) {
++		if (cfg->len > cfg->max) {
++			netdev_warn(dev, "payload len %d > payload len %d\n",
++					cfg->len, cfg->max);
++			ret = -EINVAL;
++			goto out_unlock;
++		}
++		/* reject messagebuffer if it's static and the length is bigger
++		 * than the cluster wide static messagebuffer length
++		 */
++		if (cfg->frame_id <= cc->static_id &&
++				cfg->len > cc->static_len) {
++			netdev_warn(dev, "payload len %d > static_len %d\n",
++					cfg->len, cc->static_len);
++			ret = -EINVAL;
++			goto out_unlock;
++		}
++		if (cfg->channel == eray_msgbuf_ch_both &&
++				cfg->frame_id > cc->static_id) {
++			netdev_warn(dev, "both channel in dynamic frame\n");
++			ret = -EINVAL;
++			goto out_unlock;
++		}
++	}
++
++	if ((remain_buffer_entries(cc) - ERAY_MSGBUF_CFG_LEN -
++				DIV_ROUND_UP(cfg->max, 2)) < 0) {
++		netdev_warn(dev, "no room for buffer\n");
++		ret = -EINVAL;
++		goto out_unlock;
++	}
++
++	fc2eray(cfg, &cc->cfg[buf_id]);
++
++	cc->cfg[buf_id].flags |= ERAY_MSGBUF_USED;
++	if (aquire)
++		cc->act_cfg++;
++nlreply_unlock:
++	spin_unlock_irqrestore(&cc->lock, flags);
++
++	skb = genlmsg_new(NLMSG_GOODSIZE, GFP_KERNEL);
++	if (!skb) {
++		netdev_warn(dev, "could not allocate skb\n");
++		ret = -ENOMEM;
++		goto out;
++	}
++
++	msg_head = genlmsg_put_reply(skb, info, &fc_msgbuf_genl_family, 0,
++			FC_MSGBUF_CMD_SET_CFG);
++	if (!msg_head) {
++		netdev_warn(dev, "generating NL reply failed\n");
++		ret = -ENOMEM;
++		goto out_free_skb;
++	}
++	ret = nla_put_u8(skb, FC_MSGBUF_ATTR_BUF_ID, buf_id);
++	if (ret) {
++		netdev_warn(dev, "could not add buffer id\n");
++		ret = -EINVAL;
++		goto out_free_skb;
++	}
++	genlmsg_end(skb, msg_head);
++
++	ret = genlmsg_reply(skb, info);
++out:
++	dev_put(dev);
++	return ret;
++
++out_free_skb:
++	kfree(skb);
++	goto out;
++
++out_unlock:
++	spin_unlock_irqrestore(&cc->lock, flags);
++	dev_put(dev);
++	return ret;
++}
++
++static struct genl_ops fc_msgbuf_genl_ops[] = {
++	{
++		.cmd = FC_MSGBUF_CMD_GET_CFG,
++		.policy = fc_msgbuf_genl_policy,
++		.doit = fc_msgbuf_get_cfg,
++	},
++	{
++		.cmd = FC_MSGBUF_CMD_SET_CFG,
++		.policy = fc_msgbuf_genl_policy,
++		.doit = fc_msgbuf_set_cfg,
++	},
++	{
++		.cmd = FC_MSGBUF_CMD_RESET_CFG,
++		.policy = fc_msgbuf_genl_policy,
++		.doit = fc_msgbuf_reset_cfg,
++	},
++	{
++		.cmd = FC_MSGBUF_CMD_READ_CFG,
++		.policy = fc_msgbuf_genl_policy,
++		.doit = fc_msgbuf_read_cfg,
++	},
++};
++
++/* calculate header CRC as specified in FlexRay Protocol Specification V2.1
++ * Rev.A chapter 4.2.8
++ */
++static u32 crc_header(struct eray_msgbuf_cfg *cfg)
++{
++	u32 val = 0x1a;
++	u32 crc_next;
++	u32 next_bit;
++	u32 data;
++	int i;
++
++	data = cfg->len & (ERAY_WRHS2_PLC_MASK >> ERAY_WRHS2_PLC_SHIFT);
++	data |= (cfg->frame_id & ERAY_WRHS1_FID_MASK) << 7;
++	if (cfg->flags & ERAY_MSGBUF_STARTUP)
++		data |= 1 << 18;
++	if (cfg->flags & ERAY_MSGBUF_SYNC)
++		data |= 1 << 19;
++
++	for (i = 19; i >= 0; i--) {
++		next_bit = (data >> i) & 0x1;
++		crc_next = next_bit ^ ((val >> 10) & 0x1);
++
++		val <<= 1;
++		val &= 0xfffffffe;
++
++		if (crc_next)
++			val ^= 0x385;
++
++		val &= 0x7ff;
++	}
++
++	return val & ERAY_WRHS2_CRC_MASK;
++}
++
++static int fc_wait_for_ram_offset(struct eray_cc *cc, uint32_t offset)
++{
++	int ret;
++
++	/* wait until host and shadow RAM actions are finished */
++	ret = eray_wait_clear(cc, ERAY_IBCR + offset, ERAY_IBCR_IBSYH_MASK, 10);
++	if (ret)
++		goto out;
++
++	ret = eray_wait_clear(cc, ERAY_IBCR + offset, ERAY_IBCR_IBSYS_MASK, 10);
++out:
++	return ret;
++}
++
++static int fc_wait_for_ram(struct eray_cc *cc)
++{
++	return fc_wait_for_ram_offset(cc, 0);
++}
++
++static int fc_prepare_msgbuf_data_ssync(struct net_device *dev)
++{
++	struct flexcard_priv *priv = netdev_priv(dev);
++	struct eray_cc *cc = priv->cc;
++	struct eray_msgbuf_cfg *cfg;
++	u8 fdb, ffb, lcb, splm;
++	u32 reg, dp = ERAY_MAX_MEM;
++	int i, ret;
++
++	if (!cc->ssync_num)
++		return 0;
++
++	fdb = 0x80;	/* only static msgbuf in self sync */
++	ffb = 0x80;	/* non FIFO in self sync */
++	lcb = cc->ssync_num ? cc->ssync_num - 1 : 0x80;
++	splm = (cc->ssync_num > 1) ? 1 : 0;
++
++	eray_chg_reg(fdb, cc, ERAY_MRC + FC_SSYNC_OFFSET,
++		     ERAY_MRC_FDB_MASK, ERAY_MRC_FDB_SHIFT);
++	eray_chg_reg(ffb, cc, ERAY_MRC + FC_SSYNC_OFFSET,
++		     ERAY_MRC_FFB_MASK, ERAY_MRC_FFB_SHIFT);
++	eray_chg_reg(lcb, cc, ERAY_MRC + FC_SSYNC_OFFSET,
++		     ERAY_MRC_LCB_MASK, ERAY_MRC_LCB_SHIFT);
++	eray_chg_reg(splm, cc, ERAY_MRC + FC_SSYNC_OFFSET,
++		     ERAY_MRC_SPLM_MASK, ERAY_MRC_SPLM_SHIFT);
++
++	for (i = 0; i < cc->ssync_num; i++) {
++		cfg = &cc->ssync_cfg[i];
++
++		/* self sync need no mapping */
++		cfg->id = i;
++
++		cfg->len = cc->static_len;
++
++		/* WRHS1 */
++		reg = (cfg->frame_id << ERAY_WRHS1_FID_SHIFT) &
++			ERAY_WRHS1_FID_MASK;
++		reg |= (cfg->cyc << ERAY_WRHS1_CYC_SHIFT) &
++			ERAY_WRHS1_CYC_MASK;
++		reg |= (cfg->channel << ERAY_WRHS1_CH_SHIFT) &
++			ERAY_WRHS1_CH_MASK;
++		reg |= ERAY_WRHS1_CFG_MASK;
++		if (cfg->flags & ERAY_MSGBUF_PPIT)
++			reg |= ERAY_WRHS1_PPIT_MASK;
++		if (cfg->flags & FC_MSGBUF_ACK)
++			reg |= ERAY_WRHS1_MBI_MASK;
++
++		/* if ERAY_WRHS1_TXM is *not* set the ERAY core
++		 * works in continous mode.
++		 */
++		if (!(cfg->flags & ERAY_MSGBUF_TXCONT))
++			reg |= ERAY_WRHS1_TXM_MASK;
++		cfg->wrhs1 = reg;
++
++		/* WRHS2 */
++		reg = crc_header(cfg) & ERAY_WRHS2_CRC_MASK;
++		reg |= (cfg->max << ERAY_WRHS2_PLC_SHIFT) &
++			ERAY_WRHS2_PLC_MASK;
++		cfg->wrhs2 = reg;
++
++		/* WRHS3 */
++		dp -= DIV_ROUND_UP(cfg->max, 2);
++		reg = dp & ERAY_WRHS3_DP_MASK;
++		cfg->wrhs3 = reg;
++
++		eray_dump_msg_cfg(cfg, i, __func__);
++
++		ret = fc_wait_for_ram_offset(cc, FC_SSYNC_OFFSET);
++		if (ret)
++			goto out;
++
++		eray_writel(cfg->wrhs1, cc, ERAY_WRHS1 + FC_SSYNC_OFFSET);
++		eray_writel(cfg->wrhs2, cc, ERAY_WRHS2 + FC_SSYNC_OFFSET);
++		eray_writel(cfg->wrhs3, cc, ERAY_WRHS3 + FC_SSYNC_OFFSET);
++		eray_writel(ERAY_IBCM_LHSH_MASK, cc,
++				ERAY_IBCM + FC_SSYNC_OFFSET);
++
++		/* set the new configuration */
++		eray_writel(cfg->id, cc, ERAY_IBCR + FC_SSYNC_OFFSET);
++
++		ret = fc_wait_for_ram_offset(cc, FC_SSYNC_OFFSET);
++		if (ret)
++			goto out;
++
++		reg = 0x0;
++		if (cfg->flags & FC_MSGBUF_ACK) {
++			reg |= cfg->cyc << FC_BUF_INFO_CYC_SHIFT;
++			reg |= cfg->channel << FC_BUF_INFO_CHANNEL_SHIFT;
++			reg |= cfg->frame_id;
++
++			if (cfg->flags & FC_MSGBUF_ACK_PAYLOAD)
++				reg |= FC_BUF_INFO_ENABLE_PAYLOAD;
++			if (cfg->flags & FC_MSGBUF_ACK_NULL)
++				reg |= FC_BUF_INFO_ENABLE_NULLFRAMES;
++			if (cfg->type == eray_msgbuf_type_tx)
++				reg |= FC_BUF_INFO_IS_TX;
++		}
++
++		eray_writel(reg, cc, (FC_BUFFER_INFO_TABLE + i * 4) +
++				FC_SSYNC_TXACK_OFFSET);
++	}
++
++	for (i = 0; i < cc->ssync_num; i++) {
++		int tx_buf_id;
++
++		cfg = &cc->ssync_cfg[i];
++		if (cfg->flags & ERAY_MSGBUF_TXCONT) {
++			tx_buf_id = i | FC_FLEX_ID_SSYNC_FLAG;
++			ret = _fc_write_data(priv, tx_buf_id,
++					     cfg->tx_cont_data,
++					     cfg->tx_cont_len);
++			if (ret)
++				goto out;
++		}
++	}
++
++out:
++	return ret;
++}
++
++static int fc_prepare_msgbuf_data(struct net_device *dev)
++{
++	struct flexcard_priv *priv = netdev_priv(dev);
++	struct eray_cc *cc = priv->cc;
++	struct eray_msgbuf_cfg *cfg;
++	unsigned long flags;
++	u32 reg, sum_flags = 0, dp = ERAY_MAX_MEM;
++	u8 fdb, ffb, lcb, splm, ndyn = 0, nfifo = 0;
++	int i, remain, ret = -EINVAL, map_i = 0;
++	unsigned int remain_nr;
++
++	spin_lock_irqsave(&cc->lock, flags);
++
++	if (cc->act_cfg > ERAY_MAX_BUFS) {
++		netdev_err(dev, "too many msg buffers (%d)\n", cc->act_cfg);
++		goto out;
++	}
++
++	for (i = 0; i < cc->act_cfg; i++) {
++		cc->cfg[i].id = 0xff;
++		cc->cfg[i].len = 0;
++	}
++
++	if (!cc->fifo_len)
++		cc->fifo_len = 127;
++
++	remain = remain_buffer_entries(cc);
++	if (remain < 0) {
++		netdev_err(dev, "buffer memory exhausted (%d)\n",
++			   ERAY_MAX_MEM + remain);
++		goto out;
++	}
++
++	/* map all remaining message buffers as fifo buffer */
++	remain_nr = DIV_ROUND_UP(cc->fifo_len, 2) + ERAY_MSGBUF_CFG_LEN;
++	remain_nr = remain / remain_nr;
++	if (remain_nr)
++		remain_nr--;
++
++	if (cc->act_cfg + remain_nr > ERAY_MAX_BUFS)
++		remain_nr = ERAY_MAX_BUFS - cc->act_cfg;
++
++	for (i = cc->act_cfg; i < cc->act_cfg + remain_nr; i++) {
++		cc->cfg[i].flags |= ERAY_MSGBUF_USED;
++		cc->cfg[i].id = 0xff;
++		cc->cfg[i].type = eray_msgbuf_type_fifo;
++
++		/* copy fifo reject configuration from message buffer 0 */
++		cc->cfg[i].channel = cc->cfg[0].channel;
++		cc->cfg[i].frame_id = cc->cfg[0].frame_id;
++		cc->cfg[i].cyc = cc->cfg[0].cyc;
++		cc->cfg[i].reject_mask = cc->cfg[0].reject_mask;
++	}
++	cc->act_cfg += remain_nr;
++
++	eray_get_val16(&cc->static_id, cc,
++		      ERAY_GTUC7, ERAY_GTUC7_NSS_MASK, ERAY_GTUC7_NSS_SHIFT);
++
++	eray_get_val8(&cc->static_len, cc,
++		      ERAY_MHDC, ERAY_MHDC_SFDL_MASK, ERAY_MHDC_SFDL_SHIFT);
++
++	/* Map sync buffers first */
++	for (i = 0; i < cc->act_cfg; i++) {
++		cfg = &cc->cfg[i];
++
++		if (cfg->type != eray_msgbuf_type_tx)
++			continue;
++		if (cfg->frame_id == 0)
++			continue;
++		if (!(cfg->flags & ERAY_MSGBUF_SYNC))
++			continue;
++
++		cfg->id = map_i;
++		cc->rev_id[map_i] = cfg->id;
++		map_i++;
++		ndyn++;
++	}
++
++	/* then map tx buffers */
++	for (i = 0; i < cc->act_cfg; i++) {
++		cfg = &cc->cfg[i];
++
++		if (cfg->type != eray_msgbuf_type_tx)
++			continue;
++		if (cfg->frame_id == 0)
++			continue;
++		if (cfg->flags & ERAY_MSGBUF_SYNC)
++			continue;
++
++		cfg->id = map_i;
++		cc->rev_id[map_i] = cfg->id;
++		map_i++;
++		ndyn++;
++	}
++
++	/* then map RX buffers */
++	for (i = 0; i < cc->act_cfg; i++) {
++		cfg = &cc->cfg[i];
++
++		if (cfg->type != eray_msgbuf_type_rx)
++			continue;
++
++		cfg->id = map_i;
++		cc->rev_id[map_i] = cfg->id;
++		map_i++;
++		ndyn++;
++	}
++
++	/* then map fifo buffers */
++	for (i = 0; i < cc->act_cfg; i++) {
++
++		cfg = &cc->cfg[i];
++
++		if (cfg->type != eray_msgbuf_type_fifo)
++			continue;
++
++		/* assign mapping */
++		cfg->len = cfg->max = cc->fifo_len;
++		cfg->id = map_i;
++
++		/* summarize all flags */
++		cc->rev_id[map_i] = cfg->id;
++		sum_flags |= cfg->flags;
++
++		map_i++;
++		nfifo++;
++	}
++
++	/* CLEAR_RAMS can only be called in DEFAULT_CONFIG or CONFIG mode */
++	ret = cc_change_state(cc, ERAY_CMD_CONFIG, 5);
++	if (ret < 0) {
++		netdev_err(dev, "CC DEFAULT_CONFIG failed\n");
++		goto out;
++	}
++
++	ret = cc_change_state(cc, ERAY_CMD_CLEAR_RAMS, 15);
++	if (ret < 0)
++		netdev_err(dev, "%s: CC CLEAR_RAMS failed\n", __func__);
++
++	fdb = ndyn ? 0 : 0x80;
++	ffb = nfifo ? ndyn : 0x80;
++	lcb = map_i ? map_i - 1 : 0x80;
++	splm = (cc->sync_num > 1) ? 1 : 0;
++
++	if (ndyn + nfifo != map_i)
++		netdev_warn(dev, "invalid msg buffer configuration\n");
++
++	eray_chg_reg(fdb, cc, ERAY_MRC, ERAY_MRC_FDB_MASK, ERAY_MRC_FDB_SHIFT);
++	eray_chg_reg(ffb, cc, ERAY_MRC, ERAY_MRC_FFB_MASK, ERAY_MRC_FFB_SHIFT);
++	eray_chg_reg(lcb, cc, ERAY_MRC, ERAY_MRC_LCB_MASK, ERAY_MRC_LCB_SHIFT);
++	eray_chg_reg(splm, cc, ERAY_MRC, ERAY_MRC_SPLM_MASK,
++			ERAY_MRC_SPLM_SHIFT);
++	/* setup data for registers */
++	for (i = 0; i < cc->act_cfg; i++) {
++		cfg = &cc->cfg[i];
++
++		switch (cfg->type) {
++		case eray_msgbuf_type_none:
++			continue;
++
++		case eray_msgbuf_type_fifo:
++			cfg->wrhs1 = 0;
++			cfg->wrhs2 = (cc->fifo_len << ERAY_WRHS2_PLC_SHIFT) &
++				ERAY_WRHS2_PLC_MASK;
++
++			reg = (cfg->frame_id << ERAY_FRF_FID_SHIFT) &
++				ERAY_FRF_FID_MASK;
++			reg |= (cfg->cyc << ERAY_FRF_CYC_SHIFT) &
++				ERAY_FRF_CYC_MASK;
++			reg |= (cfg->channel << ERAY_FRF_CH_SHIFT) &
++				ERAY_FRF_CH_MASK;
++			if (sum_flags & ERAY_MSGBUF_FIFOREJ_NULL)
++				reg |= ERAY_FRF_RNF_MASK;
++			if (sum_flags & ERAY_MSGBUF_FIFOREJ_INSEG)
++				reg |= ERAY_FRF_RSS_MASK;
++
++			eray_writel(reg, cc, ERAY_FRF);
++
++			reg = (cfg->reject_mask << ERAY_FRFM_MFID_SHIFT) &
++				ERAY_FRFM_MFID_MASK;
++
++			eray_writel(reg, cc, ERAY_FRFM);
++
++			break;
++
++		case eray_msgbuf_type_rx:
++			reg = (cfg->frame_id << ERAY_WRHS1_FID_SHIFT) &
++				ERAY_WRHS1_FID_MASK;
++			reg |= (cfg->cyc << ERAY_WRHS1_CYC_SHIFT) &
++				ERAY_WRHS1_CYC_MASK;
++			reg |= (cfg->channel << ERAY_WRHS1_CH_SHIFT) &
++				ERAY_WRHS1_CH_MASK;
++			cfg->wrhs1 = reg;
++
++			reg = (cfg->max << ERAY_WRHS2_PLC_SHIFT) &
++				ERAY_WRHS2_PLC_MASK;
++			cfg->wrhs2 = reg;
++			break;
++
++		case eray_msgbuf_type_tx:
++			reg = (cfg->frame_id << ERAY_WRHS1_FID_SHIFT) &
++				ERAY_WRHS1_FID_MASK;
++			reg |= (cfg->cyc << ERAY_WRHS1_CYC_SHIFT) &
++				ERAY_WRHS1_CYC_MASK;
++			reg |= (cfg->channel << ERAY_WRHS1_CH_SHIFT) &
++				ERAY_WRHS1_CH_MASK;
++			reg |= ERAY_WRHS1_CFG_MASK;
++			if (cfg->flags & ERAY_MSGBUF_PPIT)
++				reg |= ERAY_WRHS1_PPIT_MASK;
++			if (cfg->flags & FC_MSGBUF_ACK)
++				reg |= ERAY_WRHS1_MBI_MASK;
++
++			/* if ERAY_WRHS1_TXM is *not* set the ERAY core
++			 * works in continous mode.
++			 */
++			if (!(cfg->flags & ERAY_MSGBUF_TXCONT))
++				reg |= ERAY_WRHS1_TXM_MASK;
++			cfg->wrhs1 = reg;
++
++			if (cfg->frame_id <= cc->static_id)
++				cfg->len = cc->static_len;
++			else
++				cfg->len = cfg->max;
++
++			reg = crc_header(cfg) & ERAY_WRHS2_CRC_MASK;
++			reg |= (cfg->max << ERAY_WRHS2_PLC_SHIFT) &
++				ERAY_WRHS2_PLC_MASK;
++			cfg->wrhs2 = reg;
++			break;
++
++		default:
++			netdev_warn(dev, "unknown msgbuf type %d ignored\n",
++				    cfg->type);
++			continue;
++		}
++
++		/* WRHS3 */
++		dp -= DIV_ROUND_UP(cfg->max, 2);
++		reg = dp & ERAY_WRHS3_DP_MASK;
++		cfg->wrhs3 = reg;
++
++		eray_dump_msg_cfg(cfg, i, __func__);
++
++		ret = fc_wait_for_ram(cc);
++		if (ret)
++			goto out;
++
++		eray_writel(cfg->wrhs1, cc, ERAY_WRHS1);
++		eray_writel(cfg->wrhs2, cc, ERAY_WRHS2);
++		eray_writel(cfg->wrhs3, cc, ERAY_WRHS3);
++		eray_writel(ERAY_IBCM_LHSH_MASK, cc, ERAY_IBCM);
++
++		/* set the new configuration */
++		eray_writel(cfg->id, cc, ERAY_IBCR);
++
++		ret = fc_wait_for_ram(cc);
++		if (ret)
++			goto out;
++
++		reg = 0x0;
++		if (cfg->flags & FC_MSGBUF_ACK) {
++			reg |= cfg->cyc << FC_BUF_INFO_CYC_SHIFT;
++			reg |= cfg->channel << FC_BUF_INFO_CHANNEL_SHIFT;
++			reg |= cfg->frame_id;
++
++			if (cfg->flags & FC_MSGBUF_ACK_PAYLOAD)
++				reg |= FC_BUF_INFO_ENABLE_PAYLOAD;
++			if (cfg->flags & FC_MSGBUF_ACK_NULL)
++				reg |= FC_BUF_INFO_ENABLE_NULLFRAMES;
++			if (cfg->type == eray_msgbuf_type_tx)
++				reg |= FC_BUF_INFO_IS_TX;
++		}
++
++		eray_writel(reg, cc, FC_BUFFER_INFO_TABLE + i*4);
++	}
++
++	/* To setup E-Ray to send startup/sync frames the appropriate
++	 * bits in the SUCC1 must be set. To carry out the configuration
++	 * a ALLOW_COLDSTART command must be executed.
++	 */
++	if ((cc->sync_start & ERAY_MSGBUF_STARTUP) ||
++	    (cc->sync_start & ERAY_MSGBUF_SYNC)) {
++		reg = eray_read_succ1(cc, 10);
++		if (reg < 0) {
++			ret = -EBUSY;
++			goto out;
++		}
++
++		if (cc->sync_start & ERAY_MSGBUF_STARTUP)
++			reg |= ERAY_SUCC1_TXST_MASK;
++
++		if (cc->sync_start & ERAY_MSGBUF_SYNC)
++			reg |= ERAY_SUCC1_TXSY_MASK;
++
++		reg &= ~ERAY_SUCC1_CMD_MASK;
++		reg |= ERAY_CMD_ALLOW_COLDSTART;
++
++		eray_writel(reg, cc, ERAY_SUCC1);
++	}
++
++	cc->ready = 1;
++
++	for (i = 0; i < cc->act_cfg; i++) {
++		cfg = &cc->cfg[i];
++
++		if ((cfg->type == eray_msgbuf_type_tx) &&
++		    cfg->flags & ERAY_MSGBUF_TXCONT) {
++			ret = _fc_write_data(priv, i, cfg->tx_cont_data,
++					     cfg->tx_cont_len);
++			if (ret)
++				goto out;
++		}
++	}
++
++	ret = fc_prepare_msgbuf_data_ssync(dev);
++	if (ret)
++		goto out;
++
++	ret = 0;
++out:
++	spin_unlock_irqrestore(&cc->lock, flags);
++
++	return ret;
++}
++
++static int fc_write_data(struct flexcard_priv *priv, unsigned int msgbuf_id,
++			 unsigned char *payload, size_t byte_len)
++{
++	struct eray_cc *cc = priv->cc;
++	int ret;
++
++	spin_lock(&cc->lock);
++	ret = _fc_write_data(priv, msgbuf_id, payload, byte_len);
++	spin_unlock(&cc->lock);
++
++	return ret;
++}
++
++static int _fc_write_data(struct flexcard_priv *priv, unsigned int msgbuf_id,
++			  unsigned char *payload, size_t byte_len)
++{
++	struct eray_cc *cc = priv->cc;
++	struct eray_msgbuf_cfg *cfg;
++	u32 txrq, *data = (u32 *) payload;
++	int i, count, rem, err;
++	u32 offset = 0;
++	int ssync;
++
++	ssync = (msgbuf_id & FC_FLEX_ID_SSYNC_FLAG) ? 1 : 0;
++	msgbuf_id &= ~(FC_FLEX_ID_SSYNC_FLAG);
++	if (ssync) {
++		offset = FC_SSYNC_OFFSET;
++		cfg = &cc->ssync_cfg[msgbuf_id];
++	} else
++		cfg = &cc->cfg[msgbuf_id];
++
++	if (cfg->flags & ERAY_MSGBUF_TXCONT) {
++		if (byte_len > 256)
++			byte_len = 256;
++		cfg->tx_cont_len = byte_len;
++
++		memcpy(cfg->tx_cont_data, payload, cfg->tx_cont_len);
++	}
++
++	if (!cc->ready) {
++		/* Discard packets if CC is not ready. If we return an error
++		 * here we never make progress and recover from this state.
++		 */
++		err = 0;
++		goto out;
++	}
++
++	/* ignore TXRQ bit in continous mode since it is allways set */
++	if (!(cfg->flags & ERAY_MSGBUF_TXCONT)) {
++		txrq = eray_readl(cc, (ERAY_TXRQ1 + cfg->id/32) + offset);
++		if (txrq & 1 << (cfg->id%32)) {
++			err = -EBUSY;
++			goto out;
++		}
++	}
++
++	err = fc_wait_for_ram_offset(cc, offset);
++	if (err)
++		goto out;
++
++	/* check packet length to decide if message buffer configuration
++	 * needs to be reprogrammed.
++	 */
++	if (((byte_len + 1) / 2) != cfg->len) {
++		u32 reg;
++
++		/* setup wrhs2 again */
++		cfg->len  = (byte_len + 1) / 2;
++
++		if (cfg->frame_id < cc->static_id)
++			reg = cfg->wrhs2 & ERAY_WRHS2_CRC_MASK;
++		else
++			reg = crc_header(cfg) & ERAY_WRHS2_CRC_MASK;
++		reg |= (cfg->len << ERAY_WRHS2_PLC_SHIFT) &
++			ERAY_WRHS2_PLC_MASK;
++		cfg->wrhs2 = reg;
++
++		/* write msgbuf config */
++		eray_writel(cfg->wrhs1, cc, ERAY_WRHS1 + offset);
++		eray_writel(cfg->wrhs2, cc, ERAY_WRHS2 + offset);
++		eray_writel(cfg->wrhs3, cc, ERAY_WRHS3 + offset);
++
++		eray_writel(ERAY_IBCM_LHSH_MASK, cc, ERAY_IBCM + offset);
++		eray_writel(cfg->id & ERAY_IBCR_IBRH_MASK, cc,
++				ERAY_IBCR + offset);
++		err = fc_wait_for_ram_offset(cc, offset);
++		if (err)
++			goto out;
++
++	}
++
++	count = byte_len >> 2;
++	rem = byte_len & 0x3;
++
++	/* write 32-bit data words */
++	for (i = 0; i < count; i++)
++		eray_writel(cpu_to_le32(data[i]), cc, ERAY_WRDS(i) + offset);
++
++	/* write remaining data bytes */
++	if (rem) {
++		u32 wrd = 0;
++		memcpy(&wrd, &payload[byte_len - rem], rem);
++		eray_writel(cpu_to_le32(wrd), cc, ERAY_WRDS(i) + offset);
++	}
++
++	eray_writel(ERAY_IBCM_LDSH_MASK | ERAY_IBCM_STXRH_MASK, cc,
++			ERAY_IBCM + offset);
++	eray_writel(cfg->id & ERAY_IBCR_IBRH_MASK, cc, ERAY_IBCR + offset);
++
++	err = fc_wait_for_ram_offset(cc, offset);
++	if (!err) {
++		spin_lock(&cfg->lock);
++		cfg->queued = 0;
++		spin_unlock(&cfg->lock);
++	}
++out:
++	return err;
++}
++
++static enum eray_cc_state e_state(enum flexray_state state)
++{
++	switch (state) {
++	case FLEXRAY_STATE_DEFAULT_CONFIG:
++		return ERAY_CMD_FREEZE;
++	case FLEXRAY_STATE_CONFIG:
++		return ERAY_CMD_CONFIG;
++	case FLEXRAY_STATE_READY:
++		return ERAY_CMD_READY;
++	case FLEXRAY_STATE_WAKEUP:
++		return ERAY_CMD_WAKEUP;
++	case FLEXRAY_STATE_STARTUP:
++		return ERAY_CMD_RUN;
++	case FLEXRAY_STATE_HALT:
++		return ERAY_CMD_HALT;
++	case FLEXRAY_STATE_MONITOR_MODE:
++		return ERAY_CMD_MONITOR_MODE;
++	case FLEXRAY_STATE_COLDSTART:
++		return ERAY_CMD_ALLOW_COLDSTART;
++	case FLEXRAY_STATE_NORMAL_ACTIVE:
++	case FLEXRAY_STATE_NORMAL_PASSIVE:
++	case FLEXRAY_STATE_MAX:
++	case FLEXRAY_STATE_UNSPEC:
++	default:
++		return ERAY_CMD_INVALID;
++	}
++}
++
++static int cc_change_state(struct eray_cc *cc, enum eray_cc_state state,
++			   int retry)
++{
++	u32 stat;
++
++	stat = eray_read_succ1(cc, 10);
++	if (stat < 0)
++		return -EBUSY;
++
++	stat &= ~ERAY_SUCC1_CMD_MASK;
++	stat |= state;
++
++	if (state == ERAY_CMD_READY || state == ERAY_CMD_MONITOR_MODE) {
++		eray_writel(0xCE, cc, ERAY_LCK);
++		eray_writel(0x31, cc, ERAY_LCK);
++	}
++
++	eray_writel(stat, cc, ERAY_SUCC1);
++
++	stat = eray_read_succ1(cc, retry);
++	if (!(stat & ERAY_SUCC1_CMD_MASK))
++		return -EINVAL;
++
++	if (state == ERAY_CMD_FREEZE) {
++		stat &= ~ERAY_SUCC1_CMD_MASK;
++		stat |= ERAY_CMD_CONFIG;
++		eray_writel(stat, cc, ERAY_SUCC1);
++
++		stat = eray_read_succ1(cc, retry);
++		if (!(stat & ERAY_SUCC1_CMD_MASK))
++			return -EINVAL;
++	}
++
++	return 0;
++}
++
++static int cc_reset(struct net_device *dev)
++{
++	struct flexcard_priv *priv = netdev_priv(dev);
++	struct eray_cc *cc = priv->cc;
++	int ret;
++
++	/* Set FR CCs to a well-defined state,
++	 * because the cc reset doesn't work always
++	 * 1. send freeze command
++	 * 2. wait for halt state
++	 * 3. send config command
++	 * 4. wait for default config state
++	 * 5. send clear_rams command
++	 * 6. wait max. 150 us for end of ram initialization
++	 * (calculated time 62 us)
++	 * 7. Flexcard reset (50us settle time)
++	 * 8 Flexcard Filter reset (70us settle time)
++	 */
++
++	ret = cc_change_state(cc, ERAY_CMD_FREEZE, 5);
++	if (ret < 0) {
++		dev_err(&dev->dev, "CC FREEZE failed\n");
++		goto out;
++	}
++
++	ret = cc_change_state(cc, ERAY_CMD_CONFIG, 5);
++	if (ret < 0) {
++		dev_err(&dev->dev, "CC DEFAULT_CONFIG failed\n");
++		goto out;
++	}
++
++	ret = cc_change_state(cc, ERAY_CMD_CLEAR_RAMS, 15);
++	if (ret < 0) {
++		netdev_err(dev, "%s: CC CLEAR_RAMS failed\n", __func__);
++		goto out;
++	}
++
++	writel(1<<priv->id, priv->conf + FC_FC_RESET);
++	udelay(50);
++
++	eray_writel(0, cc, FC_RXFILTID);
++	eray_writel(3, cc, FC_RXFILTCH);
++	eray_writel(0, cc, FC_TXFILTID);
++	eray_writel(0, cc, FC_TXFILTCH);
++	udelay(70);
++
++	ret = cc_change_state(cc, ERAY_CMD_CONFIG, 5);
++	if (ret < 0) {
++		dev_err(&dev->dev, "CC CONFIG failed\n");
++		goto out;
++	}
++
++	eray_writel(0, cc, ERAY_MHDC);
++	eray_writel(0, cc, ERAY_GTUC7);
++
++out:
++	return ret;
++}
++
++static void cc_get_conf(struct net_device *dev)
++{
++	struct flexcard_priv *priv = netdev_priv(dev);
++	struct eray_cc *cc = priv->cc;
++	struct flexray_priv *flexray = &priv->flexray;
++	u8 BRP, EOCC, ERCC;
++
++	eray_get_val16(&cc->static_id, cc,
++		      ERAY_GTUC7, ERAY_GTUC7_NSS_MASK, ERAY_GTUC7_NSS_SHIFT);
++
++	eray_get_val8(&cc->static_len, cc,
++		      ERAY_MHDC, ERAY_MHDC_SFDL_MASK, ERAY_MHDC_SFDL_SHIFT);
++
++	/* cluster */
++	eray_get_val8(&flexray->cluster.gColdstartAttempts, cc,
++		      ERAY_SUCC1, ERAY_SUCC1_CSA_MASK, ERAY_SUCC1_CSA_SHIFT);
++	eray_get_val8(&flexray->cluster.gdCASRxLowMax, cc,
++		      ERAY_PRTC1, ERAY_PRTC1_CASM_MASK, ERAY_PRTC1_CASM_SHIFT);
++	eray_get_val8(&flexray->cluster.gdTSSTransmitter, cc,
++		      ERAY_PRTC1, ERAY_PRTC1_TSST_MASK, ERAY_PRTC1_TSST_SHIFT);
++	eray_get_val8(&flexray->cluster.gListenNoise, cc,
++		      ERAY_SUCC2, ERAY_SUCC2_LTN_MASK, ERAY_SUCC2_LTN_SHIFT);
++	flexray->cluster.gListenNoise += 1;
++	eray_get_val8(&flexray->cluster.gMaxWithoutClockCorrectionFatal, cc,
++		      ERAY_SUCC3, ERAY_SUCC3_WCF_MASK, ERAY_SUCC3_WCF_SHIFT);
++	eray_get_val8(&flexray->cluster.gMaxWithoutClockCorrectionPassive, cc,
++		      ERAY_SUCC3, ERAY_SUCC3_WCP_MASK, ERAY_SUCC3_WCP_SHIFT);
++	eray_get_val8(&BRP, cc,
++		      ERAY_PRTC1, ERAY_PRTC1_BRP_MASK, ERAY_PRTC1_BRP_SHIFT);
++	switch (BRP) {
++	case 0:
++		flexray->cluster.gdSampleClockPeriod = 1;
++		flexray->node.pSamplesPerMicrotick = 2;
++		break;
++	case 1:
++		flexray->cluster.gdSampleClockPeriod = 2;
++		flexray->node.pSamplesPerMicrotick = 1;
++		break;
++	case 2:
++	case 3:
++		flexray->cluster.gdSampleClockPeriod = 4;
++		flexray->node.pSamplesPerMicrotick = 1;
++		break;
++	}
++	eray_get_val8(&flexray->cluster.gNetworkManagementVectorLength, cc,
++		      ERAY_NEMC, ERAY_NEMC_NML_MASK, ERAY_NEMC_NML_SHIFT);
++	eray_get_val16(&flexray->cluster.v2.gdWakeupSymbolRxWindow, cc,
++		       ERAY_PRTC1, ERAY_PRTC1_RXW_MASK, ERAY_PRTC1_RXW_SHIFT);
++	eray_get_val8(&flexray->cluster.v2.gdWakeupSymbolRxIdle, cc,
++		      ERAY_PRTC2, ERAY_PRTC2_RXI_MASK, ERAY_PRTC2_RXI_SHIFT);
++	eray_get_val8(&flexray->cluster.v2.gdWakeupSymbolRxLow, cc,
++		      ERAY_PRTC2, ERAY_PRTC2_RXL_MASK, ERAY_PRTC2_RXL_SHIFT);
++	eray_get_val8(&flexray->cluster.v2.gdWakeupSymbolTxIdle, cc,
++		      ERAY_PRTC2, ERAY_PRTC2_TXI_MASK, ERAY_PRTC2_TXI_SHIFT);
++	eray_get_val8(&flexray->cluster.v2.gdWakeupSymbolTxLow, cc,
++		      ERAY_PRTC2, ERAY_PRTC2_TXL_MASK, ERAY_PRTC2_TXL_SHIFT);
++	eray_get_val8(&flexray->cluster.gPayloadLengthStatic, cc,
++		      ERAY_MHDC, ERAY_MHDC_SFDL_MASK, ERAY_MHDC_SFDL_SHIFT);
++	eray_get_val16(&flexray->cluster.gMacroPerCycle, cc,
++		       ERAY_GTUC2, ERAY_GTUC2_MPC_MASK, ERAY_GTUC2_MPC_SHIFT);
++	eray_get_val8(&flexray->cluster.v2.gSyncNodeMax, cc,
++		      ERAY_GTUC2, ERAY_GTUC2_SNM_MASK, ERAY_GTUC2_SNM_SHIFT);
++	eray_get_val16(&flexray->cluster.gdNIT, cc,
++		      ERAY_GTUC4, ERAY_GTUC4_NIT_MASK, ERAY_GTUC4_NIT_SHIFT);
++	flexray->cluster.gdNIT = flexray->cluster.gMacroPerCycle - 1 -
++		flexray->cluster.gdNIT;
++	eray_get_val16(&flexray->cluster.v2.gOffsetCorrectionStart, cc,
++		       ERAY_GTUC4, ERAY_GTUC4_OCS_MASK, ERAY_GTUC4_OCS_SHIFT);
++	flexray->cluster.v2.gOffsetCorrectionStart += 1;
++	eray_get_val16(&flexray->cluster.gdStaticSlot, cc,
++		       ERAY_GTUC7, ERAY_GTUC7_SSL_MASK, ERAY_GTUC7_SSL_SHIFT);
++	eray_get_val16(&flexray->cluster.gNumberOfStaticSlots, cc,
++		       ERAY_GTUC7, ERAY_GTUC7_NSS_MASK, ERAY_GTUC7_NSS_SHIFT);
++	eray_get_val8(&flexray->cluster.gdMinislot, cc,
++		      ERAY_GTUC8, ERAY_GTUC8_MSL_MASK, ERAY_GTUC8_MSL_SHIFT);
++	eray_get_val16(&flexray->cluster.gNumberOfMinislots, cc,
++		       ERAY_GTUC8, ERAY_GTUC8_NMS_MASK, ERAY_GTUC8_NMS_SHIFT);
++	eray_get_val8(&flexray->cluster.gdActionPointOffset, cc,
++		      ERAY_GTUC9, ERAY_GTUC9_APO_MASK, ERAY_GTUC9_APO_SHIFT);
++	eray_get_val8(&flexray->cluster.gdMinislotActionPointOffset, cc,
++		      ERAY_GTUC9, ERAY_GTUC9_MAPO_MASK, ERAY_GTUC9_MAPO_SHIFT);
++	eray_get_val8(&flexray->cluster.gdDynamicSlotIdlePhase, cc,
++		     ERAY_GTUC9, ERAY_GTUC9_DSI_MASK, ERAY_GTUC9_DSI_SHIFT);
++
++	/* node */
++	eray_get_val8(&flexray->node.pAllowHaltDueToClock, cc,
++		      ERAY_SUCC1, ERAY_SUCC1_HCSE_MASK, ERAY_SUCC1_HCSE_SHIFT);
++	eray_get_val8(&flexray->node.pAllowPassiveToActive, cc,
++		      ERAY_SUCC1, ERAY_SUCC1_PTA_MASK, ERAY_SUCC1_PTA_SHIFT);
++	eray_get_val8(&flexray->node.pChannels, cc,
++		      ERAY_SUCC1, ERAY_SUCC1_CCH_MASK, ERAY_SUCC1_CCH_SHIFT);
++	eray_get_val32(&flexray->node.pdListenTimeout, cc,
++		       ERAY_SUCC2, ERAY_SUCC2_LT_MASK, ERAY_SUCC2_LT_SHIFT);
++	eray_get_val8(&flexray->node.v2.pSingleSlotEnabled, cc,
++		      ERAY_SUCC1, ERAY_SUCC1_TSM_MASK, ERAY_SUCC1_TSM_SHIFT);
++	eray_get_val8(&flexray->node.pKeySlotUsedForStartup, cc,
++		      ERAY_SUCC1, ERAY_SUCC1_TXST_MASK, ERAY_SUCC1_TXST_SHIFT);
++	eray_get_val8(&flexray->node.pKeySlotUsedForSync, cc,
++		      ERAY_SUCC1, ERAY_SUCC1_TXSY_MASK, ERAY_SUCC1_TXSY_SHIFT);
++	eray_get_val8(&flexray->node.pWakeupChannel, cc,
++		      ERAY_SUCC1, ERAY_SUCC1_WUCS_MASK, ERAY_SUCC1_WUCS_SHIFT);
++	eray_get_val8(&flexray->node.pWakeupPattern, cc,
++		      ERAY_PRTC1, ERAY_PRTC1_RWP_MASK, ERAY_PRTC1_RWP_SHIFT);
++	eray_get_val16(&flexray->node.pLatestTx, cc,
++		       ERAY_MHDC, ERAY_MHDC_SLT_MASK, ERAY_MHDC_SLT_SHIFT);
++	eray_get_val32(&flexray->node.pMicroPerCycle, cc,
++		       ERAY_GTUC1, ERAY_GTUC1_UT_MASK, ERAY_GTUC1_UT_SHIFT);
++	eray_get_val16(&flexray->node.pMicroInitialOffsetA, cc,
++		       ERAY_GTUC3, ERAY_GTUC3_UIOA_MASK, ERAY_GTUC3_UIOA_SHIFT);
++	eray_get_val16(&flexray->node.pMicroInitialOffsetB, cc,
++		       ERAY_GTUC3, ERAY_GTUC3_UIOB_MASK, ERAY_GTUC3_UIOB_SHIFT);
++	eray_get_val8(&flexray->node.pMacroInitialOffsetA, cc,
++		      ERAY_GTUC3, ERAY_GTUC3_MIOA_MASK, ERAY_GTUC3_MIOA_SHIFT);
++	eray_get_val8(&flexray->node.pMacroInitialOffsetB, cc,
++		      ERAY_GTUC3, ERAY_GTUC3_MIOB_MASK, ERAY_GTUC3_MIOB_SHIFT);
++	eray_get_val8(&flexray->node.pDelayCompensationA, cc,
++		      ERAY_GTUC5, ERAY_GTUC5_DCA_MASK, ERAY_GTUC5_DCA_SHIFT);
++	eray_get_val8(&flexray->node.pDelayCompensationB, cc,
++		      ERAY_GTUC5, ERAY_GTUC5_DCB_MASK, ERAY_GTUC5_DCB_SHIFT);
++	eray_get_val8(&flexray->node.pClusterDriftDamping, cc,
++		      ERAY_GTUC5, ERAY_GTUC5_CDD_MASK, ERAY_GTUC5_CDD_SHIFT);
++	eray_get_val8(&flexray->node.pDecodingCorrection, cc,
++		      ERAY_GTUC5, ERAY_GTUC5_DEC_MASK, ERAY_GTUC5_DEC_SHIFT);
++	eray_get_val16(&flexray->node.pdAcceptedStartupRange, cc,
++		       ERAY_GTUC6, ERAY_GTUC6_ASR_MASK, ERAY_GTUC6_ASR_SHIFT);
++	eray_get_val16(&flexray->node.v2.pdMaxDrift, cc,
++		       ERAY_GTUC6, ERAY_GTUC6_MOD_MASK, ERAY_GTUC6_MOD_SHIFT);
++	eray_get_val16(&flexray->node.pOffsetCorrectionOut, cc, ERAY_GTUC10,
++			ERAY_GTUC10_MOC_MASK, ERAY_GTUC10_MOC_SHIFT);
++	eray_get_val16(&flexray->node.pRateCorrectionOut, cc, ERAY_GTUC10,
++			ERAY_GTUC10_MRC_MASK, ERAY_GTUC10_MRC_SHIFT);
++	eray_get_val8(&flexray->node.pExternOffsetCorrection, cc,
++		      ERAY_GTUC11, ERAY_GTUC11_EOC_MASK, ERAY_GTUC11_EOC_SHIFT);
++	eray_get_val8(&flexray->node.pExternRateCorrection, cc,
++		      ERAY_GTUC11, ERAY_GTUC11_ERC_MASK, ERAY_GTUC11_ERC_SHIFT);
++	eray_get_val8(&EOCC, cc, ERAY_GTUC11, ERAY_GTUC11_EOCC_MASK,
++			ERAY_GTUC11_EOCC_SHIFT);
++
++	/* symbol */
++	eray_get_val8(&flexray->symbol.pChannelsMTS, cc,
++		      ERAY_SUCC1, ERAY_SUCC1_MTS_MASK, ERAY_SUCC1_MTS_SHIFT);
++
++	switch (EOCC) {
++	case 3:
++		flexray->node.vExternOffsetControl = 1;
++		break;
++	case 2:
++		flexray->node.vExternOffsetControl = -1;
++		break;
++	default:
++		flexray->node.vExternOffsetControl = 0;
++	}
++	eray_get_val8(&ERCC, cc, ERAY_GTUC11, ERAY_GTUC11_ERCC_MASK,
++			ERAY_GTUC11_ERCC_SHIFT);
++	switch (ERCC) {
++	case 3:
++		flexray->node.vExternRateControl = 1;
++		break;
++	case 2:
++		flexray->node.vExternRateControl = -1;
++		break;
++	default:
++		flexray->node.vExternRateControl = 0;
++	}
++}
++
++static void cc_irq_setup(struct net_device *dev)
++{
++	struct flexcard_priv *priv = netdev_priv(dev);
++	struct eray_cc *cc = priv->cc;
++
++	/* error eray_int0 */
++	eray_writel(0, cc, ERAY_EILS);
++
++	/* status eray_int1 */
++	eray_writel(ERAY_SIR_MASK, cc, ERAY_SILS);
++
++	/* disable error interrupts */
++	eray_writel(0, cc, ERAY_EIES);
++
++	/* enable receive interrupts */
++	eray_writel(ERAY_SIR_RXI, cc, ERAY_SIES);
++
++	/* enable eray_int0 and eray_int1 line */
++	eray_writel(ERAY_ILE_MASK, cc, ERAY_ILE);
++}
++
++static void cc_stopwatch_setup(struct net_device *dev, u32 reg)
++{
++	struct flexcard_priv *priv = netdev_priv(dev);
++	struct eray_cc *cc = priv->cc;
++
++	eray_writel(reg & 0x3f, cc, ERAY_STPW1);
++}
++
++static struct sk_buff *alloc_flexcard_skb(struct net_device *dev,
++					  struct fc_packet_buf **cf,
++					  size_t len)
++{
++	struct sk_buff *skb;
++
++	skb = netdev_alloc_skb(dev, len);
++	if (unlikely(!skb))
++		return NULL;
++
++	skb->protocol = htons(ETH_P_FLEXRAY);
++	skb->pkt_type = PACKET_BROADCAST;
++	skb->ip_summed = CHECKSUM_UNNECESSARY;
++	*cf = (struct fc_packet_buf *)skb_put(skb, len);
++
++	return skb;
++}
++
++static int fc_rx_pkt(void *p, void *data, size_t len)
++{
++	struct net_device *dev = p;
++	struct net_device_stats *stats = &dev->stats;
++	struct flexcard_priv *priv = netdev_priv(dev);
++	struct eray_cc *cc = priv->cc;
++	struct fc_packet_buf *pb = data;
++	union fc_packet_types *pt = &pb->packet;
++	struct fc_packet_buf *frf;
++	struct sk_buff *skb;
++	u32 l;
++
++	switch (le32_to_cpu(pb->header.type)) {
++	case fc_packet_type_flexray_frame:
++		l = fc_get_packet_len(pt->flexray_frame.header);
++		break;
++	case fc_packet_type_tx_ack:
++		/* The buffer id is visible to userspace. Msg. buffer in
++		 * kernel starts with 0, in oposite to userspace starting
++		 * with 1. Add 1 to buffer id make it even.
++		 */
++		pt->tx_ack_packet.bufferid =
++			cc->rev_id[pt->tx_ack_packet.bufferid] + 1;
++		l = fc_get_packet_len(pt->tx_ack_packet.header);
++		break;
++	default:
++		l = 0;
++	}
++
++	if (len > sizeof(struct fc_packet_buf) + l) {
++		len = sizeof(struct fc_packet_buf) + l;
++		WARN(1, "FlexRay payload to large: truncate.");
++	}
++
++	skb = alloc_flexcard_skb(dev, &frf, len);
++	if (!skb)
++		return -ENOMEM;
++
++	memcpy(frf, data, len);
++	netif_receive_skb(skb);
++
++	stats->rx_packets++;
++	stats->rx_bytes += len;
++
++	return 0;
++}
++
++static int flexcard_open(struct net_device *dev)
++{
++	int ret = -ENOMEM;
++
++	ret = cc_reset(dev);
++	if (ret < 0) {
++		netdev_err(dev, "CC reset failed\n");
++		goto out;
++	}
++
++	cc_stopwatch_setup(dev, 0);
++
++	ret = open_flexraydev(dev);
++	if (ret) {
++		netdev_err(dev, "open flexray device failed\n");
++		goto out;
++	}
++
++	cc_irq_setup(dev);
++
++	return 0;
++
++out:
++	return ret;
++}
++
++static int flexcard_close(struct net_device *dev)
++{
++	struct flexcard_priv *priv = netdev_priv(dev);
++	struct eray_cc *cc = priv->cc;
++
++	cc_change_state(cc, ERAY_CMD_FREEZE, 10);
++	netif_stop_queue(dev);
++
++	close_flexraydev(dev);
++
++	return 0;
++}
++
++static int flexcard_get_state(const struct net_device *dev,
++			       enum flexray_state *state)
++{
++	struct flexcard_priv *priv = netdev_priv(dev);
++	struct eray_cc *cc = priv->cc;
++	int pocs;
++
++	pocs = eray_readl(cc, ERAY_CCSV) & 0x3f;
++	switch (pocs) {
++	case 0x00:
++		*state = FLEXRAY_STATE_DEFAULT_CONFIG;
++		break;
++	case 0x01:
++		*state = FLEXRAY_STATE_READY;
++		break;
++	case 0x02:
++		*state = FLEXRAY_STATE_NORMAL_ACTIVE;
++		break;
++	case 0x03:
++		*state = FLEXRAY_STATE_NORMAL_PASSIVE;
++		break;
++	case 0x04:
++		*state = FLEXRAY_STATE_HALT;
++		break;
++	case 0x05:
++		*state = FLEXRAY_STATE_MONITOR_MODE;
++		break;
++	case 0x0f:
++		*state = FLEXRAY_STATE_CONFIG;
++		break;
++	case 0x10:
++	case 0x11:
++	case 0x12:
++	case 0x13:
++		*state = FLEXRAY_STATE_WAKEUP;
++		break;
++	case 0x20:
++	case 0x21:
++	case 0x22:
++	case 0x24:
++	case 0x25:
++	case 0x26:
++	case 0x27:
++	case 0x28:
++	case 0x29:
++	case 0x2a:
++	case 0x2b:
++		*state = FLEXRAY_STATE_STARTUP;
++		break;
++	default:
++		*state = FLEXRAY_STATE_UNSPEC;
++	}
++
++	return 0;
++}
++
++static int flexcard_set_state(struct net_device *dev,
++			      enum flexray_state state)
++{
++	struct flexcard_priv *priv = netdev_priv(dev);
++	struct eray_cc *cc = priv->cc;
++	int ret;
++
++	switch (state) {
++	case FLEXRAY_STATE_READY:
++		ret = fc_prepare_msgbuf_data(dev);
++		if (ret)
++			return ret;
++	case FLEXRAY_STATE_WAKEUP:
++	case FLEXRAY_STATE_STARTUP:
++	case FLEXRAY_STATE_NORMAL_ACTIVE:
++	case FLEXRAY_STATE_NORMAL_PASSIVE:
++	case FLEXRAY_STATE_MONITOR_MODE:
++	case FLEXRAY_STATE_COLDSTART:
++		netif_start_queue(dev);
++		break;
++	default:
++		cc->ready = 0;
++	}
++
++	return cc_change_state(cc, e_state(state), 10);
++}
++
++static int flexcard_validate(struct sk_buff *skb)
++{
++	struct fc_msg *fcm = (struct fc_msg *)skb->data;
++	struct eray_msgbuf_cfg *cfg;
++	struct flexcard_priv *priv = netdev_priv(skb->dev);
++	struct eray_cc *cc = priv->cc;
++	unsigned long flags;
++	u32 txrq;
++	int ret = 0;
++	u32 buf_id;
++	int ssync;
++
++	ssync = (fcm->buf_id & FC_FLEX_ID_SSYNC_FLAG) ? 1 : 0;
++	buf_id = fcm->buf_id & ~(FC_FLEX_ID_SSYNC_FLAG);
++
++	if (ssync) {
++		if (buf_id >= cc->ssync_num)
++			return -EFAULT;
++		cfg = &cc->ssync_cfg[buf_id];
++	} else {
++		if (buf_id >= cc->act_cfg)
++			return -EFAULT;
++		cfg = &cc->cfg[buf_id];
++	}
++
++	if (!(cfg->flags & ERAY_MSGBUF_USED))
++		return -EFAULT;
++
++	if (cfg->type != eray_msgbuf_type_tx)
++		return -EINVAL;
++
++	if (cfg->channel == eray_msgbuf_ch_none)
++		return -EINVAL;
++
++	if (skb->len > (2 * cfg->max + 4))
++		return -EINVAL;
++
++	/* queue frame, if message buffer is in continuos mode */
++	if (cfg->flags & ERAY_MSGBUF_TXCONT)
++		return 0;
++
++	if ((cfg->frame_id <= cc->static_id) &&
++	    ((skb->len - 4) / 2 != cc->static_len))
++		return -EINVAL;
++
++	if (!cc->ready)
++		return -EBUSY;
++
++	spin_lock_irqsave(&cfg->lock, flags);
++	if (!ssync) {
++		txrq = eray_readl(cc, ERAY_TXRQ1 + cfg->id/32);
++
++		if (txrq & (1 << (cfg->id%32)))
++			ret = -ENOBUFS;
++	}
++
++	if (cfg->queued)
++		ret = -ENOBUFS;
++
++	if (!ret)
++		cfg->queued = 1;
++
++	spin_unlock_irqrestore(&cfg->lock, flags);
++
++	return ret;
++}
++
++static int flexcard_start_xmit(struct sk_buff *skb, struct net_device *dev)
++{
++	struct net_device_stats *stats = &dev->stats;
++	struct flexcard_priv *priv = netdev_priv(dev);
++	struct fc_msg *fcm = (struct fc_msg *)skb->data;
++
++	if (fc_write_data(priv, fcm->buf_id, fcm->data,
++			  skb->len - sizeof(fcm->buf_id))) {
++		net_info_ratelimited("%s() fc_write_data() failed.\n",
++				dev->name);
++		return NETDEV_TX_BUSY;
++	}
++
++	stats->tx_bytes += skb->len - sizeof(fcm->buf_id);
++
++	kfree_skb(skb);
++
++	return NETDEV_TX_OK;
++}
++
++static const struct net_device_ops flexcard_netdev_ops = {
++	.ndo_open       = flexcard_open,
++	.ndo_stop       = flexcard_close,
++	.ndo_start_xmit = flexcard_start_xmit,
++};
++
++static ssize_t fw_ver_show(struct device *dev, struct device_attribute *attr,
++			   char *buf)
++{
++	struct platform_device *pdev = to_platform_device(dev);
++	struct net_device *ndev = platform_get_drvdata(pdev);
++	struct flexcard_priv *priv = netdev_priv(ndev);
++	struct eray_cc *cc = priv->cc;
++	u32 fw_ver;
++
++	fw_ver = eray_readl(cc, ERAY_CREL);
++
++	return sprintf(buf, "%x.%02x %02x.%02x.200%x\n",
++		       fw_ver >> 28 & 0xf, fw_ver >> 20 & 0xff,
++		       fw_ver & 0xff, fw_ver >> 8 & 0xff, fw_ver >> 16 & 0xf);
++}
++
++static ssize_t succ1_show(struct device *dev, struct device_attribute *attr,
++			  char *buf)
++{
++	struct platform_device *pdev = to_platform_device(dev);
++	struct net_device *ndev = platform_get_drvdata(pdev);
++	struct flexcard_priv *priv = netdev_priv(ndev);
++	struct eray_cc *cc = priv->cc;
++	u32 reg;
++
++	reg = eray_read_succ1(cc, 20);
++
++	return sprintf(buf, "0x%08x\n", reg);
++}
++
++#define FC_SHOW_REG(x, y)						\
++	static ssize_t x##_show(struct device *dev,			\
++				struct device_attribute *attr,		\
++				char *buf)				\
++	{								\
++		struct platform_device *pdev = to_platform_device(dev);	\
++		struct net_device *ndev = platform_get_drvdata(pdev);	\
++		struct flexcard_priv *priv = netdev_priv(ndev);		\
++		struct eray_cc *cc = priv->cc;				\
++		u32 reg;						\
++		reg = eray_readl(cc, y);				\
++									\
++		return sprintf(buf, "0x%08x\n", reg);			\
++	}
++
++#define FC_SHOW_REGS(x, y) \
++	static ssize_t x##_show(struct device *dev,			\
++				struct device_attribute *attr,		\
++				char *buf)				\
++	{								\
++		struct platform_device *pdev = to_platform_device(dev);	\
++		struct net_device *ndev = platform_get_drvdata(pdev);	\
++		struct flexcard_priv *priv = netdev_priv(ndev);		\
++		struct eray_cc *cc = priv->cc;				\
++		u32 reg[4];						\
++									\
++		reg[0] = eray_readl(cc, y);				\
++		reg[1] = eray_readl(cc, y + 4);				\
++		reg[2] = eray_readl(cc, y + 8);				\
++		reg[3] = eray_readl(cc, y + 12);			\
++									\
++		return sprintf(buf, "0x%08x%08x%08x%08x\n",		\
++			       reg[0], reg[1], reg[2], reg[3]);		\
++	}
++
++FC_SHOW_REG(ccsv, ERAY_CCSV);
++FC_SHOW_REG(eir, ERAY_EIR);
++FC_SHOW_REG(sir, ERAY_SIR);
++FC_SHOW_REGS(txrq, ERAY_TXRQ1);
++FC_SHOW_REGS(ndat, ERAY_NDAT1);
++FC_SHOW_REGS(mbsc, ERAY_MBSC1);
++
++static struct device_attribute flex_dev_attrs[] = {
++	__ATTR_RO(fw_ver),
++	__ATTR_RO(succ1),
++	__ATTR_RO(ccsv),
++	__ATTR_RO(eir),
++	__ATTR_RO(sir),
++	__ATTR_RO(txrq),
++	__ATTR_RO(ndat),
++	__ATTR_RO(mbsc),
++	__ATTR_NULL,
++};
++
++static int device_add_attributes(struct device *dev,
++				 struct device_attribute *attrs)
++{
++	int error = 0;
++	int i;
++
++	for (i = 0; attr_name(attrs[i]); i++) {
++		error = device_create_file(dev, &attrs[i]);
++		if (error)
++			break;
++	}
++	if (error)
++		while (--i >= 0)
++			device_remove_file(dev, &attrs[i]);
++	return error;
++}
++
++static void device_remove_attributes(struct device *dev,
++				     struct device_attribute *attrs)
++{
++	int i;
++
++	for (i = 0; attr_name(attrs[i]); i++)
++		device_remove_file(dev, &attrs[i]);
++}
++
++static int flexcard_probe(struct platform_device *pdev)
++{
++	struct eray_msgbuf_cfg *cfg;
++	struct flexcard_priv *priv;
++	struct eray_cc *cc;
++	struct net_device *dev;
++	struct resource *res, *res_conf;
++	int i, irq, ret = -ENXIO;
++	u32 fw_ver;
++
++	irq = platform_get_irq(pdev, 0);
++	if (irq < 0) {
++		dev_err(&pdev->dev, "failed to get IRQ number\n");
++		goto out;
++	}
++
++	res_conf = platform_get_resource(pdev, IORESOURCE_MEM, 0);
++	if (!res_conf) {
++		dev_err(&pdev->dev, "failed to get conf I/O memory\n");
++		goto out;
++	}
++	res = platform_get_resource(pdev, IORESOURCE_MEM, 1);
++	if (!res) {
++		dev_err(&pdev->dev, "failed to get mmio I/O memory\n");
++		goto out;
++	}
++
++	cc = kzalloc(sizeof(*cc), GFP_KERNEL);
++	if (!cc) {
++		dev_err(&pdev->dev, "failed to alloc memory\n");
++		goto out_release;
++	}
++
++	spin_lock_init(&cc->lock);
++	for (i = 0; i < ERAY_MAX_BUFS; i++)
++		spin_lock_init(&cc->cfg[i].lock);
++
++	cc->fifo_threshold = ERAY_FIFO_THRESHOLD;
++
++	dev = alloc_flexraydev(sizeof(struct flexcard_priv), 2);
++	if (!dev) {
++		dev_err(&pdev->dev, "failed to alloc netdevice\n");
++		goto out_free;
++	}
++
++	dev->netdev_ops = &flexcard_netdev_ops;
++	dev->irq = irq;
++	dev->flags |= IFF_ECHO;
++
++	priv = netdev_priv(dev);
++	priv->cc = cc;
++	priv->dev = dev;
++	priv->id = pdev->id;
++	priv->flexray.do_get_state = flexcard_get_state;
++	priv->flexray.do_set_state = flexcard_set_state;
++	priv->flexray.do_validate = flexcard_validate;
++
++	cfg = &cc->cfg[0];
++	cfg->flags |= ERAY_MSGBUF_USED;
++	cfg->type = eray_msgbuf_type_fifo;
++	cfg->max = 127;
++
++	dev_set_drvdata(&pdev->dev, dev);
++	SET_NETDEV_DEV(dev, &pdev->dev);
++
++	priv->conf = ioremap_nocache(res_conf->start, resource_size(res_conf));
++	if (!priv->conf) {
++		dev_err(&pdev->dev, "failed to remap conf I/O memory\n");
++		goto out_free_dev;
++	}
++
++	cc->base = ioremap_nocache(res->start, resource_size(res));
++	if (!cc->base) {
++		dev_err(&pdev->dev, "failed to remap mmio I/O memory\n");
++		goto out_unmap_conf;
++	}
++
++	ret = register_flexraydev(dev);
++	if (ret < 0) {
++		dev_err(&pdev->dev, "failed to register netdevice\n");
++		goto out_unmap_mmio;
++	}
++
++	ret = device_add_attributes(&pdev->dev, flex_dev_attrs);
++	if (ret)
++		goto out_unregister;
++
++	ret = fc_register_rx_pkt(priv->id, dev, fc_rx_pkt);
++	if (ret) {
++		netdev_err(dev, "register RX DMA callback failed: %d\n", ret);
++		goto out_add_attr;
++	}
++
++	fw_ver = eray_readl(cc, ERAY_CREL);
++	dev_info(&pdev->dev, "E-Ray FW ver.%x.%02x %02x.%02x.200%x\n",
++		 fw_ver >> 28 & 0xf, fw_ver >> 20 & 0xff,
++		 fw_ver & 0xff, fw_ver >> 8 & 0xff, fw_ver >> 16 & 0xf);
++
++	return 0;
++out_add_attr:
++	device_remove_attributes(&pdev->dev, flex_dev_attrs);
++out_unregister:
++	unregister_flexraydev(dev);
++out_unmap_mmio:
++	iounmap(cc->base);
++out_unmap_conf:
++	iounmap(priv->conf);
++out_free_dev:
++	free_flexraydev(dev);
++out_free:
++	kfree(cc);
++out_release:
++	release_mem_region(res->start, resource_size(res));
++out:
++	return ret;
++}
++
++static int flexcard_remove(struct platform_device *pdev)
++{
++	struct net_device *dev = platform_get_drvdata(pdev);
++	struct flexcard_priv *priv = netdev_priv(dev);
++	struct eray_cc *cc = priv->cc;
++
++	fc_unregister_rx_pkt(priv->id);
++	device_remove_attributes(&pdev->dev, flex_dev_attrs);
++
++	unregister_flexraydev(dev);
++	free_flexraydev(dev);
++	iounmap(cc->base);
++	iounmap(priv->conf);
++	kfree(cc);
++
++	platform_set_drvdata(pdev, NULL);
++
++	return 0;
++}
++
++static struct platform_driver flexcard_driver = {
++	.probe = flexcard_probe,
++	.remove = flexcard_remove,
++	.driver = {
++		.name = "flexcard-eray",
++		.owner = THIS_MODULE,
++	},
++};
++MODULE_ALIAS("platform:flexcard-eray");
++
++static int __init flexcard_init(void)
++{
++	int ret;
++
++	ret = genl_register_family_with_ops(&fc_msgbuf_genl_family,
++					    fc_msgbuf_genl_ops,
++					    ARRAY_SIZE(fc_msgbuf_genl_ops));
++	if (ret) {
++		pr_err("flexcard: register genl failed %d\n", ret);
++		goto out;
++	}
++
++	ret = platform_driver_register(&flexcard_driver);
++out:
++	return ret;
++}
++module_init(flexcard_init);
++
++static void __exit flexcard_exit(void)
++{
++	genl_unregister_family(&fc_msgbuf_genl_family);
++	platform_driver_unregister(&flexcard_driver);
++}
++module_exit(flexcard_exit);
++
++MODULE_AUTHOR("Benedikt Spranger <b.spranger@linutronix.de>");
++MODULE_LICENSE("GPL v2");
++MODULE_DESCRIPTION("Eberspächer Flexcard FlexRay driver");
+diff --git a/drivers/net/flexray/vflexray.c b/drivers/net/flexray/vflexray.c
+new file mode 100644
+index 000000000000..b609e1fee231
+--- /dev/null
++++ b/drivers/net/flexray/vflexray.c
+@@ -0,0 +1,134 @@
++/* Copyright 2012 Eberspächer Electronics GmbH & Co. KG. All Rights Reserved */
++
++#include <linux/module.h>
++#include <linux/init.h>
++#include <linux/netdevice.h>
++#include <linux/if_arp.h>
++#include <linux/if_ether.h>
++#include <linux/flexray.h>
++#include <linux/flexray/dev.h>
++#include <linux/slab.h>
++#include <net/rtnetlink.h>
++
++/*
++ * FLEXRAY test feature:
++ * Enable the echo on driver level for testing the FLEXRAY core echo modes.
++ * See Documentation/networking/flexray.txt for details.
++ */
++
++static int echo; /* echo testing. Default: 0 (Off) */
++//module_param(echo, bool, S_IRUGO);
++//MODULE_PARM_DESC(echo, "Echo sent frames (for testing). Default: 0 (Off)");
++
++static void vflexray_rx(struct sk_buff *skb, struct net_device *dev)
++{
++	struct flexray_frame *frf = (struct flexray_frame *)skb->data;
++	struct net_device_stats *stats = &dev->stats;
++
++	stats->rx_packets++;
++	stats->rx_bytes += frf->frhead.plr;
++
++	skb->protocol  = htons(ETH_P_FLEXRAY);
++	skb->pkt_type  = PACKET_BROADCAST;
++	skb->dev       = dev;
++	skb->ip_summed = CHECKSUM_UNNECESSARY;
++
++	netif_rx(skb);
++}
++
++static netdev_tx_t vflexray_tx(struct sk_buff *skb, struct net_device *dev)
++{
++	struct flexray_frame *frf = (struct flexray_frame *)skb->data;
++	struct net_device_stats *stats = &dev->stats;
++	int loop;
++
++	if (flexray_dropped_invalid_skb(dev, skb))
++		return NETDEV_TX_OK;
++
++	stats->tx_packets++;
++	stats->tx_bytes += frf->frhead.plr;
++	/* set flag whether this packet has to be looped back */
++	loop = skb->pkt_type == PACKET_LOOPBACK;
++
++	if (!echo) {
++		/* no echo handling available inside this driver */
++
++		if (loop) {
++			/*
++			 * only count the packets here, because the
++			 * FLEXRAY core already did the echo for us
++			 */
++			stats->rx_packets++;
++			stats->rx_bytes += frf->frhead.plr;
++		}
++		kfree_skb(skb);
++		return NETDEV_TX_OK;
++	}
++
++   /* perform standard echo handling for FLEXRAY network interfaces */
++
++   if (loop) {
++		struct sock *srcsk = skb->sk;
++
++		skb = skb_share_check(skb, GFP_ATOMIC);
++		if (!skb)
++			return NETDEV_TX_OK;
++
++		/* receive with packet counting */
++		skb->sk = srcsk;
++		vflexray_rx(skb, dev);
++	} else {
++		kfree_skb(skb);
++	}
++
++	return NETDEV_TX_OK;
++}
++
++static const struct net_device_ops vflexray_netdev_ops = {
++	.ndo_start_xmit = vflexray_tx,
++};
++
++static void vflexray_setup(struct net_device *dev)
++{
++	dev->type		= ARPHRD_FLEXRAY;
++	dev->mtu		= sizeof(struct flexray_frame);
++	dev->hard_header_len	= 0;
++	dev->addr_len		= 0;
++	dev->tx_queue_len	= 0;
++	dev->flags		= IFF_NOARP;
++
++   /* set flags according to driver capabilities */
++   if (echo) {
++      dev->flags |= IFF_ECHO;
++   }
++   dev->netdev_ops		= &vflexray_netdev_ops;
++	dev->needs_free_netdev		= true;
++   dev->priv_destructor		= free_netdev;
++}
++
++static struct rtnl_link_ops vflexray_link_ops __read_mostly = {
++	.kind   = "vflexray",
++	.setup  = vflexray_setup,
++};
++
++static __init int vflexray_init_module(void)
++{
++	pr_info("vflexray: Virtual FlexRay interface driver\n");
++
++   if (echo)
++      printk(KERN_INFO "vflexray: enabled echo on driver level.\n");
++
++   return rtnl_link_register(&vflexray_link_ops);
++}
++
++static __exit void vflexray_cleanup_module(void)
++{
++	rtnl_link_unregister(&vflexray_link_ops);
++}
++
++module_init(vflexray_init_module);
++module_exit(vflexray_cleanup_module);
++
++MODULE_DESCRIPTION("virtual FlexRay interface");
++MODULE_LICENSE("GPL v2");
++MODULE_AUTHOR("Benedikt Spranger <b.spranger@linutronix.de>");
+diff --git a/include/linux/flexray.h b/include/linux/flexray.h
+new file mode 100644
+index 000000000000..a0df757a01dc
+--- /dev/null
++++ b/include/linux/flexray.h
+@@ -0,0 +1,77 @@
++/*
++ * linux/flexray.h
++ *
++ * Definitions for FlexRay network layer (socket addr / FlexRay frame)
++ *
++ */
++
++#ifndef FLEXRAY_H
++#define FLEXRAY_H
++
++#include <linux/types.h>
++#include <linux/socket.h>
++
++/* FlexRay kernel definitions */
++
++/* special address description flags for the FLEXRAY_ID */
++#define FLEXRAY_PPI_FLAG	0x40 /* Payload preamble indicator */
++#define FLEXRAY_NFI_FLAG	0x20 /* Null frame indikator */
++#define FLEXRAY_SYN_FLAG	0x10 /* Sync frame indikator */
++#define FLEXRAY_SFI_FLAG	0x08 /* Startup frame indikator */
++
++/* define Flexray Type for Filtering of Frame ID:s */
++typedef __u64 flexray_frame_filter_t;
++
++/* Flexray header with additional information (flags).
++   Please note that the header is not an identical
++   representation of the original 5-byte header! */
++typedef struct {
++	__u32	flags;  /* Frame and error flags */
++	__u16	fid;	/* Frame id/slot id */
++	__u8	plr;	/* 0-254 bytes in data[] area */
++	__u16	crc;	/* original FlexRay header CRC */
++	__u8	rcc;	/* FlexRay received cycle count */
++} flexray_header_t;
++
++/**
++ * struct flexray_frame - basic FlexRay frame structure
++ * @head:      Header
++ * @data:      the FlexRay frame payload.
++ * @crc:       the FlexRay frame CRC
++ */
++
++/* FlexRay frame with associated metadata */
++struct flexray_frame {
++	__u32	seq;
++	__u64	timestamp;  /* timeval or timespec */
++	flexray_header_t frhead; /* slightly modified FR header */
++	__u8	data[254] __attribute__((aligned(8)));  //
++	__u8	crc[3];     /* Use TBI */
++};
++
++typedef struct flexray_frame flexray_frame_t;
++
++/* particular protocols of the protocol family PF_FLEXRAY */
++#define FLEXRAY_RAW      1 /* RAW sockets */
++#define FLEXRAY_NPROTO   2
++#if 0
++#define FLEXRAY_BCM      2 /* Broadcast Manager */
++#define FLEXRAY_TP16  3 /* VAG Transport Protocol v1.6 */
++#define FLEXRAY_TP20  4 /* VAG Transport Protocol v2.0 */
++#define FLEXRAY_MCNET 5 /* Bosch MCNet */
++#define FLEXRAY_ISOTP 6 /* ISO 15765-2 Transport Protocol */
++#define FLEXRAY_NPROTO   7
++#endif
++#define SOL_FLEXRAY_BASE 110
++
++struct sockaddr_flexray {
++	sa_family_t	flexray_family;
++	int		flexray_ifindex;
++};
++
++struct flexray_filter {
++	flexray_frame_filter_t flexray_id;
++	flexray_frame_filter_t flexray_mask;
++};
++
++#endif /* FLEXRAY_H */
+diff --git a/include/linux/flexray/Kbuild b/include/linux/flexray/Kbuild
+new file mode 100644
+index 000000000000..0abf22c904c7
+--- /dev/null
++++ b/include/linux/flexray/Kbuild
+@@ -0,0 +1,4 @@
++header-y += raw.h
++header-y += core.h
++header-y += netlink.h
++header-y += flexray.h
+diff --git a/include/linux/flexray/core.h b/include/linux/flexray/core.h
+new file mode 100644
+index 000000000000..46753f957573
+--- /dev/null
++++ b/include/linux/flexray/core.h
+@@ -0,0 +1,53 @@
++/*
++ * Copyright 2012 Eberspächer Electronics GmbH & Co. KG. All Rights Reserved.
++ */
++
++#ifndef FLEXRAY_CORE_H
++#define FLEXRAY_CORE_H
++
++#include <linux/flexray.h>
++#include <linux/skbuff.h>
++#include <linux/netdevice.h>
++
++#define FLEXRAY_VERSION "20191023"
++
++/* increment this number each time you change some user-space interface */
++#define FLEXRAY_ABI_VERSION "0"
++
++#define FLEXRAY_VERSION_STRING "rev " FLEXRAY_VERSION " abi " FLEXRAY_ABI_VERSION
++
++#define DNAME(dev) ((dev) ? (dev)->name : "any")
++
++/**
++ * struct flexray_proto - FlexRay protocol structure
++ * @type:       type argument in socket() syscall, e.g. SOCK_DGRAM.
++ * @protocol:   protocol number in socket() syscall.
++ * @ops:        pointer to struct proto_ops for sock->ops.
++ * @prot:       pointer to struct proto structure.
++ */
++struct flexray_proto {
++	int type;
++	int protocol;
++	const struct proto_ops *ops;
++	struct proto *prot;
++};
++
++/* function prototypes for the FlexRay networklayer core (af_flexray.c) */
++
++extern int  flexray_proto_register(const struct flexray_proto *frp);
++extern void flexray_proto_unregister(const struct flexray_proto *frp);
++
++extern int  flexray_rx_register(struct net *net, struct net_device *dev, flexray_frame_filter_t frame_id,
++				flexray_frame_filter_t mask,
++				void (*func)(struct sk_buff *, void *),
++				void *data, char *ident,  struct sock *sk);
++
++extern void flexray_rx_unregister(struct net *net, struct net_device *dev, flexray_frame_filter_t frame_id,
++				flexray_frame_filter_t mask,
++				void (*func)(struct sk_buff *, void *),
++				void *data);
++
++extern int flexray_send(struct sk_buff *skb, int loop);
++extern int flexray_ioctl(struct socket *sock, unsigned int cmd, unsigned long arg);
++
++#endif /* FLEXRAY_CORE_H */
+diff --git a/include/linux/flexray/dev.h b/include/linux/flexray/dev.h
+new file mode 100644
+index 000000000000..999ebabaf75a
+--- /dev/null
++++ b/include/linux/flexray/dev.h
+@@ -0,0 +1,64 @@
++/*
++ * Copyright 2012 Eberspächer Electronics GmbH & Co. KG. All Rights Reserved.
++ */
++
++#ifndef FLEXRAY_DEV_H
++#define FLEXRAY_DEV_H
++
++#include <linux/flexray.h>
++#include <linux/flexray/netlink.h>
++
++/* FlexRay common private data */
++
++struct flexray_priv {
++	struct flexray_device_stats flexray_stats;
++
++	enum flexray_state state;
++
++	int (*do_get_state)(const struct net_device *dev,
++			    enum flexray_state *state);
++	int (*do_set_state)(struct net_device *dev,
++			    enum flexray_state state);
++	int (*do_validate)(struct sk_buff *skb);
++
++	struct flexray_cluster_param cluster;
++	struct flexray_node_param node;
++	struct flexray_symbol_param symbol;
++	__u32 sw_filter[FLEXRAY_MAX_SW_FILTER];
++	u8 version;
++};
++
++/* Drop a given socketbuffer if it does not contain a valid FlexRay frame. */
++static inline int flexray_dropped_invalid_skb(struct net_device *dev,
++					      struct sk_buff *skb)
++{
++	const struct flexray_frame *frf = (struct flexray_frame *)skb->data;
++
++	if (unlikely(skb->len != sizeof(*frf))) {
++		kfree_skb(skb);
++		dev->stats.tx_dropped++;
++		return 1;
++	}
++
++	return 0;
++}
++
++struct net_device *alloc_flexraydev(int sizeof_priv, u8 version);
++void free_flexraydev(struct net_device *dev);
++
++int open_flexraydev(struct net_device *dev);
++void close_flexraydev(struct net_device *dev);
++
++int register_flexraydev(struct net_device *dev);
++void unregister_flexraydev(struct net_device *dev);
++
++int flexray_restart_now(struct net_device *dev);
++
++struct sk_buff *alloc_flexray_skb(struct net_device *dev,
++				  struct flexray_frame **cf);
++
++void print_cluster_config(struct flexray_cluster_param *cp, int is_v3);
++void print_node_config(struct flexray_node_param *np, int is_v3);
++void print_symbol_config(struct flexray_symbol_param *sp);
++
++#endif /* FLEXRAY_DEV_H */
+diff --git a/include/linux/flexray/netlink.h b/include/linux/flexray/netlink.h
+new file mode 100644
+index 000000000000..b1e0d852960f
+--- /dev/null
++++ b/include/linux/flexray/netlink.h
+@@ -0,0 +1,213 @@
++/*
++ * Copyright 2012 Eberspächer Electronics GmbH & Co. KG. All Rights Reserved.
++ */
++
++#ifndef FLEXRAY_NETLINK_H
++#define FLEXRAY_NETLINK_H
++
++#include <linux/types.h>
++
++#define FLEXRAY_MAX_SW_FILTER	2048
++
++/*
++ * FlexRay operational and error states
++ */
++enum flexray_state {
++	FLEXRAY_STATE_UNSPEC,
++	FLEXRAY_STATE_DEFAULT_CONFIG,
++	FLEXRAY_STATE_CONFIG,
++	FLEXRAY_STATE_READY,
++	FLEXRAY_STATE_WAKEUP,
++	FLEXRAY_STATE_STARTUP,
++	FLEXRAY_STATE_NORMAL_ACTIVE,
++	FLEXRAY_STATE_NORMAL_PASSIVE,
++	FLEXRAY_STATE_HALT,
++	FLEXRAY_STATE_MONITOR_MODE,
++	FLEXRAY_STATE_COLDSTART,
++	FLEXRAY_STATE_MAX
++};
++
++/*
++ * FLEXRAY controller mode
++ */
++struct flexray_ctrlmode {
++   __u32 mask;
++   __u32 flags;
++};
++
++#define FLEXRAY_CTRLMODE_LOOPBACK    0x01  /* Loopback mode */
++
++/*
++ * FlexRay device statistics
++ */
++struct flexray_device_stats {
++	__u32 txack;
++	__u32 manage;
++	__u32 info;
++	__u32 status;
++	__u32 notify;
++};
++
++/*
++ * FlexRay netlink interface
++ */
++enum {
++	IFLA_FLEXRAY_UNSPEC,
++	IFLA_FLEXRAY_STATE,
++	IFLA_FLEXRAY_VERSION,
++	IFLA_FLEXRAY_CLUSTER,
++	IFLA_FLEXRAY_NODE,
++	IFLA_FLEXRAY_SYMBOL,
++	IFLA_FLEXRAY_SW_FILTER,
++	__IFLA_FLEXRAY_MAX
++};
++
++#define IFLA_FLEXRAY_MAX    (__IFLA_FLEXRAY_MAX - 1)
++
++/*
++ * FlexRay filter netlink interface
++ */
++enum {
++	IFLA_FLEXRAY_FILTER_UNSPEC,
++	IFLA_FLEXRAY_FILTER_ENTRY,
++	__IFLA_FLEXRAY_FILTER_MAX
++};
++
++#define IFLA_FLEXRAY_FILTER_MAX    (__IFLA_FLEXRAY_FILTER_MAX - 1)
++
++struct cluster_v2 {
++	__u16 gAssumedPrecision;
++	__u8 gdMaxInitializationError;
++	__u8 gdMaxMicrotick;
++	__u8 gdMaxPropagationDelay;
++	__u8 gdMinPropagationDelay;
++	__u8 gdWakeupSymbolRxIdle;
++	__u8 gdWakeupSymbolRxLow;
++	__u16 gdWakeupSymbolRxWindow;
++	__u8 gdWakeupSymbolTxIdle;
++	__u8 gdWakeupSymbolTxLow;
++	__u32 gOffsetCorrectionMax;
++	__u16 gOffsetCorrectionStart;
++	__u8 gSyncNodeMax;
++};
++
++struct cluster_v3 {
++	__u16 gClockDeviationMax;
++	__u8 gCycleCountMax;
++	__u8 gdIgnoreAfterTx;
++	__u8 gdSymbolWindowActionPointOffset;
++	__u8 gdWakeupRxIdle;
++	__u8 gdWakeupRxLow;
++	__u16 gdWakeupRxWindow;
++	__u8 gdWakeupTxActive;
++	__u8 gdWakeupTxIdle;
++	__u8 gExternOffsetCorrection;
++	__u8 gExternRateCorrection;
++	__u8 gSyncFrameIDCountMax;
++};
++
++struct flexray_cluster_param {
++	/* Protocol relevant */
++	__u8 gColdstartAttempts;
++	__u8 gdActionPointOffset;
++	__u8 gdCASRxLowMax;
++	__u8 gdDynamicSlotIdlePhase;
++	__u8 gdMinislot;
++	__u8 gdMinislotActionPointOffset;
++	__u16 gdStaticSlot;
++	__u8 gdSymbolWindow;
++	__u8 gdTSSTransmitter;
++	__u8 gListenNoise;
++	__u16 gMacroPerCycle;
++	__u8 gMaxWithoutClockCorrectionFatal;
++	__u8 gMaxWithoutClockCorrectionPassive;
++	__u16 gNumberOfMinislots;
++	__u16 gNumberOfStaticSlots;
++	__u8 gPayloadLengthStatic;
++
++	/* Protocol related */
++	__u8 gChannels;
++	__u8 gClusterDriftDamping;
++	__u8 gdBit;
++	__u16 gdCycle;
++	__u8 gdMacrotick;
++	__u16 gdNIT;
++	__u8 gdSampleClockPeriod;
++	__u8 gNetworkManagementVectorLength;
++	union {
++		struct cluster_v2 v2;
++		struct cluster_v3 v3;
++	};
++};
++
++struct node_v2 {
++	__u16 pdMaxDrift;
++	__u8 pMicroPerMacroNom;
++	__u8 pSingleSlotEnabled;
++};
++
++struct node_v3 {
++	__u8 pExternalSync;
++	__u8 pFallBackInternal;
++	__u8 pKeySlotOnlyEnabled;
++	__u8 pNMVectorEarlyUpdate;
++	__u8 pOffsetCorrectionStart;
++	__u8 pSecondKeySlotID;
++	__u8 pTwoKeySlotMode;
++};
++
++struct flexray_node_param {
++	/* Protocol relevant */
++	__u8 pAllowHaltDueToClock;
++	__u8 pAllowPassiveToActive;
++	__u8 pChannels;
++	__u8 pClusterDriftDamping;
++	__u16 pdAcceptedStartupRange;
++	__u8 pDecodingCorrection;
++	__u8 pDelayCompensationA;
++	__u8 pDelayCompensationB;
++	__u32 pdListenTimeout;
++	__s8 vExternOffsetControl;
++	__s8 vExternRateControl;
++	__u8 pExternOffsetCorrection;
++	__u8 pExternRateCorrection;
++	__u16 pKeySlotID;
++	__u8 pKeySlotUsedForStartup;
++	__u8 pKeySlotUsedForSync;
++	__u16 pLatestTx;
++	__u8 pMacroInitialOffsetA;
++	__u8 pMacroInitialOffsetB;
++	__u16 pMicroInitialOffsetA;
++	__u16 pMicroInitialOffsetB;
++	__u32 pMicroPerCycle;
++	__u16 pOffsetCorrectionOut;
++	__u16 pRateCorrectionOut;
++	__u8 pWakeupChannel;
++	__u8 pWakeupPattern;
++
++	/* Protocol related */
++	__u8 pdMicrotick;
++	__u8 pPayloadLengthDynMax;
++	__u8 pSamplesPerMicrotick;
++
++	union {
++		struct node_v2 v2;
++		struct node_v3 v3;
++	};
++};
++
++struct flexray_symbol_param {
++	/* Protocol related */
++	__u8 pChannelsMTS;
++};
++
++/*
++ * FlexRay software ID filter
++ */
++
++struct flexray_sw_filter {
++	__u32 pos;
++	__u32 id;
++};
++
++#endif /* FLEXRAY_NETLINK_H */
+diff --git a/include/linux/flexray/raw.h b/include/linux/flexray/raw.h
+new file mode 100644
+index 000000000000..22dd5ab51b68
+--- /dev/null
++++ b/include/linux/flexray/raw.h
+@@ -0,0 +1,20 @@
++/*
++ * Copyright 2012 Eberspächer Electronics GmbH & Co. KG. All Rights Reserved.
++ */
++
++#ifndef FLEXRAY_RAW_H
++#define FLEXRAY_RAW_H
++
++#include <linux/flexray.h>
++
++#define SOL_FLEXRAY_RAW (SOL_FLEXRAY_BASE + FLEXRAY_RAW)
++
++/* for socket options affecting the socket (not the global system) */
++
++enum {
++	FLEXRAY_RAW_FILTER = 1,     /* set 0 .. n can_filter(s) */
++	FLEXRAY_RAW_LOOPBACK,       /* local loopback (default:on)       */
++	FLEXRAY_RAW_RECV_OWN_MSGS   /* receive my own msgs (default:off) */
++};
++
++#endif
+diff --git a/include/linux/socket.h b/include/linux/socket.h
+index de3701a2a212..d8aa7fb7dee3 100644
+--- a/include/linux/socket.h
++++ b/include/linux/socket.h
+@@ -232,11 +232,12 @@ struct ucred {
+ 				 * reuses AF_INET address family
+ 				 */
+ #define AF_XDP		44	/* XDP sockets			*/
+-#define AF_MCTP		45	/* Management component
++#define AF_MCTP		46	/* Management component
+ 				 * transport protocol
+ 				 */
++#define AF_FLEXRAY	45	/*Flexray			*/
+ 
+-#define AF_MAX		46	/* For now.. */
++#define AF_MAX		47	/* For now.. */
+ 
+ /* Protocol families, same as address families. */
+ #define PF_UNSPEC	AF_UNSPEC
+@@ -287,6 +288,7 @@ struct ucred {
+ #define PF_SMC		AF_SMC
+ #define PF_XDP		AF_XDP
+ #define PF_MCTP		AF_MCTP
++#define PF_FLEXRAY	AF_FLEXRAY
+ #define PF_MAX		AF_MAX
+ 
+ /* Maximum queue length specifiable by listen.  */
+diff --git a/include/net/net_namespace.h b/include/net/net_namespace.h
+index 8c3587d5c308..75627442099c 100644
+--- a/include/net/net_namespace.h
++++ b/include/net/net_namespace.h
+@@ -37,6 +37,7 @@
+ #include <net/netns/smc.h>
+ #include <net/netns/bpf.h>
+ #include <net/netns/mctp.h>
++#include <net/netns/flexray.h>
+ #include <net/net_trackers.h>
+ #include <linux/ns_common.h>
+ #include <linux/idr.h>
+@@ -181,6 +182,9 @@ struct net {
+ #endif
+ #if IS_ENABLED(CONFIG_CRYPTO_USER)
+ 	struct sock		*crypto_nlsk;
++#endif
++#if IS_ENABLED(CONFIG_FLEXRAY)
++	struct netns_flexray	flexray;
+ #endif
+ 	struct sock		*diag_nlsk;
+ #if IS_ENABLED(CONFIG_SMC)
+diff --git a/include/net/netns/flexray.h b/include/net/netns/flexray.h
+new file mode 100644
+index 000000000000..650c8fb4c703
+--- /dev/null
++++ b/include/net/netns/flexray.h
+@@ -0,0 +1,39 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * flexray in net namespaces
++ */
++
++#ifndef __NETNS_FLEXRAY_H__
++#define __NETNS_FLEXRAY_H__
++
++#include <linux/spinlock.h>
++
++struct dev_rcv_lists;
++struct s_stats;
++struct s_pstats;
++
++struct netns_flexray {
++
++	struct proc_dir_entry *proc_dir;
++	struct proc_dir_entry *pde_rcvlist_all;
++	struct proc_dir_entry *pde_reset_stats;
++	struct proc_dir_entry *pde_stats;
++/*#if IS_ENABLED(CONFIG_PROC_FS)
++	struct proc_dir_entry *pde_version;
++	struct proc_dir_entry *pde_rcvlist_fil;
++	struct proc_dir_entry *pde_rcvlist_inv;
++	struct proc_dir_entry *pde_rcvlist_sff;
++	struct proc_dir_entry *pde_rcvlist_eff;
++	struct proc_dir_entry *pde_rcvlist_err;
++	struct proc_dir_entry *bcmproc_dir;
++#endif*/
++
++	/* receive filters subscribed for 'all' flexray devices */
++	struct dev_rcv_lists *flexray_rx_alldev_list;
++	spinlock_t flexray_rcvlists_lock;
++
++	struct s_stats *flexray_stats;	/* packet statistics */
++	struct s_pstats *flexray_pstats;	/* receive list statistics */
++};
++
++#endif /* __NETNS_FLEXRAY_H__ */
+diff --git a/include/uapi/linux/if_arp.h b/include/uapi/linux/if_arp.h
+index 4783af9fe520..4becc6bb8bab 100644
+--- a/include/uapi/linux/if_arp.h
++++ b/include/uapi/linux/if_arp.h
+@@ -54,7 +54,8 @@
+ #define ARPHRD_X25	271		/* CCITT X.25			*/
+ #define ARPHRD_HWX25	272		/* Boards with X.25 in firmware	*/
+ #define ARPHRD_CAN	280		/* Controller Area Network      */
+-#define ARPHRD_MCTP	290
++#define ARPHRD_MCTP	300
++#define ARPHRD_FLEXRAY	290		/* Flexray			*/
+ #define ARPHRD_PPP	512
+ #define ARPHRD_CISCO	513		/* Cisco HDLC	 		*/
+ #define ARPHRD_HDLC	ARPHRD_CISCO
+diff --git a/include/uapi/linux/if_ether.h b/include/uapi/linux/if_ether.h
+index 69e0457eb200..5da1c24d7730 100644
+--- a/include/uapi/linux/if_ether.h
++++ b/include/uapi/linux/if_ether.h
+@@ -139,6 +139,7 @@
+ #define ETH_P_CAN	0x000C		/* CAN: Controller Area Network */
+ #define ETH_P_CANFD	0x000D		/* CANFD: CAN flexible data rate*/
+ #define ETH_P_CANXL	0x000E		/* CANXL: eXtended frame Length */
++#define ETH_P_FLEXRAY	0x000F		/* Flexray			*/
+ #define ETH_P_PPPTALK	0x0010		/* Dummy type for Atalk over PPP*/
+ #define ETH_P_TR_802_2	0x0011		/* 802.2 frames 		*/
+ #define ETH_P_MOBITEX	0x0015		/* Mobitex (kaz@cafe.net)	*/
+diff --git a/net/Kconfig b/net/Kconfig
+index 48c33c222199..75f88f18ecd9 100644
+--- a/net/Kconfig
++++ b/net/Kconfig
+@@ -357,6 +357,7 @@ endmenu
+ 
+ source "net/ax25/Kconfig"
+ source "net/can/Kconfig"
++source "net/flexray/Kconfig"
+ source "net/bluetooth/Kconfig"
+ source "net/rxrpc/Kconfig"
+ source "net/kcm/Kconfig"
+diff --git a/net/Makefile b/net/Makefile
+index 6a62e5b27378..8eeb51221913 100644
+--- a/net/Makefile
++++ b/net/Makefile
+@@ -31,6 +31,7 @@ obj-$(CONFIG_NETROM)		+= netrom/
+ obj-$(CONFIG_ROSE)		+= rose/
+ obj-$(CONFIG_AX25)		+= ax25/
+ obj-$(CONFIG_CAN)		+= can/
++obj-$(CONFIG_FLEXRAY)		+= flexray/
+ obj-$(CONFIG_BT)		+= bluetooth/
+ obj-$(CONFIG_SUNRPC)		+= sunrpc/
+ obj-$(CONFIG_AF_RXRPC)		+= rxrpc/
+diff --git a/net/core/sock.c b/net/core/sock.c
+index eb0b76acd9df..0d775450b492 100644
+--- a/net/core/sock.c
++++ b/net/core/sock.c
+@@ -229,7 +229,7 @@ static struct lock_class_key af_family_kern_slock_keys[AF_MAX];
+   x "AF_IEEE802154",	x "AF_CAIF"	,	x "AF_ALG"      , \
+   x "AF_NFC"   ,	x "AF_VSOCK"    ,	x "AF_KCM"      , \
+   x "AF_QIPCRTR",	x "AF_SMC"	,	x "AF_XDP"	, \
+-  x "AF_MCTP"  , \
++  x "AF_FLEXRAY",	x "AF_MCTP" \
+   x "AF_MAX"
+ 
+ static const char *const af_family_key_strings[AF_MAX+1] = {
+diff --git a/net/flexray/Kconfig b/net/flexray/Kconfig
+new file mode 100644
+index 000000000000..fb65fedf5cad
+--- /dev/null
++++ b/net/flexray/Kconfig
+@@ -0,0 +1,30 @@
++#
++# FlexRay network layer core configuration
++#
++
++menuconfig FLEXRAY
++	depends on NET
++	tristate "FlexRay bus subsystem support"
++	help
++	  FlexRay is a slow (up to 10Mbit/s) serial communications
++	  protocol which was developed by the FlexRay Consortium, a
++	  cooperation of leading companies in the automotive industry, from
++	  2000 till 2010, which result in ISO 10681.
++	  More information on the FlexRay network protocol family PF_FLEXRAY
++	  is contained in <Documentation/networking/flexray.txt>.
++
++	  If you want FLEXRAY support you should say Y here and also to the
++	  specific driver for your controller(s) below.
++
++config FLEXRAY_RAW
++	tristate "Raw FlexRay Protocol"
++	depends on FLEXRAY
++	default N
++	help
++	  The raw FlexRay protocol option offers access to the FlexRay bus
++	  via the BSD socket API. You probably want to use the raw socket in
++	  most cases where no higher level protocol is being used.
++	  To receive/send raw FLEXRAY messages, use AF_FLEXRAY with protocol
++	  FLEXRAY_RAW.
++
++source "drivers/net/flexray/Kconfig"
+diff --git a/net/flexray/Makefile b/net/flexray/Makefile
+new file mode 100644
+index 000000000000..f5e05b6c81b4
+--- /dev/null
++++ b/net/flexray/Makefile
+@@ -0,0 +1,9 @@
++#
++#  Makefile for the Linux FlexRay core.
++#
++
++obj-$(CONFIG_FLEXRAY)		+= flexray.o
++flexray-y			:= af_flexray.o proc.o
++
++obj-$(CONFIG_FLEXRAY_RAW)	+= flexray-raw.o
++flexray-raw-y			:= raw.o
+diff --git a/net/flexray/af_flexray.c b/net/flexray/af_flexray.c
+new file mode 100644
+index 000000000000..8392b8ea85db
+--- /dev/null
++++ b/net/flexray/af_flexray.c
+@@ -0,0 +1,687 @@
++/* Copyright 2012 Eberspächer Electronics GmbH & Co. KG. All Rights Reserved */
++
++#include <linux/module.h>
++#include <linux/init.h>
++#include <linux/kmod.h>
++#include <linux/slab.h>
++#include <linux/list.h>
++#include <linux/spinlock.h>
++#include <linux/rcupdate.h>
++#include <linux/uaccess.h>
++#include <linux/net.h>
++#include <linux/netdevice.h>
++#include <linux/socket.h>
++#include <linux/if_ether.h>
++#include <linux/if_arp.h>
++#include <linux/skbuff.h>
++#include <linux/flexray.h>
++#include <linux/flexray/core.h>
++#include <linux/flexray/dev.h>
++
++#include <linux/ratelimit.h>
++#include <net/net_namespace.h>
++#include <net/sock.h>
++
++#include "af_flexray.h"
++
++MODULE_DESCRIPTION("FlexRay PF_FLEXRAY core");
++MODULE_LICENSE("GPL v2");
++MODULE_AUTHOR("Benedikt Spranger <b.spranger@linutronix.de>, "
++	"Rikard Olander <rikard.olander@hostmobility.com>");
++
++MODULE_ALIAS_NETPROTO(PF_FLEXRAY);
++
++static struct kmem_cache *rcv_cache __read_mostly;
++
++/* table of registered FlexRay protocols */
++static const struct flexray_proto *proto_tab[FLEXRAY_NPROTO] __read_mostly;
++static DEFINE_MUTEX(proto_tab_lock);
++
++
++/* af_flexray socket functions */
++
++int flexray_ioctl(struct socket *sock, unsigned int cmd, unsigned long arg)
++{
++	switch (cmd) {
++	default:
++		return -ENOIOCTLCMD;
++	}
++}
++EXPORT_SYMBOL(flexray_ioctl);
++
++static void flexray_sock_destruct(struct sock *sk)
++{
++	skb_queue_purge(&sk->sk_receive_queue);
++}
++
++static const struct flexray_proto *flexray_get_proto(int protocol)
++{
++	const struct flexray_proto *frp;
++
++	rcu_read_lock();
++	frp = rcu_dereference(proto_tab[protocol]);
++	if (frp && !try_module_get(frp->prot->owner))
++		frp = NULL;
++	rcu_read_unlock();
++
++	return frp;
++}
++
++static inline void flexray_put_proto(const struct flexray_proto *frp)
++{
++	module_put(frp->prot->owner);
++}
++
++static int flexray_create(struct net *net, struct socket *sock, int protocol,
++			  int kern)
++{
++	struct sock *sk;
++	const struct flexray_proto *frp;
++	int err = 0;
++
++	sock->state = SS_UNCONNECTED;
++
++	if (protocol < 0 || protocol >= FLEXRAY_NPROTO)
++		return -EINVAL;
++
++	/*if (!net_eq(net, &init_net))
++		return -EAFNOSUPPORT;*/
++
++	frp = flexray_get_proto(protocol);
++
++#ifdef CONFIG_MODULES
++	if (!frp) {
++/* try to load protocol module if kernel is modular */
++
++		err = request_module("flexray-proto-%d", protocol);
++
++		/*
++		 * In case of error we only print a message but don't
++		 * return the error code immediately.  Below we will
++		 * return -EPROTONOSUPPORT
++		 */
++		if (err)
++			printk_ratelimited(KERN_ERR "flexray: request_module "
++			       "(flexray-proto-%d) failed.\n", protocol);
++
++		frp = flexray_get_proto(protocol);
++	}
++#endif
++	/* check for available protocol and correct usage */
++	if (!frp)
++		return -EPROTONOSUPPORT;
++
++	if (frp->type != sock->type) {
++		err = -EPROTOTYPE;
++		goto errout;
++	}
++
++	sock->ops = frp->ops;
++
++	sk = sk_alloc(net, PF_FLEXRAY, GFP_KERNEL, frp->prot, 0);
++	if (!sk) {
++		err = -ENOMEM;
++		goto errout;
++	}
++
++	sock_init_data(sock, sk);
++	sk->sk_destruct = flexray_sock_destruct;
++
++	if (sk->sk_prot->init)
++		err = sk->sk_prot->init(sk);
++
++	if (err) {
++		/* release sk on errors */
++		sock_orphan(sk);
++		sock_put(sk);
++	}
++
++errout:
++	flexray_put_proto(frp);
++	return err;
++}
++
++/**
++ * flexray_send - transmit a FlexRay frame
++ * @skb: pointer to socket buffer with FlexRay frame in data section
++ * @loop: loopback for listeners on local flexray sockets (recommended default!)
++ *
++ * Due to the loopback this routine must not be called from hardirq context.
++ *
++ * Return:
++ *  0 on success
++ *  -ENETDOWN when the selected interface is down
++ *  -ENOBUFS on full driver queue (see net_xmit_errno())
++ *  -EPERM when trying to send on a non-FlexRay interface
++ *  -EINVAL when the skb->data does not contain a valid FlexRay frame
++ *  The skb is always consumed.
++ */
++int flexray_send(struct sk_buff *skb, int loop)
++{
++   struct sk_buff *newskb = NULL;
++	struct flexray_priv *priv;
++	struct s_stats *flexray_stats = dev_net(skb->dev)->flexray.flexray_stats;
++	int err = -EINVAL;
++
++	priv = netdev_priv(skb->dev);
++
++	if (skb->dev->type != ARPHRD_FLEXRAY) {
++		err = -EPERM;
++      kfree_skb(skb);
++      return err;
++	}
++
++	if (!(skb->dev->flags & IFF_UP)) {
++		err = -ENETDOWN;
++      kfree_skb(skb);
++      return err;
++	}
++
++#if 0
++   // do_validate is used for hardware flexcard_fr.c , but skip this for vflexray-usage.
++	if (!priv->do_validate) {
++		err = -EINVAL;
++      kfree_skb(skb);
++      return err;
++	}
++
++	err = priv->do_validate(skb);
++	if (err) {
++      kfree_skb(skb);
++      return err;
++   }
++#endif
++   
++	skb->protocol = htons(ETH_P_FLEXRAY);
++	skb_reset_network_header(skb);
++	skb_reset_transport_header(skb);
++
++	if (loop) {
++		/* local loopback of sent flexray frames */
++
++		/* indication for the flexray driver: do loopback */
++		skb->pkt_type = PACKET_LOOPBACK;
++
++		/*
++		 * The reference to the originating sock may be required
++		 * by the receiving socket to check whether the frame is
++		 * its own. Example: flexray_raw sockopt FLEXRAY_RAW_RECV_OWN_MSGS
++		 * Therefore we have to ensure that skb->sk remains the
++		 * reference to the originating sock by restoring skb->sk
++		 * after each skb_clone() or skb_orphan() usage.
++		 */
++
++		if (!(skb->dev->flags & IFF_ECHO)) {
++			/*
++			 * If the interface is not capable to do loopback
++			 * itself, we do it here.
++			 */
++			newskb = skb_clone(skb, GFP_ATOMIC);
++			if (!newskb) {
++				kfree_skb(skb);
++				return -ENOMEM;
++			}
++
++			newskb->sk = skb->sk;
++			newskb->ip_summed = CHECKSUM_UNNECESSARY;
++			newskb->pkt_type = PACKET_BROADCAST;
++		}
++	} else {
++		/* indication for the flexray driver: no loopback required */
++		skb->pkt_type = PACKET_HOST;
++	}
++
++   /* send to netdevice */
++   err = dev_queue_xmit(skb);
++   if (err > 0)
++      err = net_xmit_errno(err);
++
++   if (err) {
++      kfree_skb(newskb);
++      return err;
++   }
++
++   if (newskb)
++      netif_rx(newskb);
++
++   /* update statistics */
++	flexray_stats->tx_frames++;
++
++   return 0;
++}
++EXPORT_SYMBOL(flexray_send);
++
++/* af_flexray rx path */
++
++static struct dev_rcv_lists *find_dev_rcv_lists(struct net *net, struct net_device *dev)
++{
++	if (!dev)
++		return net->flexray.flexray_rx_alldev_list;
++	else
++		return (struct dev_rcv_lists *)dev->ml_priv;
++}
++
++int flexray_rx_register(struct net *net, struct net_device *dev, flexray_frame_filter_t frame_id,
++			flexray_frame_filter_t mask,
++			void (*func)(struct sk_buff *, void *),
++			void *data, char *ident, struct sock *sk)
++{
++	struct receiver *r;
++	struct dev_rcv_lists *d;
++	struct s_pstats *flexray_pstats = net->flexray.flexray_pstats;
++	int err = 0;
++
++	if (dev && dev->type != ARPHRD_FLEXRAY)
++		return -ENODEV;
++
++	if (dev && !net_eq(net, dev_net(dev)))
++		return -ENODEV;
++
++	r = kmem_cache_alloc(rcv_cache, GFP_KERNEL);
++	if (!r)
++		return -ENOMEM;
++
++	spin_lock(&net->flexray.flexray_rcvlists_lock);
++
++	d = find_dev_rcv_lists(net, dev);
++	if (d) {
++		r->func		= func;
++		r->data		= data;
++		r->ident	= ident;
++		r->sk      = sk;
++
++
++		hlist_add_head_rcu(&r->list, (struct hlist_head *)&d->rx[RX_ALL]);
++		d->entries++;
++
++		flexray_pstats->rcv_entries++;
++		if (flexray_pstats->rcv_entries_max < flexray_pstats->rcv_entries)
++			flexray_pstats->rcv_entries_max = flexray_pstats->rcv_entries;
++	} else {
++		kmem_cache_free(rcv_cache, r);
++		err = -ENODEV;
++	}
++
++	spin_unlock(&net->flexray.flexray_rcvlists_lock);
++
++	return err;
++}
++EXPORT_SYMBOL(flexray_rx_register);
++
++static void flexray_rx_delete_receiver(struct rcu_head *rp)
++{
++	struct receiver *r = container_of(rp, struct receiver, rcu);
++	struct sock *sk = r->sk;
++
++	kmem_cache_free(rcv_cache, r);
++	if (sk)
++		sock_put(sk);
++}
++
++void flexray_rx_unregister(struct net *net, struct net_device *dev,
++			flexray_frame_filter_t frame_id,
++			flexray_frame_filter_t mask,
++			void (*func)(struct sk_buff *, void *), void *data)
++{
++	struct receiver *r = NULL;
++	struct hlist_head *rl;
++	struct s_pstats *flexray_pstats = net->flexray.flexray_pstats;
++	struct dev_rcv_lists *d;
++
++	if (dev && dev->type != ARPHRD_FLEXRAY)
++		return;
++
++	if (dev && !net_eq(net, dev_net(dev)))
++		return;
++
++	spin_lock(&net->flexray.flexray_rcvlists_lock);
++
++	d = find_dev_rcv_lists(net, dev);
++	if (!d) {
++		pr_err("BUG: receive list not found for "
++		       "dev %s\n",
++		       DNAME(dev));
++		goto out;
++	}
++
++	rl = &d->rx[RX_ALL];
++
++	/* Search the receiver list for the item to delete. This should
++	 * exist, since no receiver may be unregistered that hasn't
++	 * been registered before.
++	 */
++
++	hlist_for_each_entry_rcu(r, rl, list) {
++		if (r->func == func && r->data == data) {
++			break;
++		}
++	}
++
++	/*
++	 * Check for bugs in FLEXRAY protocol implementations:
++	 * If no matching list item was found, the list cursor variable next
++	 * will be NULL, while r will point to the last item of the list.
++	 */
++
++	if (!r) {
++		WARN(1, "BUG: receive list entry not found for dev %s, "
++		     "\n", DNAME(dev));
++		goto out;
++	}
++
++	hlist_del_rcu(&r->list);
++	d->entries--;
++
++	if (flexray_pstats->rcv_entries > 0)
++		flexray_pstats->rcv_entries--;
++
++	/* remove device structure requested by NETDEV_UNREGISTER */
++	if (d->remove_on_zero_entries && !d->entries) {
++		kfree(d);
++		dev->ml_priv = NULL;
++	}
++
++out:
++	spin_unlock(&net->flexray.flexray_rcvlists_lock);
++
++	/* schedule the receiver item for deletion */
++	if (r) {
++		if (r->sk)
++			sock_hold(r->sk);
++		call_rcu(&r->rcu, flexray_rx_delete_receiver);
++	}
++}
++EXPORT_SYMBOL(flexray_rx_unregister);
++
++static inline void deliver(struct sk_buff *skb, struct receiver *r)
++{
++	r->func(skb, r->data);
++	//r->matches++;
++}
++
++static int flexray_rcv_filter(struct dev_rcv_lists *d, struct sk_buff *skb)
++{
++	struct receiver *r;
++	int matches = 0;
++
++	if (d->entries == 0)
++		return 0;
++
++	/* check for unfiltered entries */
++	hlist_for_each_entry_rcu(r, &d->rx[RX_ALL], list) {
++		deliver(skb, r);
++		matches++;
++	}
++
++	return matches;
++}
++
++static int flexray_rcv(struct sk_buff *skb, struct net_device *dev,
++		       struct packet_type *pt, struct net_device *orig_dev)
++{
++	struct dev_rcv_lists *d;
++	struct net *net = dev_net(dev);
++	struct flexray_frame *frf = (struct flexray_frame *)skb->data;
++	struct s_stats *flexray_stats = net->flexray.flexray_stats;
++	int matches;
++
++	/*if (!net_eq(dev_net(dev), &init_net)) {
++		goto drop;
++   }*/
++   
++	if (WARN_ONCE(dev->type != ARPHRD_FLEXRAY,
++		      "PF_FLEXRAY: dropped non conform skbuf: "
++		      "dev type %d, len %d, payload %d\n", dev->type, skb->len, 
++		      frf->frhead.plr))
++		goto drop;
++
++	/* update statistics */
++	flexray_stats->rx_frames++;
++   
++	rcu_read_lock();
++
++	/* deliver the packet to sockets listening on all devices */
++	matches = flexray_rcv_filter(net->flexray.flexray_rx_alldev_list, skb);
++
++	/* find receive list for this device */
++	d = find_dev_rcv_lists(net, dev);
++	if (d) {
++		matches += flexray_rcv_filter(d, skb);
++   }
++
++	rcu_read_unlock();
++
++	/* consume the skbuff allocated by the netdevice driver */
++	consume_skb(skb);
++
++	if (matches > 0) {
++		flexray_stats->matches++;
++   }
++	return NET_RX_SUCCESS;
++
++drop:
++	kfree_skb(skb);
++	return NET_RX_DROP;
++}
++
++/* af_flexray protocol functions */
++int flexray_proto_register(const struct flexray_proto *frp)
++{
++	int proto = frp->protocol;
++	int err = 0;
++
++	if (proto < 0 || proto >= FLEXRAY_NPROTO) {
++		pr_err("flexray: protocol number %d out of range\n", proto);
++		return -EINVAL;
++	}
++
++	err = proto_register(frp->prot, 0);
++	if (err < 0)
++		return err;
++
++	mutex_lock(&proto_tab_lock);
++
++	if (rcu_access_pointer(proto_tab[proto])) {
++		pr_err("flexray: protocol %d already registered\n",
++		       proto);
++		err = -EBUSY;
++	} else
++		RCU_INIT_POINTER(proto_tab[proto], frp);
++
++	mutex_unlock(&proto_tab_lock);
++
++	if (err < 0)
++		proto_unregister(frp->prot);
++
++	return err;
++}
++EXPORT_SYMBOL(flexray_proto_register);
++
++void flexray_proto_unregister(const struct flexray_proto *frp)
++{
++	int proto = frp->protocol;
++
++	mutex_lock(&proto_tab_lock);
++	BUG_ON(rcu_access_pointer(proto_tab[proto])!= frp);
++	rcu_assign_pointer(proto_tab[proto], NULL);
++	mutex_unlock(&proto_tab_lock);
++
++	synchronize_rcu();
++
++	proto_unregister(frp->prot);
++}
++EXPORT_SYMBOL(flexray_proto_unregister);
++
++/* af_flexray notifier to create/remove FlexRay netdevice specific structs */
++static int flexray_notifier(struct notifier_block *nb, unsigned long msg,
++			    void *data)
++{
++	struct net_device *dev = netdev_notifier_info_to_dev(data);
++	struct dev_rcv_lists *d;
++
++	/*if (!net_eq(dev_net(dev), &init_net))
++		return NOTIFY_DONE;*/
++
++	if (dev->type != ARPHRD_FLEXRAY)
++		return NOTIFY_DONE;
++
++	switch (msg) {
++
++	case NETDEV_REGISTER:
++		/* create new dev_rcv_lists for this device */
++		d = kzalloc(sizeof(*d), GFP_KERNEL);
++		if (!d) {
++			netdev_err(dev, "allocation of receive list failed\n");
++			return NOTIFY_DONE;
++		}
++		BUG_ON(dev->ml_priv);
++		dev->ml_priv = d;
++
++		break;
++
++	case NETDEV_UNREGISTER:
++		spin_lock(&dev_net(dev)->flexray.flexray_rcvlists_lock);
++
++		d = dev->ml_priv;
++		if (d) {
++			if (d->entries)
++				d->remove_on_zero_entries = 1;
++			else {
++				kfree(d);
++				dev->ml_priv = NULL;
++			}
++		} else
++			netdev_err(dev, "notifier: receive list not found\n");
++
++		spin_unlock(&dev_net(dev)->flexray.flexray_rcvlists_lock);
++		break;
++	}
++
++	return NOTIFY_DONE;
++}
++
++static int flexray_pernet_init(struct net *net)
++{
++	spin_lock_init(&net->flexray.flexray_rcvlists_lock);
++	net->flexray.flexray_rx_alldev_list =
++		kzalloc(sizeof(struct dev_rcv_lists), GFP_KERNEL);
++	if (!net->flexray.flexray_rx_alldev_list)
++		goto out;
++	net->flexray.flexray_stats = kzalloc(sizeof(struct s_stats), GFP_KERNEL);
++	if (!net->flexray.flexray_stats)
++		goto out_free_alldev_list;
++	net->flexray.flexray_pstats = kzalloc(sizeof(struct s_pstats), GFP_KERNEL);
++	if (!net->flexray.flexray_pstats)
++		goto out_free_flexray_stats;
++
++	return 0;
++
++ out_free_flexray_stats:
++	kfree(net->flexray.flexray_stats);
++ out_free_alldev_list:
++	kfree(net->flexray.flexray_rx_alldev_list);
++ out:
++	return -ENOMEM;
++}
++
++static void flexray_pernet_exit(struct net *net)
++{
++	struct net_device *dev;
++
++	/* remove created dev_rcv_lists from still registered flexray devices */
++	rcu_read_lock();
++	for_each_netdev_rcu(net, dev) {
++		if (dev->type == ARPHRD_FLEXRAY && dev->ml_priv) {
++			struct dev_rcv_lists *d = dev->ml_priv;
++
++			BUG_ON(d->entries);
++			kfree(d);
++			dev->ml_priv = NULL;
++		}
++	}
++	rcu_read_unlock();
++
++	kfree(net->flexray.flexray_rx_alldev_list);
++	kfree(net->flexray.flexray_stats);
++	kfree(net->flexray.flexray_pstats);
++}
++
++/*
++ * af_flexray module init/exit functions
++ */
++
++static struct packet_type flexray_packet __read_mostly = {
++	.type = cpu_to_be16(ETH_P_FLEXRAY),
++	.func = flexray_rcv,
++};
++
++static const struct net_proto_family flexray_family_ops = {
++	.family = PF_FLEXRAY,
++	.create = flexray_create,
++	.owner  = THIS_MODULE,
++};
++
++/* notifier block for netdevice event */
++static struct notifier_block flexray_netdev_notifier __read_mostly = {
++	.notifier_call = flexray_notifier,
++};
++
++static struct pernet_operations flexray_pernet_ops __read_mostly = {
++	.init = flexray_pernet_init,
++	.exit = flexray_pernet_exit,
++};
++
++static __init int flexray_init(void)
++{
++	int err;
++
++	pr_info("flexray: core (" FLEXRAY_VERSION_STRING ")\n");
++
++	rcv_cache = kmem_cache_create("flexray_receiver",
++				      sizeof(struct receiver), 0, 0, NULL);
++	if (!rcv_cache)
++		return -ENOMEM;
++
++	err = register_pernet_subsys(&flexray_pernet_ops);
++	if (err)
++		goto out_pernet;
++
++	/* protocol register */
++	err = sock_register(&flexray_family_ops);
++	if (err)
++		goto out_sock;
++	err = register_netdevice_notifier(&flexray_netdev_notifier);
++	if (err)
++		goto out_notifier;
++
++	dev_add_pack(&flexray_packet);
++
++	return 0;
++
++out_notifier:
++	sock_unregister(PF_FLEXRAY);
++out_sock:
++	unregister_pernet_subsys(&flexray_pernet_ops);
++out_pernet:
++	kmem_cache_destroy(rcv_cache);
++	return err;
++
++}
++
++static __exit void flexray_exit(void)
++{
++
++	/* protocol unregister */
++	dev_remove_pack(&flexray_packet);
++	unregister_netdevice_notifier(&flexray_netdev_notifier);
++	sock_unregister(PF_FLEXRAY);
++
++unregister_pernet_subsys(&flexray_pernet_ops);
++
++	rcu_barrier(); /* Wait for completion of call_rcu()'s */
++
++	kmem_cache_destroy(rcv_cache);
++}
++
++module_init(flexray_init);
++module_exit(flexray_exit);
+\ No newline at end of file
+diff --git a/net/flexray/af_flexray.h b/net/flexray/af_flexray.h
+new file mode 100644
+index 000000000000..063045e5ef07
+--- /dev/null
++++ b/net/flexray/af_flexray.h
+@@ -0,0 +1,54 @@
++/* Copyright 2012 Eberspächer Electronics GmbH & Co. KG. All Rights Reserved */
++
++#ifndef AF_FLEXRAY_H
++#define AF_FLEXRAY_H
++
++#include <linux/skbuff.h>
++#include <linux/netdevice.h>
++#include <linux/list.h>
++#include <linux/rcupdate.h>
++#include <linux/flexray.h>
++
++/* af_flexray rx dispatcher structures */
++
++struct receiver {
++	struct hlist_node list;
++	struct rcu_head rcu;
++	void (*func)(struct sk_buff *, void *);
++	void *data;
++	char *ident;
++	struct sock *sk;
++};
++
++enum {RX_ALL, RX_MAX};
++
++/* per device receive filters linked at dev->ml_priv */
++struct dev_rcv_lists {
++	struct hlist_head rx[RX_MAX];
++	struct hlist_head rx_sff[0x800];
++	int remove_on_zero_entries;
++	int entries;
++};
++
++/* can be reset e.g. by flexray_init_stats() */
++struct s_stats {
++	unsigned long rx_frames;
++	unsigned long tx_frames;
++	unsigned long matches;
++};
++
++/* persistent statistics */
++struct s_pstats {
++	unsigned long stats_reset;
++	unsigned long user_reset;
++	unsigned long rcv_entries;
++	unsigned long rcv_entries_max;
++};
++
++/* function prototypes for the FlexRay networklayer procfs (proc.c) */
++extern void flexray_init_proc(struct net *net);
++extern void flexray_remove_proc(struct net *net);
++extern void flexray_stat_update(unsigned long data);
++
++
++#endif /* AF_FLEXRAY_H */
+diff --git a/net/flexray/proc.c b/net/flexray/proc.c
+new file mode 100644
+index 000000000000..716056eb8755
+--- /dev/null
++++ b/net/flexray/proc.c
+@@ -0,0 +1,163 @@
++/* Copyright 2012 Eberspächer Electronics GmbH & Co. KG. All Rights Reserved */
++
++#include <linux/module.h>
++#include <linux/proc_fs.h>
++#include <linux/list.h>
++#include <linux/rcupdate.h>
++#include <linux/if_arp.h>
++#include <linux/flexray/core.h>
++
++#include "af_flexray.h"
++
++/* proc filenames for the PF_FLEXRAY core */
++
++#define FLEXRAY_PROC_STATS       "stats"
++#define FLEXRAY_PROC_RESET_STATS "reset_stats"
++#define FLEXRAY_PROC_RCVLIST_ALL "rcvlist_all"
++#define FLEXRAY_PROC_RCVLIST_FIL "rcvlist_fil"
++
++static const char rx_list_name[][8] = {
++	[RX_ALL] = "rx_all",
++};
++
++static void flexray_print_rcvlist(struct seq_file *m,
++				  struct hlist_head *rx_list,
++				  struct net_device *dev)
++{
++	struct receiver *r;
++
++   hlist_for_each_entry_rcu(r, rx_list, list)
++		seq_printf(m, "   %-5s     %pK  %pK  %s\n",
++				DNAME(dev), r->func, r->data, r->ident);
++}
++
++static void flexray_print_recv_banner(struct seq_file *m)
++{
++	seq_puts(m, "  device   flexray_id   flexray_mask  function"
++		 "  userdata   matches  ident\n");
++}
++
++static int flexray_stats_proc_show(struct seq_file *m, void *v)
++{
++	struct net *net = m->private;
++	struct s_stats *flexray_stats = net->flexray.flexray_stats;
++	struct s_pstats *flexray_pstats = net->flexray.flexray_pstats;
++
++	seq_putc(m, '\n');
++	seq_printf(m, " %8ld transmitted frames (TXF)\n", flexray_stats->tx_frames);
++	seq_printf(m, " %8ld received frames (RXF)\n", flexray_stats->rx_frames);
++	seq_printf(m, " %8ld matched frames (RXMF)\n", flexray_stats->matches);
++
++	seq_putc(m, '\n');
++
++	seq_printf(m, " %8ld current receive list entries (CRCV)\n",
++		   flexray_pstats->rcv_entries);
++	seq_printf(m, " %8ld maximum receive list entries (MRCV)\n",
++		   flexray_pstats->rcv_entries_max);
++
++	if (flexray_pstats->stats_reset)
++		seq_printf(m, "\n %8ld statistic resets (STR)\n",
++			   flexray_pstats->stats_reset);
++
++	if (flexray_pstats->user_reset)
++		seq_printf(m, " %8ld user statistic resets (USTR)\n",
++			   flexray_pstats->user_reset);
++
++	seq_putc(m, '\n');
++	return 0;
++}
++
++static int flexray_reset_stats_proc_show(struct seq_file *m, void *v)
++{
++	struct net *net = m->private;
++	struct s_pstats *flexray_pstats = net->flexray.flexray_pstats;
++	//struct s_stats *flexray_stats = net->flexray.flexray_stats;
++
++	seq_printf(m, "Performed statistic reset #%ld.\n",
++		   flexray_pstats->stats_reset + 1);
++
++	return 0;
++}
++
++static void flexray_rcvlist_proc_show_one(struct seq_file *m, int idx,
++						 struct net_device *dev,
++						 struct dev_rcv_lists *d)
++{
++	if (!hlist_empty(&d->rx[idx])) {
++		flexray_print_recv_banner(m);
++		flexray_print_rcvlist(m, &d->rx[idx], dev);
++	} else
++		seq_printf(m, "  (%s: no entry)\n", DNAME(dev));
++}
++
++static int flexray_rcvlist_proc_show(struct seq_file *m, void *v)
++{
++	/* double cast to prevent GCC warning */
++	int idx = (int)(long)(m->file->f_inode->i_private);
++	struct net_device *dev;
++	struct dev_rcv_lists *d;
++	struct net *net = m->private;
++
++	seq_printf(m, "\nreceive list '%s':\n", rx_list_name[idx]);
++
++	rcu_read_lock();
++
++	/* receive list for 'all' FlexRay devices (dev == NULL) */
++	d = net->flexray.flexray_rx_alldev_list;
++	flexray_rcvlist_proc_show_one(m, idx, NULL, d);
++
++	/* receive list for registered FlexRay devices */
++	for_each_netdev_rcu(net, dev) {
++		if (dev->type == ARPHRD_FLEXRAY && dev->ml_priv)
++			flexray_rcvlist_proc_show_one(m, idx, dev, dev->ml_priv);
++	}
++
++	rcu_read_unlock();
++
++	seq_putc(m, '\n');
++	return 0;
++}
++/*
++ * flexray_init_proc - create main Flexray proc directory and procfs entries
++ */
++void flexray_init_proc(struct net *net)
++{
++	/* create /proc/net/flexray directory */
++	net->flexray.proc_dir = proc_net_mkdir(net, "flexray", net->proc_net);
++
++	if (!net->flexray.proc_dir) {
++		printk(KERN_INFO "flexray: failed to create /proc/net/flexray . "
++			   "CONFIG_PROC_FS missing?\n");
++		return;
++	}
++
++	net->flexray.pde_stats = proc_create_net_single(FLEXRAY_PROC_STATS, 0644,
++			net->flexray.proc_dir, flexray_stats_proc_show, NULL);
++
++	net->flexray.pde_reset_stats = proc_create_net_single(FLEXRAY_PROC_RESET_STATS,
++			0644, net->flexray.proc_dir, flexray_reset_stats_proc_show,
++			NULL);
++
++	net->flexray.pde_rcvlist_all = proc_create_net_single(FLEXRAY_PROC_RCVLIST_ALL,
++			0644, net->flexray.proc_dir, flexray_rcvlist_proc_show,
++			(void *)RX_ALL);
++}
++
++/*
++ * flexray_remove_proc - remove procfs entries and main Flexray proc directory
++ */
++void flexray_remove_proc(struct net *net)
++{
++
++	if (net->flexray.pde_stats)
++		remove_proc_entry(FLEXRAY_PROC_STATS, net->flexray.proc_dir);
++
++	if (net->flexray.pde_reset_stats)
++		remove_proc_entry(FLEXRAY_PROC_RESET_STATS, net->flexray.proc_dir);
++
++	if (net->flexray.pde_rcvlist_all)
++		remove_proc_entry(FLEXRAY_PROC_RCVLIST_ALL, net->flexray.proc_dir);
++
++	if (net->flexray.proc_dir)
++		remove_proc_entry("flexray", net->proc_net);
++}
+diff --git a/net/flexray/raw.c b/net/flexray/raw.c
+new file mode 100644
+index 000000000000..2a33a609bcdc
+--- /dev/null
++++ b/net/flexray/raw.c
+@@ -0,0 +1,675 @@
++/* Copyright 2012 Eberspächer Electronics GmbH & Co. KG. All Rights Reserved */
++
++#include <linux/module.h>
++#include <linux/init.h>
++#include <linux/uio.h>
++#include <linux/net.h>
++#include <linux/slab.h>
++#include <linux/netdevice.h>
++#include <linux/socket.h>
++#include <linux/if_arp.h>
++#include <linux/skbuff.h>
++#include <linux/flexray.h>
++#include <linux/flexray/core.h>
++#include <linux/flexray/raw.h>
++#include <net/sock.h>
++#include <net/net_namespace.h>
++
++#define FLEXRAY_RAW_VERSION FLEXRAY_VERSION
++
++MODULE_DESCRIPTION("PF_FLEXRAY raw protocol");
++MODULE_LICENSE("GPL v2");
++MODULE_AUTHOR("Benedikt Spranger <b.spranger@linutronix.de>, Rikard Olander <rikard.olander@hostmobility.com>");
++MODULE_ALIAS("flexray-proto-1");
++
++#define MASK_ALL 0
++
++struct flexray_raw_sock {
++	struct sock sk;
++	int bound;
++	int ifindex;
++	struct notifier_block notifier;
++	int loopback;
++   int recv_own_msgs;
++   int count;                 /* number of active filters */
++	struct flexray_filter dfilter;	/* default/single filter */
++   struct flexray_filter *filter; /* pointer to filter(s) */
++   
++};
++
++static inline unsigned int *raw_flags(struct sk_buff *skb)
++{
++	sock_skb_cb_check_size(sizeof(struct sockaddr_flexray) +
++					 sizeof(unsigned int));
++
++	/* return pointer after struct sockaddr_flexray */
++	return (unsigned int *)(&((struct sockaddr_flexray *)skb->cb)[1]);
++}
++
++static inline struct flexray_raw_sock *raw_sk(const struct sock *sk)
++{
++	return (struct flexray_raw_sock *)sk;
++}
++
++static void raw_rcv(struct sk_buff *oskb, void *data)
++{
++	struct sock *sk = (struct sock *)data;
++	struct flexray_raw_sock *ro = raw_sk(sk);
++	struct sockaddr_flexray *addr;
++	struct sk_buff *skb;
++	unsigned int *pflags;
++
++	/* check the received tx sock reference */
++	if (!ro->recv_own_msgs && oskb->sk == sk)
++		return;
++
++	/* clone the given skb to be able to enqueue it into the rcv queue */
++	skb = skb_clone(oskb, GFP_ATOMIC);
++	if (!skb)
++		return;
++
++	/*  Put the datagram to the queue so that raw_recvmsg() can
++	 *  get it from there.  We need to pass the interface index to
++	 *  raw_recvmsg().  We pass a whole struct sockaddr_flexray in skb->cb
++	 *  containing the interface index.
++	 */
++
++	sock_skb_cb_check_size(sizeof(struct sockaddr_flexray));
++	addr = (struct sockaddr_flexray *)skb->cb;
++	memset(addr, 0, sizeof(*addr));
++	addr->flexray_family  = AF_FLEXRAY;
++	addr->flexray_ifindex = skb->dev->ifindex;
++
++	/* add FlexRay specific message flags for raw_recvmsg() */
++	pflags = raw_flags(skb);
++	*pflags = 0;
++	if (oskb->sk)
++		*pflags |= MSG_DONTROUTE;
++	if (oskb->sk == sk)
++		*pflags |= MSG_CONFIRM;
++
++	if (sock_queue_rcv_skb(sk, skb) < 0)
++		kfree_skb(skb);
++}
++
++static int raw_enable_filters(struct net *net, struct net_device *dev,
++				struct sock *sk, struct flexray_filter *filter, int count)
++{
++	int err = 0;
++	int i;
++
++	for (i = 0; i < count; i++) {
++      //printk(KERN_INFO "raw_enable_filters: flexray_rx_register %d 0x%llX 0x%llX\n", i,  filter[i].flexray_id, filter[i].flexray_mask);
++		err = flexray_rx_register(net, dev, filter[i].flexray_id,
++				      filter[i].flexray_mask,
++				      raw_rcv, sk, "raw", sk);
++		if (err) {
++         //printk(KERN_INFO "raw_enable_filters: failed, remove again\n");
++			/* clean up successfully registered filters */
++			while (--i >= 0)
++				flexray_rx_unregister(net, dev, filter[i].flexray_id,
++						  filter[i].flexray_mask,
++						  raw_rcv, sk);
++			break;
++		}
++	}
++
++	return err;
++}
++
++static void raw_disable_filters(struct net *net, struct net_device *dev,
++				struct sock *sk, struct flexray_filter *filter, int count)
++{
++	int i;
++
++	for (i = 0; i < count; i++) {
++		flexray_rx_unregister(net, dev, filter[i].flexray_id, filter[i].flexray_mask,
++				  raw_rcv, sk);
++   }
++}
++
++static int raw_enable_allfilters(struct net *net, struct net_device *dev, struct sock *sk)
++{
++	//return flexray_rx_register(dev, raw_rcv, sk, "raw");
++   struct flexray_raw_sock *ro = raw_sk(sk);
++   int err;
++
++   err = raw_enable_filters(net, dev, sk, ro->filter, ro->count);
++   if (err) {
++      raw_disable_filters(net, dev, sk, ro->filter, ro->count);
++   }
++   //printk(KERN_INFO "raw_enable_allfilters: err=%d count=%d\n", err, ro->count);
++   return err;
++}
++
++static inline void raw_disable_allfilters(struct net *net, struct net_device *dev,
++					  struct sock *sk)
++{
++
++    struct flexray_raw_sock *ro = raw_sk(sk);
++
++    raw_disable_filters(net, dev, sk, ro->filter, ro->count);
++}
++
++
++static int raw_notifier(struct notifier_block *nb,
++			unsigned long msg, void *data)
++{
++	struct net_device *dev = netdev_notifier_info_to_dev(data);
++	struct flexray_raw_sock *ro = container_of(nb, struct flexray_raw_sock, notifier);
++	struct sock *sk = &ro->sk;
++
++	if (!net_eq(dev_net(dev), sock_net(sk)))
++		return NOTIFY_DONE;
++
++	if (dev->type != ARPHRD_FLEXRAY)
++		return NOTIFY_DONE;
++
++	if (ro->ifindex != dev->ifindex)
++		return NOTIFY_DONE;
++
++	switch (msg) {
++
++	case NETDEV_UNREGISTER:
++		lock_sock(sk);
++		/* remove current filters & unregister */
++		if (ro->bound)
++			raw_disable_allfilters(dev_net(dev), dev, sk);
++
++		ro->ifindex = 0;
++		ro->bound   = 0;
++		release_sock(sk);
++
++		sk->sk_err = ENODEV;
++		if (!sock_flag(sk, SOCK_DEAD))
++			sk->sk_error_report(sk);
++		break;
++
++	case NETDEV_DOWN:
++		sk->sk_err = ENETDOWN;
++		if (!sock_flag(sk, SOCK_DEAD))
++			sk->sk_error_report(sk);
++		break;
++	}
++
++	return NOTIFY_DONE;
++}
++
++static int raw_init(struct sock *sk)
++{
++	struct flexray_raw_sock *ro = raw_sk(sk);
++
++	ro->bound			= 0;
++	ro->ifindex			= 0;
++
++   /* set default filter to single entry dfilter */
++   ro->dfilter.flexray_id   = 0;
++   ro->dfilter.flexray_mask = MASK_ALL;
++   ro->filter           = &ro->dfilter;
++   ro->count            = 1;
++   
++	/* set default loopback behaviour */
++	ro->loopback         = 1;
++	ro->recv_own_msgs    = 0;
++
++	/* set notifier */
++	ro->notifier.notifier_call	= raw_notifier;
++
++	register_netdevice_notifier(&ro->notifier);
++
++	return 0;
++}
++
++static int raw_release(struct socket *sock)
++{
++	struct sock *sk = sock->sk;
++	struct flexray_raw_sock *ro;
++
++	if (!sk)
++		return 0;
++
++	ro = raw_sk(sk);
++
++	unregister_netdevice_notifier(&ro->notifier);
++
++	lock_sock(sk);
++
++	/* remove current filters & unregister */
++	if (ro->bound) {
++		if (ro->ifindex) {
++			struct net_device *dev;
++
++			dev = dev_get_by_index(sock_net(sk), ro->ifindex);
++			if (dev) {
++				raw_disable_allfilters(dev_net(dev),dev, sk);
++				dev_put(dev);
++			}
++		} else
++			raw_disable_allfilters(sock_net(sk), NULL, sk);
++	}
++
++	ro->ifindex = 0;
++	ro->bound   = 0;
++
++	sock_orphan(sk);
++	sock->sk = NULL;
++
++	release_sock(sk);
++	sock_put(sk);
++
++	return 0;
++}
++
++static int raw_bind(struct socket *sock, struct sockaddr *uaddr, int len)
++{
++	struct sockaddr_flexray *addr = (struct sockaddr_flexray *)uaddr;
++	struct sock *sk = sock->sk;
++	struct flexray_raw_sock *ro = raw_sk(sk);
++	int ifindex;
++	int err = 0;
++	int notify_enetdown = 0;
++
++	if (len < sizeof(*addr))
++		return -EINVAL;
++
++	if (addr->flexray_family != AF_FLEXRAY)
++		return -EINVAL;
++
++
++	lock_sock(sk);
++
++	if (ro->bound && addr->flexray_ifindex == ro->ifindex) {
++		goto out;
++   }
++   
++	if (addr->flexray_ifindex) {
++		struct net_device *dev;
++
++		dev = dev_get_by_index(sock_net(sk), addr->flexray_ifindex);
++		if (!dev) {
++			err = -ENODEV;
++			goto out;
++		}
++
++		if (dev->type != ARPHRD_FLEXRAY) {
++			dev_put(dev);
++			err = -ENODEV;
++			goto out;
++		}
++		if (!(dev->flags & IFF_UP))
++			notify_enetdown = 1;
++
++		ifindex = dev->ifindex;
++
++		/* filters set by default/setsockopt */
++		err = raw_enable_allfilters(sock_net(sk), dev, sk);
++		dev_put(dev);
++	} else {
++		ifindex = 0;
++
++		/* filters set by default/setsockopt */
++		err = raw_enable_allfilters(sock_net(sk), NULL, sk);
++	}
++
++	if (!err) {
++		if (ro->bound) {
++			/* unregister old filters */
++			if (ro->ifindex) {
++				struct net_device *dev;
++
++				dev = dev_get_by_index(sock_net(sk), ro->ifindex);
++				if (dev) {
++					raw_disable_allfilters(dev_net(dev),dev, sk);
++					dev_put(dev);
++				}
++			} else
++				raw_disable_allfilters(sock_net(sk), NULL, sk);
++		}
++		ro->ifindex = ifindex;
++		ro->bound = 1;
++	}
++
++out:
++	release_sock(sk);
++
++	if (notify_enetdown) {
++		sk->sk_err = ENETDOWN;
++		if (!sock_flag(sk, SOCK_DEAD))
++			sk->sk_error_report(sk);
++	}
++
++	return err;
++}
++
++static int raw_getname(struct socket *sock, struct sockaddr *uaddr,
++		      int peer)
++{
++	struct sockaddr_flexray *addr = (struct sockaddr_flexray *)uaddr;
++	struct sock *sk = sock->sk;
++	struct flexray_raw_sock *ro = raw_sk(sk);
++
++	if (peer)
++		return -EOPNOTSUPP;
++
++	memset(addr, 0, sizeof(*addr));
++	addr->flexray_family  = AF_FLEXRAY;
++	addr->flexray_ifindex = ro->ifindex;
++
++	
++
++	return 0;
++}
++
++static int raw_setsockopt(struct socket *sock, int level, int optname,
++			  sockptr_t optval, unsigned int optlen)
++{
++	struct sock *sk = sock->sk;
++	struct flexray_raw_sock *ro = raw_sk(sk);
++	struct flexray_filter *filter = NULL;  /* dyn. alloc'ed filters */
++	struct flexray_filter sfilter;         /* single filter */
++	struct net_device *dev = NULL;
++	//flexray_err_mask_t err_mask = 0;
++	int count = 0;
++	int err = 0;
++
++	if (level != SOL_FLEXRAY_RAW)
++		return -EINVAL;
++
++	switch (optname) {
++
++	case FLEXRAY_RAW_FILTER:
++		if (optlen % sizeof(struct flexray_filter) != 0)
++			return -EINVAL;
++
++		count = optlen / sizeof(struct flexray_filter);
++		if (count > 1) {
++			/* filter does not fit into dfilter => alloc space */
++			filter = memdup_sockptr(optval, optlen);
++			if (IS_ERR(filter))
++				return PTR_ERR(filter);
++		} else if (count == 1) {
++			if (copy_from_sockptr(&sfilter, optval, sizeof(sfilter)))
++				return -EFAULT;
++		}
++
++		lock_sock(sk);
++
++		if (ro->bound && ro->ifindex)
++			dev = dev_get_by_index(sock_net(sk), ro->ifindex);
++
++		if (ro->bound) {
++			/* (try to) register the new filters */
++			if (count == 1)
++				err = raw_enable_filters(sock_net(sk), dev, sk, &sfilter, 1);
++			else
++				err = raw_enable_filters(sock_net(sk), dev, sk, filter,
++							 count);
++			if (err) {
++				if (count > 1)
++					kfree(filter);
++				goto out_fil;
++			}
++
++			/* remove old filter registrations */
++			raw_disable_filters(sock_net(sk), dev, sk, ro->filter, ro->count);
++		}
++
++		/* remove old filter space */
++		if (ro->count > 1)
++			kfree(ro->filter);
++
++		/* link new filters to the socket */
++		if (count == 1) {
++			/* copy filter data for single filter */
++			ro->dfilter = sfilter;
++			filter = &ro->dfilter;
++		}
++		ro->filter = filter;
++		ro->count  = count;
++
++ out_fil:
++		if (dev)
++			dev_put(dev);
++
++		release_sock(sk);
++
++		break;
++
++   case FLEXRAY_RAW_LOOPBACK:
++		if (optlen != sizeof(ro->loopback))
++			return -EINVAL;
++
++		if (copy_from_sockptr(&ro->loopback, optval, optlen))
++			return -EFAULT;
++
++		break;
++
++   case FLEXRAY_RAW_RECV_OWN_MSGS:
++      if (optlen != sizeof(ro->recv_own_msgs))
++         return -EINVAL;
++      
++      if (copy_from_sockptr(&ro->recv_own_msgs, optval, optlen))
++         return -EFAULT;
++      
++      break;
++      
++   default:
++		return -ENOPROTOOPT;
++	}
++	return err;
++}
++
++
++static int raw_getsockopt(struct socket *sock, int level, int optname,
++			  char __user *optval, int __user *optlen)
++{
++	struct sock *sk = sock->sk;
++	struct flexray_raw_sock *ro = raw_sk(sk);
++	int len;
++	void *val;
++   int err;
++   
++	if (level != SOL_FLEXRAY_RAW)
++		return -EINVAL;
++	if (get_user(len, optlen))
++		return -EFAULT;
++	if (len < 0)
++		return -EINVAL;
++
++	switch (optname) {
++
++	case FLEXRAY_RAW_FILTER:
++		lock_sock(sk);
++		if (ro->count > 0) {
++			int fsize = ro->count * sizeof(struct flexray_filter);
++			if (len > fsize)
++				len = fsize;
++			if (copy_to_user(optval, ro->filter, len))
++				err = -EFAULT;
++		} else
++			len = 0;
++		release_sock(sk);
++
++		if (!err)
++			err = put_user(len, optlen);
++		return err;
++
++	case FLEXRAY_RAW_LOOPBACK:
++		if (len > sizeof(int))
++			len = sizeof(int);
++		val = &ro->loopback;
++		break;
++
++	case FLEXRAY_RAW_RECV_OWN_MSGS:
++		if (len > sizeof(int))
++			len = sizeof(int);
++		val = &ro->recv_own_msgs;
++		break;
++
++	default:
++		return -ENOPROTOOPT;
++	}
++
++	if (put_user(len, optlen))
++		return -EFAULT;
++	if (copy_to_user(optval, val, len))
++		return -EFAULT;
++	return 0;
++}
++
++
++static int raw_sendmsg( struct socket *sock,
++		       struct msghdr *msg, size_t size)
++{
++	struct sock *sk = sock->sk;
++	struct flexray_raw_sock *ro = raw_sk(sk);
++	struct sk_buff *skb;
++	struct net_device *dev;
++	int ifindex;
++	int err;
++   
++	if (msg->msg_name) {
++		DECLARE_SOCKADDR(struct sockaddr_flexray *, addr, msg->msg_name);
++
++		if (msg->msg_namelen < sizeof(*addr))
++			return -EINVAL;
++
++		if (addr->flexray_family != AF_FLEXRAY)
++			return -EINVAL;
++
++		ifindex = addr->flexray_ifindex;
++	} else {
++		ifindex = ro->ifindex;
++   }
++   
++	dev = dev_get_by_index(sock_net(sk), ifindex);
++	if (!dev)
++		return -ENXIO;
++
++	skb = sock_alloc_send_skb(sk, size, msg->msg_flags & MSG_DONTWAIT,
++				  &err);
++	if (!skb)
++		goto put_dev;
++
++	err = memcpy_from_msg(skb_put(skb, size), msg, size);
++	if (err < 0)
++		goto free_skb;
++   sock_tx_timestamp(sk,  sk->sk_tsflags, &skb_shinfo(skb)->tx_flags);
++   
++   skb->dev = dev;
++	skb->sk  = sk;
++
++   err = flexray_send(skb, ro->loopback);
++
++   dev_put(dev);
++
++   if (err)
++      goto send_failed;
++
++   return size;
++
++free_skb:
++   kfree_skb(skb);
++put_dev:
++   dev_put(dev);
++send_failed:
++   return err;
++}
++
++static int raw_recvmsg( struct socket *sock,
++		       struct msghdr *msg, size_t size, int flags)
++{
++	struct sock *sk = sock->sk;
++	struct sk_buff *skb;
++	int err = 0;
++
++	flags   &= ~MSG_DONTWAIT;
++
++	skb = skb_recv_datagram(sk, flags, &err);
++
++	if (!skb)
++		return err;
++
++	if (size < skb->len)
++		msg->msg_flags |= MSG_TRUNC;
++	else
++		size = skb->len;
++
++	err = memcpy_to_msg(msg, skb->data, size);
++	if (err < 0) {
++		skb_free_datagram(sk, skb);
++		return err;
++	}
++
++	sock_recv_cmsgs(msg, sk, skb);
++
++	if (msg->msg_name) {
++		msg->msg_namelen = sizeof(struct sockaddr_flexray);
++		memcpy(msg->msg_name, skb->cb, msg->msg_namelen);
++	}
++
++	/* assign the flags that have been recorded in raw_rcv() */
++	msg->msg_flags |= *(raw_flags(skb));
++
++	skb_free_datagram(sk, skb);
++
++	return size;
++}
++
++static const struct proto_ops raw_ops = {
++	.family		= PF_FLEXRAY,
++	.release	= raw_release,
++	.bind		= raw_bind,
++	.connect	= sock_no_connect,
++	.socketpair	= sock_no_socketpair,
++	.accept		= sock_no_accept,
++	.getname	= raw_getname,
++	.poll		= datagram_poll,
++	.ioctl		= flexray_ioctl,
++	.gettstamp     = sock_gettstamp,
++	.listen		= sock_no_listen,
++	.shutdown	= sock_no_shutdown,
++	.setsockopt    = raw_setsockopt,
++	.getsockopt    = raw_getsockopt,
++	.sendmsg	= raw_sendmsg,
++	.recvmsg	= raw_recvmsg,
++	.mmap		= sock_no_mmap,
++	.sendpage	= sock_no_sendpage,
++};
++
++static struct proto raw_proto __read_mostly = {
++	.name		= "FLEXRAY_RAW",
++	.owner		= THIS_MODULE,
++	.obj_size	= sizeof(struct flexray_raw_sock),
++	.init		= raw_init,
++};
++
++static const struct flexray_proto raw_flexray_proto = {
++	.type		= SOCK_RAW,
++	.protocol	= FLEXRAY_RAW,
++	.ops		= &raw_ops,
++	.prot		= &raw_proto,
++};
++
++static __init int raw_module_init(void)
++{
++	int err;
++
++	pr_info("flexray: raw protocol (rev " FLEXRAY_RAW_VERSION ")\n");
++
++	err = flexray_proto_register(&raw_flexray_proto);
++	if (err < 0)
++		pr_err("flexray: registration of raw protocol failed\n");
++
++	return err;
++}
++
++static __exit void raw_module_exit(void)
++{
++	flexray_proto_unregister(&raw_flexray_proto);
++}
++
++module_init(raw_module_init);
++module_exit(raw_module_exit);
++
++
+-- 
+2.34.1
+

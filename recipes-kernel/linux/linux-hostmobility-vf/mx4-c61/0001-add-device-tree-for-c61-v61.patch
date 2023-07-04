@@ -23,7 +23,7 @@ new file mode 100644
 index 000000000000..f26fdcc358fb
 --- /dev/null
 +++ b/arch/arm/boot/dts/vf-mx4-c61.dtsi
-@@ -0,0 +1,259 @@
+@@ -0,0 +1,262 @@
 +/*
 + * Copyright 2016 Host Mobility AB
 + *
@@ -246,6 +246,9 @@ index 000000000000..f26fdcc358fb
 +
 +&uart1 {
 +	status = "okay";
++	gpio_firecrest {
++		compatible = "hm,gpio_firecrest";
++	};
 +};
 +
 +&uart2 {

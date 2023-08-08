@@ -673,7 +673,7 @@ index 000000000000..a10734241650
 +	pinctrl-0 = <&pinctrl_usdhc2>, <&pinctrl_usdhc2_gpio>;
 +	pinctrl-1 = <&pinctrl_usdhc2_100mhz>, <&pinctrl_usdhc2_gpio>;
 +	pinctrl-2 = <&pinctrl_usdhc2_200mhz>, <&pinctrl_usdhc2_gpio>;
-+	cd-gpios = <&gpio2 12 GPIO_ACTIVE_LOW>;
++	cd-gpios = <&gpio2 12 GPIO_ACTIVE_LOW>; no-1-8-v;
 +	vmmc-supply = <&reg_usdhc2_vmmc>;
 +	bus-width = <4>;
 +	status = "okay";

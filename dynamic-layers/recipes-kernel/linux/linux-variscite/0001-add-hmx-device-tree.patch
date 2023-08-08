@@ -519,7 +519,7 @@ index 000000000000..a10734241650
 +		interrupts = <2 IRQ_TYPE_EDGE_RISING>;
 +		vdd-supply = <&buck4>;
 +		vddio-supply = <&buck4>;
-+		//drive-open-drain = <1>;
++		wakeup-source;
 +		interrupt-names = "INT1";
 +		status = "okay";
 +	};
@@ -673,7 +673,7 @@ index 000000000000..a10734241650
 +	pinctrl-0 = <&pinctrl_usdhc2>, <&pinctrl_usdhc2_gpio>;
 +	pinctrl-1 = <&pinctrl_usdhc2_100mhz>, <&pinctrl_usdhc2_gpio>;
 +	pinctrl-2 = <&pinctrl_usdhc2_200mhz>, <&pinctrl_usdhc2_gpio>;
-+	cd-gpios = <&gpio2 12 GPIO_ACTIVE_LOW>;
++	cd-gpios = <&gpio2 12 GPIO_ACTIVE_LOW>; no-1-8-v;
 +	vmmc-supply = <&reg_usdhc2_vmmc>;
 +	bus-width = <4>;
 +	status = "okay";
@@ -1023,7 +1023,6 @@ index 000000000000..a10734241650
 +
 +	/* Inputs START, PULLDOWN1, PULLDOWN2, PULLUP1, PULLUP2, HMI1, HMI2*/
 +	/* Ref manual search: PAD_CTL_PAD_SAI2_RXFS */
-+			
 +	pinctrl_digital_input: digital_input_grp {
 +		/* No pull, Schmitt trigger input = 0x80 */
 +		fsl,pins = <
@@ -1034,6 +1033,7 @@ index 000000000000..a10734241650
 +			MX8MP_IOMUXC_SAI5_RXD1__GPIO3_IO22			 	0x80
 +			MX8MP_IOMUXC_SAI1_RXFS__GPIO4_IO00 				0x80
 +			MX8MP_IOMUXC_SAI1_RXC__GPIO4_IO01 				0x80
++			MX8MP_IOMUXC_SAI1_TXD6__GPIO4_IO18  (PE_1_PULL_ENABLE  | PUE_1_WEAK_PULL_UP)
 +		>;
 +	};
 +

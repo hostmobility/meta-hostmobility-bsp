@@ -1,0 +1,11 @@
+[Unit]
+Description=T1 phy configuration script
+
+[Service]
+ExecStart=/opt/hm/hm_phy_setup.py
+Type=oneshot
+RemainAfterExit=true
+
+[Install]
+WantedBy=network-pre.target
+

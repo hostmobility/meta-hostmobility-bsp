@@ -1278,8 +1278,8 @@ index 000000000000..a7647b0a349e
 +		/* SGTL5000 audio codec */
 +		sgtl5000: codec@a {
 +			compatible = "fsl,sgtl5000";
-+			reg = <0x0a>;
-+			VDDA-supply = <&sys_3v3_reg>;
++			reg = <0x0a>; #sound-dai-cells = <0>;
++			VDDA-supply = <&sys_3v3_reg>; VDDD-supply = <&vio_reg>;
 +			VDDIO-supply = <&sys_3v3_reg>;
 +			clocks = <&tegra_car TEGRA30_CLK_EXTERN1>;
 +		};
@@ -1707,8 +1707,8 @@ index 000000000000..a7647b0a349e
 +	};
 +
 +	sound {
-+		compatible =  "nvidia,tegra-audio-sgtl5000";
-+		nvidia,model = "sgtl5000-audio";
++		compatible =  "toradex,tegra-audio-sgtl5000-colibri_t30", "nvidia,tegra-audio-sgtl5000";
++		nvidia,model = "Toradex Colibri T30";
 +		nvidia,audio-routing =
 +			"Headphone Jack", "HP_OUT",
 +			"LINE_IN", "Line In Jack",

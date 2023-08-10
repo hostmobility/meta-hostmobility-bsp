@@ -203,14 +203,14 @@ index 000000000000..7282461e3320
 +	
 +	/*Sd card */
 +	mmc@78000200 {
-+		//pinctrl-names = "default" , "sleep";
-+		//pinctrl-0 = <&sdhci_sd_default>;
++		compatible = "nvidia,tegra30-sdhci";
++		reg = <0x78000200 0x200>;
 +		//pinctrl-1 = <&sdhci_sd_sleep>;
 +		status = "okay";
 +		bus-width = <4>;
 +		//cd-gpios = <&gpio TEGRA_GPIO(T, 6) GPIO_ACTIVE_LOW>;
-+		max-frequency = <52000000>;
-+		no-1-8-v;
++		max-frequency = <50000000>;
++		no-1-8-v;non-removable;
 +	};
 +
 +	mmc@78000000 {

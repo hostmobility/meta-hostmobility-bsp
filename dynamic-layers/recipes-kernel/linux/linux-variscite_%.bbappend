@@ -14,6 +14,7 @@ file://0026-HMX-m_can-do-not-init-registers-until-bus-on.patch \
 file://0027-tcan4x5x-add-direct-register-read-debug.patch \
 file://0028-tcan4x4-stop-queue-first-in-transmit-to-avoid-race.patch \
 file://0029-tcan4x5x-remove-msg-lost-netdev_err-print.patch \
+file://0030-pca953x-driver-minimize-error-print-out.patch \
 "
 
 SRC_URI += "file://defconfig"

@@ -145,20 +145,20 @@ index 000000000000..a10734241650
 +		};
 +
 +		in_pulldown1 {
-+			label = "IN_PULLDOWN1";
++			label = "IN_PULLDOWN1";/* inverted signal */
 +			linux,code = <KEY_MACRO2>;
 +			linux,can-disable = <1>;
-+			gpios = <&gpio4 3 GPIO_ACTIVE_HIGH>;
++			gpios = <&gpio4 3 GPIO_ACTIVE_LOW>;
 +			wakeup-source;
 +			debounce-interval = <100>;
 +			wakeup-event-action = <0x01>;	/* asserted */
 +		};
 +
 +		in_pulldown2 {
-+			label = "IN_PULLDOWN2";
++			label = "IN_PULLDOWN2";/* inverted signal */
 +			linux,code = <KEY_MACRO3>;
 +			linux,can-disable = <1>;
-+			gpios = <&gpio4 2 GPIO_ACTIVE_HIGH>;
++			gpios = <&gpio4 2 GPIO_ACTIVE_LOW>;
 +			wakeup-source;
 +			debounce-interval = <100>;
 +			wakeup-event-action = <0x01>;	/* asserted */

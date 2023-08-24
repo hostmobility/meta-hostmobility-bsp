@@ -1,5 +1,6 @@
 [Unit]
 Description=Run autostart scripts
+After=network-pre.target
 
 [Service]
 Type=oneshot

@@ -36,7 +36,7 @@ else
         run set_red_led
         echo load failed, aborting;
         sleep 10;
-        reset; 
+        boot;
     fi
 fi
 #write the image onto the mmc. if it fails exit the script (and boot normally). TODO add a retry? TODO check checksum

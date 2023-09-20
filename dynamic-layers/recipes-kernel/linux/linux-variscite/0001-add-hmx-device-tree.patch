@@ -48,6 +48,11 @@ v10. Add spi node aliases and priorities so CAN channels do not move.
 v11. Add aliases and correct CAN labels
 
 v12. Correct MAC addresses on eth0 and eth1, move USB nodes to &usb_dwc3_1
+
+v13. Alias ethernet2 as eth0_obd and ethernet3 as eth1_rj45 to only need 2
+     extra MAC addresses, i.e. keep the ones from Variscite. Add
+     optional product number.
+
 ---
 
  arch/arm64/boot/dts/freescale/Makefile        |    2 +
@@ -70,7 +75,7 @@ new file mode 100644
 index 000000000000..a10734241650
 --- /dev/null
 +++ b/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts
-@@ -0,0 +1,1215 @@
+@@ -0,0 +1,1216 @@
 +// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 +/*
 + * Copyright 2022 Host Mobility AB
@@ -87,10 +92,10 @@ index 000000000000..a10734241650
 +	aliases {
 +		rtc0 = &rtc_extern;
 +		rtc1 = &snvs_rtc;
-+		ethernet0 = &eth0;
-+		ethernet1 = &eth1;
-+		ethernet2 = &fec;
-+		ethernet3 = &eqos;
++		ethernet0 = &fec;
++		ethernet1 = &eqos;
++		ethernet2 = &eth0_obd;
++		ethernet3 = &eth1_rj45;
 +		can0 = &can0;
 +		can1 = &flexcan2;
 +		can2 = &flexcan1;
@@ -105,6 +110,7 @@ index 000000000000..a10734241650
 +		stdout-path = &uart3;
 +		serial-number = "10210100000";
 +		part-number = "hmp1021-1";
++		product-number = "hm010";
 +	};
 +
 +	reg_usb_hubs: regulator-usbhubs {
@@ -629,7 +635,7 @@ index 000000000000..a10734241650
 +		wakeup-source;
 +		vdd-supply = <&reg_usb_hubs>;
 +
-+		eth1: usbether@1 {
++		eth1_rj45: usbether@1 {
 +			compatible = "usb424,ec00";
 +			reg =<1>;
 +			local-mac-address = [ 00 00 00 00 00 00 ];
@@ -644,7 +650,7 @@ index 000000000000..a10734241650
 +			#size-cells = <0>;
 +			wakeup-source;
 +
-+			eth0: obdether@1 {
++			eth0_obd: obdether@1 {
 +				compatible = "usb424,ec00";
 +				reg =<1>;
 +				local-mac-address = [ 00 00 00 00 00 00 ];

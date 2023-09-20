@@ -1,7 +1,7 @@
-From e278ae9eaa59f3c9ecb920a6d2b98d4c22097ff2 Mon Sep 17 00:00:00 2001
+From 432fe92f1fa08c383112467faa5445a77313c04d Mon Sep 17 00:00:00 2001
 From: rikardo <rikard.olander@hostmobility.com>
-Date: Thu, 2 Mar 2023 16:01:48 +0000
-Subject: [PATCH] add hmx device tree
+Date: Wed, 20 Sep 2023 14:26:47 +0000
+Subject: [PATCH] add hmx device tree 
 
 v1.  Files merged to single file.
 	0004-HMX-DT-update-for-ethernet-on-USB.patch
@@ -53,11 +53,12 @@ v13. Alias ethernet2 as eth0_obd and ethernet3 as eth1_rj45 to only need 2
      extra MAC addresses, i.e. keep the ones from Variscite. Add
      optional product number.
 
+v14. Add RGB led driver (only for i2c 0x30),
+the leds will be indicator:red/green/blue
 ---
-
  arch/arm64/boot/dts/freescale/Makefile        |    2 +
- .../dts/freescale/imx8mp-var-dart-hmx1.dts    | 1203 +++++++++++++++++
- 2 files changed, 1205 insertions(+)
+ .../dts/freescale/imx8mp-var-dart-hmx1.dts    | 1247 +++++++++++++++++
+ 2 files changed, 1249 insertions(+)
  create mode 100644 arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts
 
 diff --git a/arch/arm64/boot/dts/freescale/Makefile b/arch/arm64/boot/dts/freescale/Makefile
@@ -72,10 +73,10 @@ index 6ce43e6646ea..9e92208b3a14 100644
 +dtb-$(CONFIG_ARCH_MXC) += imx8mp-var-dart-hmx1.dtb
 diff --git a/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts b/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts
 new file mode 100644
-index 000000000000..a10734241650
+index 000000000000..5c7e229616c5
 --- /dev/null
 +++ b/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts
-@@ -0,0 +1,1216 @@
+@@ -0,0 +1,1247 @@
 +// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 +/*
 + * Copyright 2022 Host Mobility AB
@@ -504,6 +505,37 @@ index 000000000000..a10734241650
 +		compatible = "ti,tmp103";
 +		reg = <0x73>;
 +		status = "okay";
++	};
++	led-controller@30 {
++		compatible = "kinetic,ktd2026";
++		reg = <0x30>;//uboot change the register to <0x30>, <0x31> or <0x32>;
++		#address-cells = <1>;
++		#size-cells = <0>;
++
++		vin-supply = <&reg_base_3v3>;
++		vio-supply = <&reg_base_3v3>; //should be VCC_5V
++		led@0 {
++			reg = <0>;
++			max-brightness = <0x50>;
++			function = LED_FUNCTION_INDICATOR;
++			color = <LED_COLOR_ID_BLUE>;
++		};
++
++		led@1 {
++			reg = <1>;
++			max-brightness = <0x50>;
++			function = LED_FUNCTION_INDICATOR;
++			color = <LED_COLOR_ID_RED>;
++			default-brightness = <0x0>;
++		};
++
++		led@2 {
++			reg = <2>;
++			max-brightness = <0x50>;
++			color = <LED_COLOR_ID_GREEN>;
++			function = LED_FUNCTION_INDICATOR;
++			default-brightness = <0x50>;
++		};
 +	};
 +};
 +
@@ -1293,5 +1325,5 @@ index 000000000000..a10734241650
 +};
 +
 -- 
-2.30.2
+2.34.1
 

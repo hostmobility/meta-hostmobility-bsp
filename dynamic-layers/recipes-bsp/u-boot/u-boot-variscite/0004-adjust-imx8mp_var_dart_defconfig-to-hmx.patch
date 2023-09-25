@@ -1,7 +1,7 @@
-From bb060647b2d1ba70796321faf5e438cf536bca05 Mon Sep 17 00:00:00 2001
-From: rikardo <rikard.olander@hostmobility.com>
-Date: Mon, 20 Feb 2023 14:19:41 +0000
-Subject: [PATCH 4/4] adjust-imx8mp_var_dart_defconfig-to-hmx
+From f1f55e20509b0d2226121d9c4efc8623bc6c9eb9 Mon Sep 17 00:00:00 2001
+From: Mattias Busck <mattias.busck@hostmobility.com>
+Date: Sun, 24 Sep 2023 21:43:21 +0200
+Subject: [PATCH] adjust imx8mp_var_dart_defconfig to hmx
 
  V1.
 Add CMD_ PCA953X (commands for gpio expander)
@@ -9,23 +9,23 @@ Add USB ethernet generic driver
 V2.
 Change CONFIG_BOOTDELAY to 0
 ---
- configs/imx8mp_var_dart_defconfig | 6 ++++-
- 1 file changed, 4 insertions(+), 1 deletion(-)
+ configs/imx8mp_var_dart_defconfig | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
 
 diff --git a/configs/imx8mp_var_dart_defconfig b/configs/imx8mp_var_dart_defconfig
-index 1b6274f439..4bac0c0b44 100644
+index 7c0d461213..c042535cbe 100644
 --- a/configs/imx8mp_var_dart_defconfig
 +++ b/configs/imx8mp_var_dart_defconfig
-@@ -34,7 +34,7 @@ CONFIG_SPL_LOAD_FIT=y
- CONFIG_LEGACY_IMAGE_FORMAT=y
+@@ -37,7 +37,7 @@ CONFIG_LEGACY_IMAGE_FORMAT=y
  CONFIG_OF_BOARD_SETUP=y
  CONFIG_OF_SYSTEM_SETUP=y
+ CONFIG_DISTRO_DEFAULTS=y
 -CONFIG_BOOTDELAY=1
 +CONFIG_BOOTDELAY=0
  CONFIG_BOOTCOMMAND="run bsp_bootcmd"
  CONFIG_DEFAULT_FDT_FILE="imx8mp-var-dart-dt8mcustomboard.dtb"
  CONFIG_BOARD_EARLY_INIT_F=y
-@@ -103,6 +103,7 @@ CONFIG_FASTBOOT_BUF_SIZE=0x40000000
+@@ -115,6 +115,7 @@ CONFIG_FASTBOOT_BUF_SIZE=0x40000000
  CONFIG_FASTBOOT_FLASH=y
  CONFIG_GPIO_HOG=y
  CONFIG_MXC_GPIO=y
@@ -33,15 +33,15 @@ index 1b6274f439..4bac0c0b44 100644
  CONFIG_DM_PCA953X=y
  CONFIG_DM_I2C=y
  # CONFIG_SPL_DM_I2C is not set
-@@ -148,10 +149,14 @@ CONFIG_USB=y
+@@ -160,10 +161,14 @@ CONFIG_USB=y
  CONFIG_USB_XHCI_HCD=y
  CONFIG_USB_XHCI_DWC3=y
  CONFIG_USB_DWC3=y
 +CONFIG_USB_HOST_ETHER=y
  CONFIG_USB_GADGET=y
  CONFIG_USB_GADGET_MANUFACTURER="Variscite"
- CONFIG_USB_GADGET_VENDOR_NUM=0x0525
- CONFIG_USB_GADGET_PRODUCT_NUM=0xa4a5
+ CONFIG_USB_GADGET_VENDOR_NUM=0x1fc9
+ CONFIG_USB_GADGET_PRODUCT_NUM=0x0152
 +CONFIG_USB_ETHER=y
 +CONFIG_IMX_WATCHDOG=y
 +CONFIG_WDT=y
@@ -49,5 +49,5 @@ index 1b6274f439..4bac0c0b44 100644
  CONFIG_SHA384=y
  CONFIG_LZO=y
 -- 
-2.17.1
+2.30.2
 

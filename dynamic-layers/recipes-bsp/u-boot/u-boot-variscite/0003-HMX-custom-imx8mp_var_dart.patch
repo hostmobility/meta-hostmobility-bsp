@@ -1,7 +1,7 @@
-From 5432c08f7f3cc4134471d6bf2b3847503670aeb5 Mon Sep 17 00:00:00 2001
-From: rikardo <rikard.olander@hostmobility.com>
-Date: Wed, 22 Feb 2023 07:17:03 +0000
-Subject: [PATCH 1/1] HMX custom imx8mp_var_dart
+From 167eb0567f2d73da1773a822bdcc5a4017c901ce Mon Sep 17 00:00:00 2001
+From: Mattias Busck <mattias.busck@hostmobility.com>
+Date: Sun, 24 Sep 2023 20:46:05 +0200
+Subject: [PATCH] HMX custom imx8mp_var_dart
 
 V1.
 change uart1 to uart3
@@ -19,28 +19,28 @@ Add try_usb_flash try read bsp_script from USB memory.
 Add RGB LED handling. Set it to blue on boot and if
 we start to reflash set it to white with blink.
 Add watchdog_init
+
+V3.
+Upgrade to U-boot 2023.04
 ---
- .../imx8mp_var_dart/imx8mp_var_dart.c         | 90 ++++++++++++++++++-
- include/configs/imx8mp_var_dart.h             | 22 +++--
- 2 files changed, 103 insertions(+), 9 deletions(-)
+ .../imx8mp_var_dart/imx8mp_var_dart.c         | 86 ++++++++++++++++++-
+ include/configs/imx8mp_var_dart.h             | 21 +++--
+ 2 files changed, 99 insertions(+), 8 deletions(-)
 
 diff --git a/board/variscite/imx8mp_var_dart/imx8mp_var_dart.c b/board/variscite/imx8mp_var_dart/imx8mp_var_dart.c
-index e1a1215536..5adf71df87 100644
+index dbf8b319a1..2201799042 100644
 --- a/board/variscite/imx8mp_var_dart/imx8mp_var_dart.c
 +++ b/board/variscite/imx8mp_var_dart/imx8mp_var_dart.c
-@@ -29,17 +29,20 @@
+@@ -29,6 +29,8 @@
+ #include "../common/extcon-ptn5150.h"
  #include "../common/imx8_eeprom.h"
  #include "imx8mp_var_dart.h"
- 
 +//#include <watchdog.h>
 +#include "../common/hmx_eeprom.h"
+ 
  extern int var_setup_mac(struct var_eeprom *ep);
  
- DECLARE_GLOBAL_DATA_PTR;
- 
-+
- #define UART_PAD_CTRL	(PAD_CTL_DSE6 | PAD_CTL_FSEL1)
- #define WDOG_PAD_CTRL	(PAD_CTL_DSE6 | PAD_CTL_ODE | PAD_CTL_PUE | PAD_CTL_PE)
+@@ -38,8 +40,8 @@ DECLARE_GLOBAL_DATA_PTR;
  #define GPIO_PAD_CTRL	(PAD_CTL_DSE1 | PAD_CTL_PUE | PAD_CTL_PE  | PAD_CTL_HYS)
  
  static iomux_v3_cfg_t const uart_pads_dart[] = {
@@ -51,7 +51,7 @@ index e1a1215536..5adf71df87 100644
  };
  
  static iomux_v3_cfg_t const uart_pads_som[] = {
-@@ -62,6 +64,11 @@ static iomux_v3_cfg_t const board_detect_pads[] = {
+@@ -58,6 +60,11 @@ static iomux_v3_cfg_t const board_detect_pads[] = {
  };
  #endif
  
@@ -63,7 +63,7 @@ index e1a1215536..5adf71df87 100644
  int var_detect_board_id(void)
  {
  	static int board_id = BOARD_ID_UNDEF;
-@@ -99,7 +106,8 @@ int board_early_init_f(void)
+@@ -107,7 +114,8 @@ int board_early_init_f(void)
  	if (board_id == BOARD_ID_DART) {
  		imx_iomux_v3_setup_multiple_pads(uart_pads_dart,
  			ARRAY_SIZE(uart_pads_dart));
@@ -73,7 +73,7 @@ index e1a1215536..5adf71df87 100644
  	}
  	else if (board_id == BOARD_ID_SOM) {
  		imx_iomux_v3_setup_multiple_pads(uart_pads_som,
-@@ -112,8 +120,55 @@ int board_early_init_f(void)
+@@ -120,8 +128,55 @@ int board_early_init_f(void)
  }
  
  #ifdef CONFIG_OF_BOARD_SETUP
@@ -129,7 +129,7 @@ index e1a1215536..5adf71df87 100644
  #ifdef CONFIG_IMX8M_DRAM_INLINE_ECC
  	int rc;
  	phys_addr_t ecc0_start = 0xb0000000;
-@@ -337,6 +392,9 @@ int board_init(void)
+@@ -345,6 +400,9 @@ int board_init(void)
  	init_usb_clk();
  #endif
  
@@ -139,7 +139,7 @@ index e1a1215536..5adf71df87 100644
  	return 0;
  }
  
-@@ -350,6 +408,9 @@ int board_late_init(void)
+@@ -358,6 +416,9 @@ int board_late_init(void)
  	struct var_carrier_eeprom carrier_eeprom;
  	char carrier_rev[CARRIER_REV_LEN] = {0};
  
@@ -149,7 +149,7 @@ index e1a1215536..5adf71df87 100644
  #ifdef CONFIG_ENV_IS_IN_MMC
  	board_late_mmc_env_init();
  #endif
-@@ -382,6 +443,25 @@ int board_late_init(void)
+@@ -390,6 +451,25 @@ int board_late_init(void)
  	var_setup_mac(ep);
  	var_eeprom_print_prod_info(ep);
  
@@ -176,20 +176,11 @@ index e1a1215536..5adf71df87 100644
  }
  
 diff --git a/include/configs/imx8mp_var_dart.h b/include/configs/imx8mp_var_dart.h
-index 85b4eb6100..a6e7e5bfcf 100644
+index 3063851cf9..df0ace807a 100644
 --- a/include/configs/imx8mp_var_dart.h
 +++ b/include/configs/imx8mp_var_dart.h
-@@ -44,7 +44,7 @@
- 
- /* ENET Config */
- #if defined(CONFIG_CMD_NET)
--#define CONFIG_ETHPRIME			"eth0" /* Set eqos to primary since we use its MDIO */
-+#define CONFIG_ETHPRIME			"eth2" /* Set eqos to primary since we use its MDIO */
- #define CONFIG_FEC_XCV_TYPE		RGMII
- #define PHY_ANEG_TIMEOUT		20000
- #endif
-@@ -79,11 +79,11 @@
- 	BOOTENV \
+@@ -57,11 +57,11 @@
+ 	"prepare_mcore=setenv mcore_clk clk-imx8mp.mcore_booted;\0" \
  	"scriptaddr=0x43500000\0" \
  	"kernel_addr_r=" __stringify(CONFIG_SYS_LOAD_ADDR) "\0" \
 -	"bsp_script=boot.scr\0" \
@@ -202,7 +193,7 @@ index 85b4eb6100..a6e7e5bfcf 100644
  	"fdt_addr_r=0x43000000\0" \
  	"fdt_addr=0x43000000\0"			\
  	"fdt_high=0xffffffffffffffff\0"		\
-@@ -127,7 +127,7 @@
+@@ -105,7 +105,7 @@
  				"setenv fdt_file imx8mp-var-som-symphony.dtb; " \
  			"else " \
  				"if test $carrier_rev = legacy; then " \
@@ -211,7 +202,7 @@ index 85b4eb6100..a6e7e5bfcf 100644
  				"else " \
  					"setenv fdt_file imx8mp-var-dart-dt8mcustomboard.dtb;" \
  				"fi; " \
-@@ -181,7 +181,13 @@
+@@ -159,7 +159,13 @@
  				"echo WARN: Cannot load the DT; " \
  			"fi; " \
  		"fi;\0" \
@@ -226,7 +217,7 @@ index 85b4eb6100..a6e7e5bfcf 100644
  		"run ramsize_check; " \
  		"mmc dev ${mmcdev}; " \
  		"if mmc rescan; then " \
-@@ -189,7 +194,12 @@
+@@ -167,7 +173,12 @@
  				"run runm7bin; " \
  			"fi; " \
  			"if run loadbootscript; then " \
@@ -239,15 +230,15 @@ index 85b4eb6100..a6e7e5bfcf 100644
  			"else " \
  				"if run loadimage; then " \
  					"run mmcboot; " \
-@@ -213,7 +223,7 @@
+@@ -187,7 +198,7 @@
  #define PHYS_SDRAM			0x40000000
  #define DEFAULT_SDRAM_SIZE		(512 * SZ_1M)
  
--#define CONFIG_MXC_UART_BASE		UART1_BASE_ADDR
-+#define CONFIG_MXC_UART_BASE		UART3_BASE_ADDR
+-#define CFG_MXC_UART_BASE		UART1_BASE_ADDR
++#define CFG_MXC_UART_BASE		UART3_BASE_ADDR
  
  /* Monitor Command Prompt */
- #define CONFIG_SYS_PROMPT_HUSH_PS2	"> "
+ #define CFG_SYS_PROMPT_HUSH_PS2	"> "
 -- 
-2.17.1
+2.30.2
 

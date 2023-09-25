@@ -331,13 +331,13 @@ index 000000000000..172318069b6a
 +	return err;
 +}
 +
-+static int tcan114x_remove(struct spi_device *client)
++static void tcan114x_remove(struct spi_device *client)
 +{
 +	struct tcan114x_priv *data = dev_get_drvdata(&client->dev);
 +
 +	sysfs_remove_group(&data->dev->kobj, &tcan114x_attr_group);
 +	kfree(data);
-+	return 0;
++	return;
 +}
 +
 +static const struct of_device_id tcan114x_of_match[] = {

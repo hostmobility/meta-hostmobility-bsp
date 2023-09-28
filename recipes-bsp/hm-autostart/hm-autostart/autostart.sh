@@ -2,18 +2,6 @@
 
 WORKING_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 MACHINE=$(cat /etc/platform-system-type)
-#set RGB LED Green
-if [[ "$MACHINE" == "imx8mp-var-dart-hmx1" ]]; then
-	RGB_I2C_ID=$(fw_printenv RGB_I2C_ID | sed 's/RGB_I2C_ID=//')
-	if [[ -z "$RGB_I2C_ID" ]]; then
-		i2cset -y 1 0x32 8 0x50;
-		i2cset -y 1 0x32 4 0x10;
-	else
-		i2cset -y 1 ${RGB_I2C_ID} 8 0x50;
-		i2cset -y 1 ${RGB_I2C_ID} 4 0x10;
-	fi
-fi
-
 
 FIRST_TIME_BOOT_FILE=/etc/first_boot_after_update.txt
 

@@ -1,6 +1,6 @@
-From 5432c08f7f3cc4134471d6bf2b3847503670aeb5 Mon Sep 17 00:00:00 2001
+From 7a77a5cca80d1582aa431a3f7b3efb1d8d1b3e68 Mon Sep 17 00:00:00 2001
 From: rikardo <rikard.olander@hostmobility.com>
-Date: Wed, 22 Feb 2023 07:17:03 +0000
+Date: Thu, 28 Sep 2023 07:07:11 +0000V1.
 Subject: [PATCH 1/1] HMX custom imx8mp_var_dart
 
 V1.
@@ -19,13 +19,20 @@ Add try_usb_flash try read bsp_script from USB memory.
 Add RGB LED handling. Set it to blue on boot and if
 we start to reflash set it to white with blink.
 Add watchdog_init
+
+V3.
+Add set product-number to device tree on boot.
+Add set rbg led controller register to device tree on boot.
+Add load support for m7 co cpu (hmx-m7-fw.bin), the m7 will load before boot linux and flashing bsp.
+Subject: [PATCH 1/1] patch
+
 ---
- .../imx8mp_var_dart/imx8mp_var_dart.c         | 90 ++++++++++++++++++-
- include/configs/imx8mp_var_dart.h             | 22 +++--
- 2 files changed, 103 insertions(+), 9 deletions(-)
+ .../imx8mp_var_dart/imx8mp_var_dart.c         | 138 +++++++++++++++++-
+ include/configs/imx8mp_var_dart.h             |  29 ++--
+ 2 files changed, 155 insertions(+), 12 deletions(-)
 
 diff --git a/board/variscite/imx8mp_var_dart/imx8mp_var_dart.c b/board/variscite/imx8mp_var_dart/imx8mp_var_dart.c
-index e1a1215536..5adf71df87 100644
+index e1a1215536..b188df6143 100644
 --- a/board/variscite/imx8mp_var_dart/imx8mp_var_dart.c
 +++ b/board/variscite/imx8mp_var_dart/imx8mp_var_dart.c
 @@ -29,17 +29,20 @@
@@ -51,7 +58,7 @@ index e1a1215536..5adf71df87 100644
  };
  
  static iomux_v3_cfg_t const uart_pads_som[] = {
-@@ -62,6 +64,11 @@ static iomux_v3_cfg_t const board_detect_pads[] = {
+@@ -62,6 +65,11 @@ static iomux_v3_cfg_t const board_detect_pads[] = {
  };
  #endif
  
@@ -63,7 +70,7 @@ index e1a1215536..5adf71df87 100644
  int var_detect_board_id(void)
  {
  	static int board_id = BOARD_ID_UNDEF;
-@@ -99,7 +106,8 @@ int board_early_init_f(void)
+@@ -99,7 +107,8 @@ int board_early_init_f(void)
  	if (board_id == BOARD_ID_DART) {
  		imx_iomux_v3_setup_multiple_pads(uart_pads_dart,
  			ARRAY_SIZE(uart_pads_dart));
@@ -73,19 +80,22 @@ index e1a1215536..5adf71df87 100644
  	}
  	else if (board_id == BOARD_ID_SOM) {
  		imx_iomux_v3_setup_multiple_pads(uart_pads_som,
-@@ -112,8 +120,55 @@ int board_early_init_f(void)
+@@ -112,8 +121,106 @@ int board_early_init_f(void)
  }
  
  #ifdef CONFIG_OF_BOARD_SETUP
 +/* Set serial number and part number from environment to device tree blob chosen.
 +		serial-number = "23078888";
 +		part-number = "hmp00xx"; 
++		product-number = hmxxx;
++	Set RGB controller register id (0x30,0x31 or 0x32) to device tree blob.
 +*/
  int ft_board_setup(void *blob, struct bd_info *bd)
  {
 +#if defined(CONFIG_OF_LIBFDT)
 +	char *serial;
 +	char *part;
++	char *product;
 +	int offset;
 +	int err = 1;
 +	const char *path;
@@ -125,11 +135,59 @@ index e1a1215536..5adf71df87 100644
 +	} else {
 +		printf("WARNING: could not read part-number from env list.\n");
 +	}
++	product = env_get("product_nr");
++	if (product) {
++		err = fdt_setprop(blob, offset, "product-number", product,
++				  strlen(product) + 1);
++
++		if (err < 0) {
++			printf("WARNING: could not set product-number %s.\n",
++			       fdt_strerror(err));
++			return err;
++		}
++	} else {
++		printf("WARNING: could not read product-number from env list.\n");
++	}
++	/*Set RGB led register*/
++	char *rgb_env;
++	const char *subnode_name = "led-controller@30";
++	const char *alias_name = "i2c1";
++	unsigned int rgb_controller_register_id;
++	const char *i2c1_path = fdt_get_alias(blob, alias_name);
++	offset = fdt_path_offset(blob, i2c1_path);
++	if (offset < 0) {
++		debug("Node %s not found.\n", i2c1_path);
++		return err;
++	}
++	offset = fdt_subnode_offset(blob, offset, subnode_name);
++	if (offset < 0) {
++		debug("subnode node offset: %d not found.\n", offset);
++		return err;
++	}
++	rgb_env = env_get("RGB_I2C_ID");
++	/* Convert to byte */
++	if (rgb_env) {
++		if (strict_strtoul(rgb_env, 16, (unsigned long *)&rgb_controller_register_id)) {
++			printf("Error parsing the hexadecimal string\n");
++			return -EINVAL;
++		}
++		printf("RGB_I2C_ID: %u\n", rgb_controller_register_id);
++		err = fdt_setprop_u32(blob, offset, "reg", rgb_controller_register_id);
++
++		if (err < 0) {
++			printf("WARNING: could not set /i2c2/led-controller@30/reg %s.\n",
++				fdt_strerror(err));
++			return err;
++		}
++	} else {
++		printf("WARNING: could not read RGB_I2C_ID from env list.\n");
++	}
++
 +#endif
  #ifdef CONFIG_IMX8M_DRAM_INLINE_ECC
  	int rc;
  	phys_addr_t ecc0_start = 0xb0000000;
-@@ -337,6 +392,9 @@ int board_init(void)
+@@ -337,6 +444,9 @@ int board_init(void)
  	init_usb_clk();
  #endif
  
@@ -139,7 +197,7 @@ index e1a1215536..5adf71df87 100644
  	return 0;
  }
  
-@@ -350,6 +408,9 @@ int board_late_init(void)
+@@ -350,6 +460,9 @@ int board_late_init(void)
  	struct var_carrier_eeprom carrier_eeprom;
  	char carrier_rev[CARRIER_REV_LEN] = {0};
  
@@ -149,7 +207,7 @@ index e1a1215536..5adf71df87 100644
  #ifdef CONFIG_ENV_IS_IN_MMC
  	board_late_mmc_env_init();
  #endif
-@@ -382,6 +443,25 @@ int board_late_init(void)
+@@ -382,6 +495,25 @@ int board_late_init(void)
  	var_setup_mac(ep);
  	var_eeprom_print_prod_info(ep);
  
@@ -176,7 +234,7 @@ index e1a1215536..5adf71df87 100644
  }
  
 diff --git a/include/configs/imx8mp_var_dart.h b/include/configs/imx8mp_var_dart.h
-index 85b4eb6100..a6e7e5bfcf 100644
+index cf725dde22..0207350ddb 100644
 --- a/include/configs/imx8mp_var_dart.h
 +++ b/include/configs/imx8mp_var_dart.h
 @@ -44,7 +44,7 @@
@@ -202,6 +260,21 @@ index 85b4eb6100..a6e7e5bfcf 100644
  	"fdt_addr_r=0x43000000\0" \
  	"fdt_addr=0x43000000\0"			\
  	"fdt_high=0xffffffffffffffff\0"		\
+@@ -97,11 +97,11 @@
+ 	"mmcpart=1\0" \
+ 	"mmcautodetect=yes\0" \
+ 	"m7_addr=0x7e0000\0" \
+-	"m7_bin=hello_world.bin\0" \
+-	"use_m7=no\0" \
++	"m7_bin=hmx-m7-fw.bin\0" \
++	"use_m7=yes\0" \
+ 	"dfu_alt_info=mmc 2=1 raw 0x40 0x1000 mmcpart\0" \
+ 	"loadm7bin=" \
+-	         "load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${bootdir}/${m7_bin} && " \
++	         "load mmc ${mmcdev}:${mmcpart} ${loadaddr} /lib/firmware/${m7_bin} && " \
+ 	         "cp.b ${loadaddr} ${m7_addr} ${filesize}; " \
+ 	         "echo Init rsc_table region memory; " \
+ 	         "mw.b 400ff000 0 10\0" \
 @@ -127,7 +127,7 @@
  				"setenv fdt_file imx8mp-var-som-symphony.dtb; " \
  			"else " \
@@ -226,7 +299,7 @@ index 85b4eb6100..a6e7e5bfcf 100644
  		"run ramsize_check; " \
  		"mmc dev ${mmcdev}; " \
  		"if mmc rescan; then " \
-@@ -189,7 +194,12 @@
+@@ -189,7 +195,12 @@
  				"run runm7bin; " \
  			"fi; " \
  			"if run loadbootscript; then " \
@@ -239,7 +312,7 @@ index 85b4eb6100..a6e7e5bfcf 100644
  			"else " \
  				"if run loadimage; then " \
  					"run mmcboot; " \
-@@ -213,7 +223,7 @@
+@@ -213,7 +224,7 @@
  #define PHYS_SDRAM			0x40000000
  #define DEFAULT_SDRAM_SIZE		(512 * SZ_1M)
  
@@ -249,5 +322,5 @@ index 85b4eb6100..a6e7e5bfcf 100644
  /* Monitor Command Prompt */
  #define CONFIG_SYS_PROMPT_HUSH_PS2	"> "
 -- 
-2.17.1
+2.34.1
 

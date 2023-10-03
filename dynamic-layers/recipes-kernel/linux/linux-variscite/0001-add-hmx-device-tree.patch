@@ -1305,13 +1305,13 @@ index 000000000000..5c7e229616c5
 +	/*
 +	 * The SE050 security element may be driven via I2C from user space.
 +	 * The element itself is enabled here as it has no kernel driver.
-+	TODO add se050_ena to u-boot level and set it d disable in linux
++	TODO add se050_ena to u-boot level and set it enable in linux
 +	 */
 +	se050_ena {
 +		gpio-hog;
-+		gpios = <1 GPIO_ACTIVE_HIGH>;
++		gpios = <1 GPIO_ACTIVE_LOW>;
 +		line-name = "nHSM_SLEEP_SE050_ENABLE";
-+		output-high;
++		output-low;
 +		pinctrl-names = "default";
 +		pinctrl-0 = <&pinctrl_se050_ena>;
 +	};

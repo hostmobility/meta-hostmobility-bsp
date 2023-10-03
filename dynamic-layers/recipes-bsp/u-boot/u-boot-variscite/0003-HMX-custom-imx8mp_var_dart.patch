@@ -294,7 +294,7 @@ index cf725dde22..0207350ddb 100644
 +	"set_red_led=i2c mw ${RGB_I2C_ID} 7.1 0x50 1;i2c mw ${RGB_I2C_ID} 4.1 0x4 1\0" \
 +	"white_blink_fast=i2c mw ${RGB_I2C_ID} 1.1 1 1\0" \
 +	"try_usb_flash=sleep 2; usb reset; if load usb 0 ${loadaddr} ${bsp_script} ; then source ${loadaddr}; else echo UPDATE ERROR: no ${bsp_script} on first USB device. ;fi\0" \
-+	"set_RGB_ID=i2c dev 1; i2c probe 0x30 && setenv RGB_I2C_ID 0x30 || i2c probe 0x31 && setenv RGB_I2C_ID 0x31 || i2c probe 0x32 && setenv RGB_I2C_ID 0x32; if test -n \"${RGB_I2C_ID}\" ; then setenv first_time_boot_fix_RGB_ID 'i2c dev 1; echo RGB ID:$RGB_I2C_ID;'; saveenv;fi\0" \
++	"set_RGB_ID=i2c dev 1; i2c probe 0x30 && setenv RGB_I2C_ID 0x30 || i2c probe 0x31 && setenv RGB_I2C_ID 0x31 || i2c probe 0x32 && setenv RGB_I2C_ID 0x32; if test -n \"${RGB_I2C_ID}\" ; then setenv set_RGB_ID 'i2c dev 1; echo RGB ID:$RGB_I2C_ID;'; saveenv;fi\0" \
 +	"bsp_bootcmd=echo Running BSP bootcmd ...; run set_RGB_ID; run set_blue_led; " \
  		"run ramsize_check; " \
  		"mmc dev ${mmcdev}; " \

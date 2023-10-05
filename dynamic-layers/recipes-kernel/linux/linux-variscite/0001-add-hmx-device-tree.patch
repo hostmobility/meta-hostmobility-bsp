@@ -55,6 +55,9 @@ v13. Alias ethernet2 as eth0_obd and ethernet3 as eth1_rj45 to only need 2
 
 v14. Add RGB led driver (only for i2c 0x30),
 the leds will be indicator:red/green/blue
+
+v15. Use 8 frames tx fifo for tcan4x5x.
+
 ---
  arch/arm64/boot/dts/freescale/Makefile        |    2 +
  .../dts/freescale/imx8mp-var-dart-hmx1.dts    | 1247 +++++++++++++++++
@@ -750,7 +753,7 @@ index 000000000000..5f50de9f45ae
 +		#size-cells = <1>;
 +		spi-max-frequency = <18000000>;
 +		clocks = <&can3_osc>;
-+		bosch,mram-cfg = <0x0 0 0 24 0 0 1 1>;
++		bosch,mram-cfg = <0x0 0 0 15 0 0 8 8>;
 +		interrupt-parent = <&gpio4>;
 +		clock-names = "cclk";
 +		interrupts = <23 IRQ_TYPE_LEVEL_LOW>;
@@ -762,7 +765,7 @@ index 000000000000..5f50de9f45ae
 +		reg = <3>;
 +		#address-cells = <1>;
 +		#size-cells = <1>;
-+		bosch,mram-cfg = <0x0 0 0 24 0 0 1 1>;
++		bosch,mram-cfg = <0x0 0 0 15 0 0 8 8>;
 +		interrupt-parent = <&gpio4>;
 +		clock-names = "cclk";
 +		clocks = <&can5_osc>;
@@ -791,7 +794,7 @@ index 000000000000..5f50de9f45ae
 +		spi-max-frequency = <18000000>;
 +		clock-names = "cclk";
 +		clocks = <&can0_osc>;
-+		bosch,mram-cfg = <0x0 0 0 24 0 0 1 1>;
++		bosch,mram-cfg = <0x0 0 0 15 0 0 8 8>;
 +		interrupt-parent = <&gpio4>;
 +		interrupts = <24 IRQ_TYPE_LEVEL_LOW>;
 +		device-wake-gpios = <&gpio5 28 GPIO_ACTIVE_LOW>;
@@ -806,7 +809,7 @@ index 000000000000..5f50de9f45ae
 +		spi-max-frequency = <18000000>;
 +		clock-names = "cclk";
 +		clocks = <&can4_osc>;
-+		bosch,mram-cfg = <0x0 0 0 24 0 0 1 1>;
++		bosch,mram-cfg = <0x0 0 0 15 0 0 8 8>;
 +		interrupt-parent = <&gpio4>;
 +		interrupts = <27 IRQ_TYPE_LEVEL_LOW>;
 +		status = "okay";

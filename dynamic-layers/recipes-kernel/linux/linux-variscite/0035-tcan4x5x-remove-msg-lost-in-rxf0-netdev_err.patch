@@ -1,0 +1,25 @@
+From 562d0ecd645e9af208867b4ef939cf35e40375e5 Mon Sep 17 00:00:00 2001
+From: OpenEmbedded <oe.patch@oe>
+Date: Thu, 5 Oct 2023 23:30:45 +0200
+Subject: [PATCH 35/35] tcan4x5x: remove msg lost in rxf0 netdev_err
+
+---
+ drivers/net/can/m_can/m_can.c | 2 --
+ 1 file changed, 2 deletions(-)
+
+diff --git a/drivers/net/can/m_can/m_can.c b/drivers/net/can/m_can/m_can.c
+index a8592fa80955..aad4b4dd2558 100644
+--- a/drivers/net/can/m_can/m_can.c
++++ b/drivers/net/can/m_can/m_can.c
+@@ -629,8 +629,6 @@ static int m_can_handle_lost_msg(struct net_device *dev)
+ 	struct can_frame *frame;
+ 	u32 timestamp = 0;
+ 
+-	netdev_err(dev, "msg lost in rxf0\n");
+-
+ 	stats->rx_errors++;
+ 	stats->rx_over_errors++;
+ 
+-- 
+2.30.2
+

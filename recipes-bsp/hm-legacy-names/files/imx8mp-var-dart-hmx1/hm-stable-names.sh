@@ -44,9 +44,9 @@ prepare_rename $SOC_BASE/30800000.bus/30be0000.ethernet/net/* eth2
 # Second T1
 prepare_rename $SOC_BASE/30800000.bus/30bf0000.ethernet/net/* eth3
 # RJ45
-prepare_rename $SOC_BASE/32f10108.usb/38200000.usb/xhci-hcd.1.auto/usb1/1-1/1-1.1/1-1.1:1.0/net/* eth1
+prepare_rename $SOC_BASE/32f10108.usb/38200000.usb/xhci-hcd.0.auto/usb1/1-1/1-1.1/1-1.1:1.0/net/* eth1
 # Ethernet in Vehicle connector
-prepare_rename $SOC_BASE/32f10108.usb/38200000.usb/xhci-hcd.1.auto/usb1/1-1/1-1.2/1-1.2.1/1-1.2.1:1.0/net/* eth0
+prepare_rename $SOC_BASE/32f10108.usb/38200000.usb/xhci-hcd.0.auto/usb1/1-1/1-1.2/1-1.2.1/1-1.2.1:1.0/net/* eth0
 
 if (( ${#needs_renaming[@]} > 0 )); then
     echo "--- Renaming needed ---"

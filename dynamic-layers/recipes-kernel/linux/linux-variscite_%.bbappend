@@ -10,6 +10,7 @@ file://0018-power-reset-gpio-poweroff-add-force-mode.patch  \
 file://0022-gpio-keys-make-disabled-keys-not-wake-system.patch  \
 file://0030-gpio-pca953x-driver-minimize-error-print-out.patch \
 file://0001-Add-Kinetic-KTD2026-2027-LED-driver.patch \
+file://0034-tcan4x5x-Backport-linuxcan-next-6.6-driver.patch \
 "
 
 # TODO fix rest of CAN

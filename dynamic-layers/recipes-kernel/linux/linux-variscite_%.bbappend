@@ -9,6 +9,7 @@ file://0001-TCAN114x-driver-with-normal-standby-sleep-mode.patch \
 file://0018-power-reset-gpio-poweroff-add-force-mode.patch  \
 file://0022-gpio-keys-make-disabled-keys-not-wake-system.patch  \
 file://0030-pca953x-driver-minimize-error-print-out.patch \
+file://0034-tcan4x5x-Backport-linuxcan-next-6.6-driver.patch \
 "
 
 UNUSED_PATCHES = "\

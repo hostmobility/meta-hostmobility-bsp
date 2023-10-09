@@ -58,6 +58,10 @@ the leds will be indicator:red/green/blue
 
 v15. Use 8 frames tx fifo for tcan4x5x.
 
+v16. Add wakeup-source property to tcan4x5x nodes. This is used by new
+     driver patch to allow wake-up when interface in up when going into
+     suspend.
+
 ---
  arch/arm64/boot/dts/freescale/Makefile        |    2 +
  .../dts/freescale/imx8mp-var-dart-hmx1.dts    | 1247 +++++++++++++++++
@@ -79,7 +83,7 @@ new file mode 100644
 index 000000000000..5f50de9f45ae
 --- /dev/null
 +++ b/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts
-@@ -0,0 +1,1247 @@
+@@ -0,0 +1,1252 @@
 +// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 +/*
 + * Copyright 2022 Host Mobility AB
@@ -757,6 +761,7 @@ index 000000000000..5f50de9f45ae
 +		interrupt-parent = <&gpio4>;
 +		clock-names = "cclk";
 +		interrupts = <23 IRQ_TYPE_LEVEL_LOW>;
++		wakeup-source;
 +		status = "okay";
 +	};
 +	/* CAN-FD controller 6 in schematics */
@@ -772,6 +777,8 @@ index 000000000000..5f50de9f45ae
 +		/* TODO: Should this the IRQ_TYPE_LEVEL_LOW? */
 +		interrupts = <26 IRQ_TYPE_LEVEL_LOW>;
 +		spi-max-frequency = <18000000>;
++		wakeup-source;
++		status = "okay";
 +	};
 +};
 +
@@ -798,6 +805,7 @@ index 000000000000..5f50de9f45ae
 +		interrupt-parent = <&gpio4>;
 +		interrupts = <24 IRQ_TYPE_LEVEL_LOW>;
 +		device-wake-gpios = <&gpio5 28 GPIO_ACTIVE_LOW>;
++		wakeup-source;
 +		status = "okay";
 +	};
 +	/* CAN-FD controller 4 in schematics */
@@ -812,6 +820,7 @@ index 000000000000..5f50de9f45ae
 +		bosch,mram-cfg = <0x0 0 0 15 0 0 8 8>;
 +		interrupt-parent = <&gpio4>;
 +		interrupts = <27 IRQ_TYPE_LEVEL_LOW>;
++		wakeup-source;
 +		status = "okay";
 +	};
 +};

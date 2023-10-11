@@ -13,6 +13,7 @@ file://0001-Add-Kinetic-KTD2026-2027-LED-driver.patch \
 file://0034-tcan4x5x-Backport-linuxcan-next-6.6-driver.patch \
 file://0035-tcan4x5x-remove-msg-lost-in-rxf0-netdev_err.patch \
 file://0036-m_can-dont-enable-transceiver-when-probing.patch \
+file://0037-HMX-tcan4x5x-enable-wakeup-when-interface-is-up.patch \
 "
 
 # TODO fix rest of CAN

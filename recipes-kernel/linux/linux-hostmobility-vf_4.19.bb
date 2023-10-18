@@ -33,11 +33,19 @@ MACHINE_PATCHES:mx4-c61 = " \
     file://defconfig \
 "
 
+MACHINE_PATCHES:mx4-c61-rio = " \
+    file://0001-add-device-tree-for-c61-v61.patch \
+    file://0005-add-serdev-node-to-rs485.patch \
+    file://defconfig \
+    file://serdev.cfg \
+"
+
 SRC_URI = " \
     https://cdn.kernel.org/pub/linux/kernel/v4.x/linux-${PV}.tar.xz \
     ${GENERIC_PATCHES} \
     ${MACHINE_PATCHES} \
 "
+
 SRC_URI[md5sum] = "28019f0595ded76ba53d2f4790ce2f7e"
 SRC_URI[sha256sum] = "2144843abc8e3ea2ae53bc1c76b73c033ac4eedb004125762a368fd3a60ed292"
 

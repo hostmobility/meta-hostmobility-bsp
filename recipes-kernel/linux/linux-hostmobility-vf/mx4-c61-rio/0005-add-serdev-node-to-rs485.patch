@@ -1,0 +1,15 @@
+diff --git a/arch/arm/boot/dts/vf-mx4-c61.dtsi b/arch/arm/boot/dts/vf-mx4-c61.dtsi
+index dbd7daf..f035661 100644
+--- a/arch/arm/boot/dts/vf-mx4-c61.dtsi
++++ b/arch/arm/boot/dts/vf-mx4-c61.dtsi
+@@ -257,3 +257,10 @@
+ 		};
+ 	};
+ };
++
++&uart1 {
++      gpio_firecrest {
++              compatible = "hm,gpio_firecrest";
++      };
++};
++

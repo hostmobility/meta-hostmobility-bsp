@@ -3,7 +3,7 @@ DESCRIPTION = "${SUMMARY}"
 LICENSE = "GPL-2.0-only"
 LIC_FILES_CHKSUM = "file://COPYING;md5=12f884d2ae1ff87c09e5b7ccc2c4ca7e"
 DRIVERBRANCH = "main"
-SRCREV = "e8e6ac22ceae89ed7a4316c646c1dc664ecc2e34"
+SRCREV = "7ef2fbed9e69867e7985dda796c1984adc59524e"
 
 inherit module
 DEPENDS += "virtual/kernel"

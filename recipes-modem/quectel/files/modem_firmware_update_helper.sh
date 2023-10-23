@@ -1,5 +1,7 @@
 #!/bin/bash
 
+system_type=$(cat /etc/platform-system-type)
+
 start_recovery_state()
 {
 	
@@ -78,11 +80,11 @@ modem_wait()
 
 #################main#################
 #Does startup the modem direct
-if [[ "$(cat /etc/platform-system-type)" == "imx8mp-var-dart-hmx1" ]]; then
+if [[ "$system_type" == "imx8mp-var-dart-hmx1" ]]; then
 	update_modem $1 || start_recovery_state_v2 $1
 fi
 #mxv way
-if [[ "$(cat /etc/platform-system-type)" == "mx5-pt" ]]; then
+if [[ "$system_type" == "mx5-pt" ]]; then
 	if gpioset $(gpiofind MODEM_ENABLE_ON)=0; then
 		echo "FAILED gpioset (gpiofind MODEM_ENABLE_ON) off!"
 	fi
@@ -97,9 +99,9 @@ if [[ "$(cat /etc/platform-system-type)" == "mx5-pt" ]]; then
 	update_modem $1 || start_recovery_state_v2 $1
 fi
 #mx4 way
-if [[ "$(cat /etc/platform-system-type)" == "mx4-ct" || "$(cat /etc/platform-system-type)" == "mx4-c61" ]]; then
+if [[ "$system_type" == "mx4-ct" || "$system_type" == "mx4-c61"* ]]; then
 
-	if [ ! -d $1 ]; then
+	if [[ ! -d $1 ]]; then
 		echo "Add a folder for modem firmware, example EG25GGBR07A08M2G_30.006.30.006."
 		exit 1
 	fi

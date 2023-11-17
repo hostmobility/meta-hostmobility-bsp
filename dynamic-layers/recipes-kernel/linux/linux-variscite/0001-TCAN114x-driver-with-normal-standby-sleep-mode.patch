@@ -1,7 +1,7 @@
-From dd8374a89d069c6e748a1bbae27cbf723f7e2e5d Mon Sep 17 00:00:00 2001
+From 8604d2f45a9d8d8bfd245931d88363ac8b328d97 Mon Sep 17 00:00:00 2001
 From: Mattias Busck <mattias.busck@hostmobility.com>
-Date: Thu, 6 Oct 2022 12:46:22 +0200
-Subject: [PATCH] tcan114x driver with normal/standby/sleep mode
+Date: Tue, 3 Oct 2023 14:58:37 +0000
+Subject: [PATCH 1/1] tcan114x driver with normal/standby/sleep mode
 
 v1. First version
 v2. Fix tcan114x_mode_store for sleep/standby
@@ -14,7 +14,7 @@ v3. Write register SWE_DIS to disable sleep timeout
  create mode 100644 drivers/misc/tcan114x.c
 
 diff --git a/drivers/misc/Kconfig b/drivers/misc/Kconfig
-index 0f5a49fc7c9e..4665fdf70004 100644
+index 358ad56f6524..8ed3b0b54390 100644
 --- a/drivers/misc/Kconfig
 +++ b/drivers/misc/Kconfig
 @@ -120,6 +120,13 @@ config TIFM_CORE
@@ -32,7 +32,7 @@ index 0f5a49fc7c9e..4665fdf70004 100644
  	tristate "TI Flash Media PCI74xx/PCI76xx host adapter support"
  	depends on PCI && TIFM_CORE
 diff --git a/drivers/misc/Makefile b/drivers/misc/Makefile
-index a086197af544..9c5a56b98650 100644
+index ac9b3e757ba1..e75dd1e4a9b9 100644
 --- a/drivers/misc/Makefile
 +++ b/drivers/misc/Makefile
 @@ -33,6 +33,7 @@ obj-$(CONFIG_SENSORS_TSL2550)	+= tsl2550.o
@@ -331,13 +331,13 @@ index 000000000000..172318069b6a
 +	return err;
 +}
 +
-+static int tcan114x_remove(struct spi_device *client)
++static void tcan114x_remove(struct spi_device *client)
 +{
 +	struct tcan114x_priv *data = dev_get_drvdata(&client->dev);
 +
 +	sysfs_remove_group(&data->dev->kobj, &tcan114x_attr_group);
 +	kfree(data);
-+	return 0;
++
 +}
 +
 +static const struct of_device_id tcan114x_of_match[] = {
@@ -370,5 +370,5 @@ index 000000000000..172318069b6a
 +MODULE_DESCRIPTION("ti tcan114x CAN transceiver SPI driver");
 +MODULE_LICENSE("GPL");
 -- 
-2.30.2
+2.34.1
 

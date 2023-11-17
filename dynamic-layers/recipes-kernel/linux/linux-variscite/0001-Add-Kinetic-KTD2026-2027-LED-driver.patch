@@ -1,9 +1,8 @@
-From 78501b0b41d70adc3149a0a2788c1432ded6c5f9 Mon Sep 17 00:00:00 2001
+From c09bdfb628392d915e3b2bf5aa4c37cd7128f3a7 Mon Sep 17 00:00:00 2001
 From: rikardo <rikard.olander@hostmobility.com>
-Date: Thu, 21 Sep 2023 16:30:33 +0000
-Subject: [PATCH 1/1] =Add Kinetic KTD2026/2027 LED driver
-    Signed-off-by: Rikard Olander <rikard.olander@hostmobilit.com>
-    Changes in v3:
+Date: Tue, 3 Oct 2023 14:51:19 +0000
+Subject: [PATCH 1/1] Add Kinetic KTD2026/2027 LED driver
+ Changes in v3:
     - Add max-brightness from device tree
     - Add default-brightness from device tree
     - Add suspend and resume (with custom blink behavior)
@@ -40,15 +39,15 @@ Subject: [PATCH 1/1] =Add Kinetic KTD2026/2027 LED driver
     - Link to v1: https://lore.kernel.org/r/20230618-ktd202x-v1-0-fc182fefadd7@apitzsch.eu
     
     [1] https://lore.kernel.org/linux-leds/20230815-aw2013-vio-v3-0-2505296b0856@gerhold.net/
-	
+
 
  .../bindings/leds/kinetic,ktd202x.yaml        | 171 +++++
- drivers/leds/Kconfig                          |  13 +
- drivers/leds/Makefile                         |   3 +
- drivers/leds/leds-ktd202x.c                   | 703 ++++++++++++++++++
- 4 files changed, 890 insertions(+)
+ drivers/leds/rgb/Kconfig                      |  13 +
+ drivers/leds/rgb/Makefile                     |   1 +
+ drivers/leds/rgb/leds-ktd202x.c               | 703 ++++++++++++++++++
+ 4 files changed, 888 insertions(+)
  create mode 100644 Documentation/devicetree/bindings/leds/kinetic,ktd202x.yaml
- create mode 100644 drivers/leds/leds-ktd202x.c
+ create mode 100644 drivers/leds/rgb/leds-ktd202x.c
 
 diff --git a/Documentation/devicetree/bindings/leds/kinetic,ktd202x.yaml b/Documentation/devicetree/bindings/leds/kinetic,ktd202x.yaml
 new file mode 100644
@@ -227,14 +226,15 @@ index 000000000000..832c030a5acf
 +            };
 +        };
 +    };
-diff --git a/drivers/leds/Kconfig b/drivers/leds/Kconfig
-index ed800f5da7d8..a60502ede451 100644
---- a/drivers/leds/Kconfig
-+++ b/drivers/leds/Kconfig
-@@ -722,6 +722,19 @@ config LEDS_IS31FL32XX
- 	  LED controllers. They are I2C devices with multiple constant-current
- 	  channels, each with independent 256-level PWM control.
+diff --git a/drivers/leds/rgb/Kconfig b/drivers/leds/rgb/Kconfig
+index 204cf470beae..7ca126c16a22 100644
+--- a/drivers/leds/rgb/Kconfig
++++ b/drivers/leds/rgb/Kconfig
+@@ -25,5 +25,18 @@ config LEDS_QCOM_LPG
+ 	  a LED, grouped to represent a RGB LED or exposed as PWM channels.
  
+ 	  If compiled as a module, the module will be named leds-qcom-lpg.
++	  
 +config LEDS_KTD202X
 +	tristate "LED support for KTD202x Chips"
 +	depends on I2C
@@ -247,29 +247,22 @@ index ed800f5da7d8..a60502ede451 100644
 +
 +	  To compile this driver as a module, choose M here: the module
 +	  will be called leds-ktd202x.
-+
- config LEDS_SC27XX_BLTC
- 	tristate "LED support for the SC27xx breathing light controller"
- 	depends on LEDS_CLASS && MFD_SC27XX_PMIC
-diff --git a/drivers/leds/Makefile b/drivers/leds/Makefile
-index c636ec069612..c83e424fb6e5 100644
---- a/drivers/leds/Makefile
-+++ b/drivers/leds/Makefile
-@@ -100,6 +100,9 @@ obj-$(CONFIG_LEDS_USER)			+= uleds.o
- # Flash and Torch LED Drivers
- obj-$(CONFIG_LEDS_CLASS_FLASH)		+= flash/
  
-+# LED I2C Drivers
+ endif # LEDS_CLASS_MULTICOLOR
+diff --git a/drivers/leds/rgb/Makefile b/drivers/leds/rgb/Makefile
+index 0675bc0f6e18..2e894fe5f73f 100644
+--- a/drivers/leds/rgb/Makefile
++++ b/drivers/leds/rgb/Makefile
+@@ -2,3 +2,4 @@
+ 
+ obj-$(CONFIG_LEDS_PWM_MULTICOLOR)	+= leds-pwm-multicolor.o
+ obj-$(CONFIG_LEDS_QCOM_LPG)		+= leds-qcom-lpg.o
 +obj-$(CONFIG_LEDS_KTD202X)		+= leds-ktd202x.o
-+
- # LED Triggers
- obj-$(CONFIG_LEDS_TRIGGERS)		+= trigger/
- 
-diff --git a/drivers/leds/leds-ktd202x.c b/drivers/leds/leds-ktd202x.c
+diff --git a/drivers/leds/rgb/leds-ktd202x.c b/drivers/leds/rgb/leds-ktd202x.c
 new file mode 100644
 index 000000000000..133da7db6899
 --- /dev/null
-+++ b/drivers/leds/leds-ktd202x.c
++++ b/drivers/leds/rgb/leds-ktd202x.c
 @@ -0,0 +1,703 @@
 +// SPDX-License-Identifier: GPL-2.0-or-later
 +/*
@@ -870,14 +863,14 @@ index 000000000000..133da7db6899
 +	return ret;
 +}
 +
-+static int ktd202x_remove(struct i2c_client *client)
++static void ktd202x_remove(struct i2c_client *client)
 +{
 +	struct ktd202x *chip = i2c_get_clientdata(client);
 +
 +	ktd202x_chip_disable(chip);
 +
 +	mutex_destroy(&chip->mutex);
-+	return 0;
++
 +}
 +
 +static void ktd202x_shutdown(struct i2c_client *client)

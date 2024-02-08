@@ -51,6 +51,7 @@ PREFERRED_PROVIDER_j1708-lib = "j1708-lib_1.0.6"
 PREFERRED_PROVIDER_j1708-test = "j1708-test_1.0.6"
 
 MACHINE_EXTRA_RDEPENDS += " \
+    kernel-modules \
     packagegroup-hostmobility-commercial \
     ${@bb.utils.contains('MACHINE_FEATURES', 'wifi', \
                           'linux-firmware-ath9k linux-firmware-wl18xx hostapd', '', d)} \

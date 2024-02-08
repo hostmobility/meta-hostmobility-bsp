@@ -1,0 +1,35 @@
+From 23e8addd899bc4da5c8c33ca2fdbdce57ff3ab7e Mon Sep 17 00:00:00 2001
+From: rikardo <rikard.olander@hostmobility.com>
+Date: Thu, 11 May 2023 07:23:33 +0000
+Subject: [PATCH 1/1]  To get the SD/MMC host device ID, read the alias from
+ the  device tree.
+
+This is useful in case a SoC has multipe SD/MMC host controllers while
+the second controller should logically be the first device (e.g. if
+the second controller is connected to an internal eMMC). Combined
+with block device numbering using MMC/SD host device ID, this
+results in predictable name assignment of the internal eMMC block
+device.
+---
+ drivers/mmc/core/host.c | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/drivers/mmc/core/host.c b/drivers/mmc/core/host.c
+index b89dca1f15e9..fc50d154acc9 100644
+--- a/drivers/mmc/core/host.c
++++ b/drivers/mmc/core/host.c
+@@ -532,6 +532,11 @@ struct mmc_host *mmc_alloc_host(int extra, struct device *dev)
+ 	/* scanning will be enabled when we're ready */
+ 	host->rescan_disable = 1;
+ 
++	/* If OF aliases exist, start dynamic assignment after highest. hack for T30*/
++	alias_id = of_alias_get_highest_id("mmc");
++	alias_id = (alias_id < 0) ? 0 : alias_id + 1;
++
++	/* If this devices has OF node, maybe it has an alias */
+ 	alias_id = of_alias_get_id(dev->of_node, "mmc");
+ 	if (alias_id >= 0) {
+ 		index = alias_id;
+-- 
+2.34.1
+

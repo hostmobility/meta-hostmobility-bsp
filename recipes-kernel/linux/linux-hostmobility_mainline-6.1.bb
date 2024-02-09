@@ -28,6 +28,7 @@ MACHINE_PATCHES:tegra3 = " \
     file://0004-T30-Update-device-tree-with-better-suspend-routine.patch \
     file://0005-To-get-the-SD-MMC-host-device-ID-read-the-alias-from.patch \
     file://0009-Change-asix-driver-to-version-4.23.patch \
+    file://0010-fix-missing-operating-points-v2-for-mmc-4-and-2.patch \
 "
 
 MACHINE_PATCHES:vfcv61 = " \
@@ -76,7 +77,7 @@ do_uboot_mkimage:prepend() {
 #For Vf (mx4)
 #KERNEL_MODULE_AUTOLOAD:vf60 += "${@bb.utils.contains('COMBINED_FEATURES', 'usbgadget', ' libcomposite', '',d)}"
 
-#DEPENDS:vf60 += "lzop-native bc-native u-boot-mkimage-native"
+DEPENDS:vf60 += "u-boot-mkimage-native"
 
 
 # We use CONFIG_ARM_APPENDED_DTB=y and below shall take care of that

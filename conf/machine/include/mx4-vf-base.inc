@@ -3,10 +3,11 @@
 include conf/machine/include/imx-base.inc
 include conf/machine/include/arm/armv7a/tune-cortexa5.inc
 
-MACHINEOVERRIDES =. "vf:vf50:vf60:"
+MACHINEOVERRIDES =. "vf:vf50:vf60:vfcv61:"
 
-LINUX_VERSION_use-head-next = "4.19"
-PREFERRED_PROVIDER_virtual/kernel ?= "linux-hostmobility-vf"
+LINUX_VERSION_use-head-next = "6.1"
+PREFERRED_PROVIDER_virtual/kernel ?= "linux-hostmobility"
+KERNEL_DEFCONFIG = "imx_v6_v7_defconfig"
 KERNEL_IMAGETYPE = "zImage"
 
 # We store kernel on seperate MTD partition so no need to deploy to rootfs.

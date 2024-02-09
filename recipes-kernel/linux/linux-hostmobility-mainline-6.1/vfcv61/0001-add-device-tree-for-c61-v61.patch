@@ -1,0 +1,976 @@
+From 170c2c52858a98e033946f8f7ec4f6aa7e1bcd15 Mon Sep 17 00:00:00 2001
+From: rikardo <rikard.olander@hostmobility.com>
+Date: Fri, 9 Jun 2023 14:35:52 +0000
+Subject: [PATCH 1/1] add-device-tree-for-c61-v61
+
+---
+ arch/arm/boot/dts/vf-mx4-c61.dtsi   | 259 ++++++++++++++++++++++++++
+ arch/arm/boot/dts/vf-mx4-v61.dtsi   | 242 ++++++++++++++++++++++++
+ arch/arm/boot/dts/vf-mx4.dtsi       | 274 ++++++++++++++++++++++++++++
+ arch/arm/boot/dts/vf610-mx4-c61.dts |  17 ++
+ arch/arm/boot/dts/vf610-mx4-v61.dts |  22 +++
+ arch/arm/boot/dts/vf610-mx4.dtsi    | 103 +++++++++++
+ 6 files changed, 917 insertions(+)
+ create mode 100644 arch/arm/boot/dts/vf-mx4-c61.dtsi
+ create mode 100644 arch/arm/boot/dts/vf-mx4-v61.dtsi
+ create mode 100644 arch/arm/boot/dts/vf-mx4.dtsi
+ create mode 100644 arch/arm/boot/dts/vf610-mx4-c61.dts
+ create mode 100644 arch/arm/boot/dts/vf610-mx4-v61.dts
+ create mode 100644 arch/arm/boot/dts/vf610-mx4.dtsi
+
+diff --git a/arch/arm/boot/dts/vf-mx4-c61.dtsi b/arch/arm/boot/dts/vf-mx4-c61.dtsi
+new file mode 100644
+index 000000000000..f26fdcc358fb
+--- /dev/null
++++ b/arch/arm/boot/dts/vf-mx4-c61.dtsi
+@@ -0,0 +1,259 @@
++/*
++ * Copyright 2016 Host Mobility AB
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ */
++
++#include <dt-bindings/input/input.h>
++
++/ {
++	chosen {
++		//bootargs = "console=ttyLP2,115200";
++		stdout-path = &uart2;
++	};
++
++	clk24m: clk24m {
++		compatible = "fixed-clock";
++		#clock-cells = <0>;
++		clock-frequency = <24000000>;
++	};
++
++	regulators {
++		compatible = "simple-bus";
++		#address-cells = <1>;
++		#size-cells = <0>;
++
++		sys_5v0_reg: regulator@0 {
++			compatible = "regulator-fixed";
++			reg = <0>;
++			regulator-name = "5v0";
++			regulator-min-microvolt = <5000000>;
++			regulator-max-microvolt = <5000000>;
++			regulator-always-on;
++		};
++
++		/* USBH_PEN */
++		usbh_vbus_reg: regulator@1 {
++			compatible = "regulator-fixed";
++			pinctrl-names = "default";
++			pinctrl-0 = <&pinctrl_usbh1_reg>;
++			reg = <1>;
++			gpio = <&gpio2 19 0>;
++			enable-active-high;
++			regulator-name = "usbh_vbus";
++			regulator-min-microvolt = <5000000>;
++			regulator-max-microvolt = <5000000>;
++			vin-supply = <&sys_5v0_reg>;
++
++			regulator-state-mem {
++				regulator-on-in-suspend;
++			};
++		};
++	};
++
++	gpio-keys {
++		compatible = "gpio-keys";
++		pinctrl-names = "default";
++		pinctrl-0 = <&pinctrl_gpiokeys>;
++
++		power {
++			label = "power off";
++			gpios = <&gpio2 24 GPIO_ACTIVE_LOW>;
++			linux,code = <KEY_POWER>;
++			debounce-interval = <10>;
++		};
++	};
++	gpio-leds {
++		compatible = "gpio-leds";
++
++		Dummy-led {
++			label = "cloudbox:red:fail";
++			//gpios = <&gpio0 14 GPIO_ACTIVE_HIGH>;
++		};
++	};
++};
++
++&nfc {
++	assigned-clocks = <&clks VF610_CLK_NFC>;
++	assigned-clock-rates = <50000000>;
++};
++
++&sai0 {
++	status = "okay";
++};
++
++&sai2 {
++	status = "okay";
++};
++
++&dspi0 {
++	status = "okay";
++
++	mcp2515can: can@1 {
++		compatible = "microchip,mcp2515";
++		pinctrl-names = "default";
++		pinctrl-0 = <&pinctrl_can_int>;
++		reg = <1>;
++		clocks = <&clk24m>;
++		spi-max-frequency = <10000000>;
++		interrupt-parent = <&gpio0>;
++		interrupts = <10 GPIO_ACTIVE_LOW>;
++	};
++};
++
++&dspi1 {
++	status = "okay";
++
++	mx4_io_spi: dspi@0 {
++		compatible = "mx4_io_spi";
++		reg = <0>;
++		spi-max-frequency = <3000000>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&pinctrl_mx4_io_int>;
++		interrupt-parent = <&gpio0>;
++		interrupts = <20 IRQ_TYPE_EDGE_RISING>;
++		gpios = <&gpio1 9 IRQ_TYPE_EDGE_RISING>;
++		spi-cpha;
++		interrupt-controller;
++		gpio-controller;
++		gpio-line-names = 
++			"digital-out-1-source",
++			"digital-out-2-source",
++			"nc_1",
++			"nc_2",
++			"nc_3",
++			"nc_4",
++			"nc_5",
++			"digital-out-1-sink",
++			"digital-out-2-sink",
++			"nc_6",
++			"nc_7",
++			"nc_8",
++			"nc_9",
++			"nc_10",
++			"digital-out-en",
++			"digital-out-1",
++			"digital-out-2",
++			"nc_11",
++			"nc_12",
++			"nc_13",
++			"nc_14",
++			"vref",
++			"5V",
++			"3.3V",
++			"nc_15",
++			"nc_16",
++			"5V out",
++			"digital-in-1 / sc",
++			"digital-in-2 / sc",
++			"nc_17",
++			"nc_18",
++			"nc_19",
++			"nc_20",
++			"modem sync",
++			"modem ring",
++			"modem current ind",
++			"modem power ind",
++			"start switch",
++			"CAN-WAKEUP",
++			"MUX-IN-1",
++			"MUX-IN-2",
++			"CAN0-WAKEUP",
++			"CAN1-WAKEUP",
++			"CAN2-WAKEUP",
++			"CAN3-WAKEUP",
++			"CAN4-WAKEUP",
++			"CAN5-WAKEUP",
++			"MUX-OUT-1",
++			"MUX-OUT-2",
++			"nc_21",
++			"nc_22",
++			"nc_23",
++			"nc_24",
++			"nc_25",
++			"nc_26";
++	};
++
++	mx4_pic: dspi@1 {
++		compatible = "hostmobility,mx4_pic";
++		reg = <1>;
++		spi-max-frequency = <50000000>;
++	};
++};
++
++&i2c2 {
++	status = "okay";
++
++	acc: mma8452q@1c {
++		compatible = "fsl,mma8452";
++		reg = <0x1c>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&pinctrl_acc>;
++		interrupt-parent = <&gpio1>;
++		interrupts = <31 IRQ_TYPE_EDGE_FALLING>;
++	};
++
++	rtc0: pcf85063@51 {
++		compatible = "nxp,pcf85063";
++		reg = <0x51>;
++	};
++};
++
++
++&esdhc1 {
++	status = "okay";
++};
++
++&fec1 {
++	phy-mode = "rmii";
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_fec1>;
++	status = "okay";
++};
++
++&uart0 {
++	status = "okay";
++};
++
++&uart1 {
++	status = "okay";
++};
++
++&uart2 {
++	status = "okay";
++};
++
++&usbh1 {
++	vbus-supply = <&usbh_vbus_reg>;
++};
++
++&iomuxc {
++	vf610-colibri {
++		pinctrl_gpiokeys: gpiokeys {
++			fsl,pins = <
++				VF610_PAD_PTD9__GPIO_88		0x0001
++			>;
++		};
++		pinctrl_can_int: can_int {
++			fsl,pins = <
++				VF610_PAD_PTA20__GPIO_10	0x22ed
++			>;
++		};
++
++		pinctrl_acc: acc_int1 {
++			fsl,pins = <
++				VF610_PAD_PTD31__GPIO_63    0x219d
++			>;
++		};
++
++		pinctrl_mx4_io_int: mx4_io_int {
++			fsl,pins = <
++				VF610_PAD_PTA30__GPIO_20	0x0009
++				VF610_PAD_PTB19__GPIO_41	0x0009
++			>;
++		};
++	};
++};
+diff --git a/arch/arm/boot/dts/vf-mx4-v61.dtsi b/arch/arm/boot/dts/vf-mx4-v61.dtsi
+new file mode 100644
+index 000000000000..db67c78c9328
+--- /dev/null
++++ b/arch/arm/boot/dts/vf-mx4-v61.dtsi
+@@ -0,0 +1,242 @@
++/*
++ * Copyright 2015 Host Mobility AB
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ */
++
++#include <dt-bindings/input/input.h>
++
++/ {
++	chosen {
++		bootargs = "console=ttyLP0,115200";
++	};
++
++	clk24m: clk24m {
++		compatible = "fixed-clock";
++		#clock-cells = <0>;
++		clock-frequency = <24000000>;
++	};
++
++	regulators {
++		compatible = "simple-bus";
++		#address-cells = <1>;
++		#size-cells = <0>;
++
++		sys_5v0_reg: regulator@0 {
++			compatible = "regulator-fixed";
++			reg = <0>;
++			regulator-name = "5v0";
++			regulator-min-microvolt = <5000000>;
++			regulator-max-microvolt = <5000000>;
++			regulator-always-on;
++		};
++
++		/* USBH_PEN */
++		usbh_vbus_reg: regulator@1 {
++			compatible = "regulator-fixed";
++			pinctrl-names = "default";
++			pinctrl-0 = <&pinctrl_usbh1_reg>;
++			reg = <1>;
++			gpio = <&gpio2 19 0>;
++			enable-active-high;
++			regulator-name = "usbh_vbus";
++			regulator-min-microvolt = <5000000>;
++			regulator-max-microvolt = <5000000>;
++			vin-supply = <&sys_5v0_reg>;
++
++			regulator-state-mem {
++				regulator-on-in-suspend;
++			};
++		};
++	};
++
++	gpio-keys {
++		compatible = "gpio-keys";
++		pinctrl-names = "default";
++		pinctrl-0 = <&pinctrl_gpiokeys>;
++
++		power {
++			label = "power off";
++			gpios = <&gpio2 24 GPIO_ACTIVE_LOW>;
++			linux,code = <KEY_POWER>;
++			debounce-interval = <10>;
++		};
++	};
++};
++
++&nfc {
++	assigned-clocks = <&clks VF610_CLK_NFC>;
++	assigned-clock-rates = <50000000>;
++};
++
++&dspi0 {
++	status = "okay";
++
++	mcp2515can: can@1 {
++		compatible = "microchip,mcp2515";
++		pinctrl-names = "default";
++		pinctrl-0 = <&pinctrl_can_int>;
++		reg = <1>;
++		clocks = <&clk24m>;
++		spi-max-frequency = <10000000>;
++		interrupt-parent = <&gpio1>;
++		interrupts = <2 GPIO_ACTIVE_LOW>;
++	};
++};
++
++&dspi1 {
++	status = "okay";
++
++	mx4_io_spi: dspi@0 {
++		compatible = "mx4_io_spi";
++		reg = <0>;
++		spi-max-frequency = <8000000>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&pinctrl_mx4_io_int>;
++		interrupt-parent = <&gpio0>;
++		interrupts = <20 IRQ_TYPE_EDGE_RISING>;
++		gpios = <&gpio1 9 IRQ_TYPE_EDGE_RISING>;
++		spi-cpha;
++		interrupt-controller;
++		gpio-controller;// old list for v61.
++		gpio-line-names = 
++			"digital-out-1-source",
++			"digital-out-2-source",
++			"digital-out-3-source",
++			"digital-out-4-source",
++			"digital-out-5-source",
++			"digital-out-6-sink",
++			"digital-out-7-sink",
++			"digital-out-1-sink",
++			"digital-out-2-sink",
++			"digital-out-3-sink",
++			"digital-out-4-sink",
++			"digital-out-5-sink",
++			"digital-out-6-source",
++			"digital-out-7-source",
++			"digital-out-en",
++			"digital-out-1",
++			"digital-out-2",
++			"digital-out-3",
++			"digital-out-4",
++			"digital-out-5 / 4-20mA",
++			"digital-out-6",
++			"vref",
++			"5V",
++			"3.3V",
++			"LIN sleep",
++			"LIN2 sleep",
++			"5V out",
++			"digital-in-1 / sc",
++			"digital-in-2 / sc",
++			"digital-in-3 / sc",
++			"digital-in-4 / sc",
++			"digital-in-5 / sc",
++			"digital-in-6",
++			"modem sync",
++			"modem ring",
++			"modem current ind",
++			"modem power ind",
++			"start switch",
++			"CAN-WAKEUP",
++			"MUX-IN-1",
++			"MUX-IN-2",
++			"CAN0-WAKEUP",
++			"CAN1-WAKEUP",
++			"CAN2-WAKEUP",
++			"CAN3-WAKEUP",
++			"CAN4-WAKEUP",
++			"CAN5-WAKEUP",
++			"MUX-OUT-1",
++			"MUX-OUT-2",
++			"LIN enabled",
++			"LIN2 enabled",
++			"digital-in-7",
++			"digital-in-8",
++			"digital-out-7",
++			"digital-out-8";
++	};
++
++	mx4_pic: dspi@1 {
++		compatible = "hostmobility,mx4_pic";
++		reg = <1>;
++		spi-max-frequency = <50000000>;
++	};
++};
++
++&i2c2 {
++	status = "okay";
++
++	acc: mma8452q@1c {
++		compatible = "fsl,mma8452";
++		reg = <0x1c>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&pinctrl_acc>;
++		interrupt-parent = <&gpio1>;
++		interrupts = <31 IRQ_TYPE_EDGE_FALLING>;
++	};
++
++	rtc0: pcf85063@51 {
++		compatible = "nxp,pcf85063";
++		reg = <0x51>;
++	};
++};
++
++
++&esdhc1 {
++	status = "okay";
++};
++
++&fec1 {
++	phy-mode = "rmii";
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_fec1>;
++	status = "okay";
++};
++
++&uart0 {
++	status = "okay";
++};
++
++&uart1 {
++	status = "okay";
++};
++
++&uart2 {
++	status = "okay";
++};
++
++&usbh1 {
++	vbus-supply = <&usbh_vbus_reg>;
++};
++
++&iomuxc {
++	vf610-colibri {
++		pinctrl_gpiokeys: gpiokeys {
++			fsl,pins = <
++				VF610_PAD_PTD9__GPIO_88		0x0001
++			>;
++		};
++		pinctrl_can_int: can_int {
++			fsl,pins = <
++				VF610_PAD_PTB12__GPIO_34	0x22ed
++			>;
++		};
++
++		pinctrl_acc: acc_int1 {
++			fsl,pins = <
++				VF610_PAD_PTD31__GPIO_63    0x219d
++			>;
++		};
++
++		pinctrl_mx4_io_int: mx4_io_int {
++			fsl,pins = <
++				VF610_PAD_PTA30__GPIO_20	0x0009
++				VF610_PAD_PTB19__GPIO_41	0x0009
++			>;
++		};
++	};
++};
+diff --git a/arch/arm/boot/dts/vf-mx4.dtsi b/arch/arm/boot/dts/vf-mx4.dtsi
+new file mode 100644
+index 000000000000..45f2fe863d04
+--- /dev/null
++++ b/arch/arm/boot/dts/vf-mx4.dtsi
+@@ -0,0 +1,274 @@
++/*
++ * Copyright 2015 Host Mobility AB
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ */
++
++/ {
++	chosen {
++		stdout-path = "serial0:115200n8";
++	};
++};
++
++
++&can0 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_flexcan0>;
++	status = "okay";
++};
++
++&can1 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_flexcan1>;
++	status = "okay";
++};
++
++&dspi0 {
++	bus-num = <0>;
++	pinctrl-names = "default", "sleep";
++	pinctrl-0 = <&pinctrl_dspi0>;
++	pinctrl-1 = <&pinctrl_dspi0_sleep>;
++};
++
++
++&dspi1 {
++	bus-num = <1>;
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_dspi1>;
++};
++
++&edma0 {
++	status = "okay";
++};
++
++&edma1 {
++	status = "okay";
++};
++
++&esdhc1 {
++	pinctrl-names = "default", "sleep";
++	pinctrl-0 = <&pinctrl_esdhc1>;
++	pinctrl-1 = <&pinctrl_esdhc1_sleep>;
++	bus-width = <4>;
++};
++
++&fec1 {
++	phy-mode = "rmii";
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_fec1>;
++};
++
++&i2c2 {
++	clock-frequency = <400000>;
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_i2c2>;
++};
++
++
++&nfc {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_nfc>;
++	status = "okay";
++
++	nand@0 {
++		compatible = "fsl,vf610-nfc-nandcs";
++		reg = <0>;
++		#address-cells = <1>;
++		#size-cells = <1>;
++		nand-bus-width = <8>;
++		nand-ecc-mode = "hw";
++		nand-ecc-strength = <32>;
++		nand-ecc-step-size = <2048>;
++		nand-on-flash-bbt;
++	};
++};
++
++&uart0 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_uart0>;
++};
++
++&uart1 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_uart1>;
++};
++
++&uart2 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_uart2>;
++};
++
++&usbdev0 {
++	dr_mode = "host"; //should be otg but for mainline 4.19.270 it still not work like it should. Set this line to 'peripheral' will give you suport for USB rndis with a USBA-to-USBA cable.
++	disable-over-current;
++	status = "okay";
++};
++
++&usbh1 {
++	disable-over-current;
++	status = "okay";
++};
++
++&usbmisc0 {
++	status = "okay";
++};
++
++&usbmisc1 {
++	status = "okay";
++};
++
++&usbphy0 {
++	status = "okay";
++};
++
++&usbphy1 {
++	status = "okay";
++};
++
++&iomuxc {
++	vf610-colibri {
++		pinctrl_flexcan0: can0grp {
++			fsl,pins = <
++				VF610_PAD_PTB14__CAN0_RX	0x31F1
++				VF610_PAD_PTB15__CAN0_TX	0x31F2
++			>;
++		};
++
++		pinctrl_flexcan1: can1grp {
++			fsl,pins = <
++				VF610_PAD_PTB16__CAN1_RX	0x31F1
++				VF610_PAD_PTB17__CAN1_TX	0x31F2
++			>;
++		};
++
++		pinctrl_dspi0: dspi0grp {
++			fsl,pins = <
++				VF610_PAD_PTB18__DSPI0_CS1		0x33e2
++				VF610_PAD_PTB20__DSPI0_SIN		0x33e1
++				VF610_PAD_PTB21__DSPI0_SOUT		0x33e2
++				VF610_PAD_PTB22__DSPI0_SCK		0x33e2
++			>;
++		};
++
++		pinctrl_dspi0_sleep: dspi0grp_sleep {
++			fsl,pins = <
++				VF610_PAD_PTB18__GPIO_40		0x3009
++				VF610_PAD_PTB20__GPIO_42		0x3009
++				VF610_PAD_PTB21__GPIO_43		0x3009
++				VF610_PAD_PTB22__GPIO_44		0x3009
++			>;
++		};
++
++
++		pinctrl_dspi1: dspi1grp {
++			fsl,pins = <
++				VF610_PAD_PTD5__DSPI1_CS0		0x33e2
++				VF610_PAD_PTD6__DSPI1_SIN		0x33e1
++				VF610_PAD_PTD7__DSPI1_SOUT		0x33e2
++				VF610_PAD_PTD8__DSPI1_SCK		0x33e2
++			>;
++		};
++
++		pinctrl_esdhc1: esdhc1grp {
++			fsl,pins = <
++				VF610_PAD_PTA24__ESDHC1_CLK	0x31ef
++				VF610_PAD_PTA25__ESDHC1_CMD	0x31ef
++				VF610_PAD_PTA26__ESDHC1_DAT0	0x31ef
++				VF610_PAD_PTA27__ESDHC1_DAT1	0x31ef
++				VF610_PAD_PTA28__ESDHC1_DATA2	0x31ef
++				VF610_PAD_PTA29__ESDHC1_DAT3	0x31ef
++			>;
++		};
++
++		pinctrl_esdhc1_sleep: esdhc1grp_sleep {
++			fsl,pins = <
++				VF610_PAD_PTA24__GPIO_14	0x3009
++				VF610_PAD_PTA25__GPIO_15	0x3009
++				VF610_PAD_PTA26__GPIO_16	0x3009
++				VF610_PAD_PTA27__GPIO_17	0x3009
++				VF610_PAD_PTA28__GPIO_18	0x3009
++				VF610_PAD_PTA29__GPIO_19	0x3009
++			>;
++		};
++
++		pinctrl_fec1: fec1grp {
++			fsl,pins = <
++				VF610_PAD_PTA6__RMII_CLKOUT		0x30d2
++				VF610_PAD_PTC9__ENET_RMII1_MDC		0x30d2
++				VF610_PAD_PTC10__ENET_RMII1_MDIO	0x30d3
++				VF610_PAD_PTC11__ENET_RMII1_CRS		0x30d1
++				VF610_PAD_PTC12__ENET_RMII1_RXD1		0x30d1
++				VF610_PAD_PTC13__ENET_RMII1_RXD0	0x30d1
++				VF610_PAD_PTC14__ENET_RMII1_RXER	0x30d1
++				VF610_PAD_PTC15__ENET_RMII1_TXD1	0x30d2
++				VF610_PAD_PTC16__ENET_RMII1_TXD0	0x30d2
++				VF610_PAD_PTC17__ENET_RMII1_TXEN	0x30d2
++			>;
++		};
++
++		pinctrl_i2c2: i2c2grp {
++			fsl,pins = <
++				VF610_PAD_PTD28__I2C2_SCL		0x37ff
++				VF610_PAD_PTD27__I2C2_SDA		0x37ff
++			>;
++		};
++
++
++		pinctrl_nfc: nfcgrp  {
++			fsl,pins = <
++				VF610_PAD_PTD23__NF_IO7		0x28df
++				VF610_PAD_PTD22__NF_IO6		0x28df
++				VF610_PAD_PTD21__NF_IO5		0x28df
++				VF610_PAD_PTD20__NF_IO4		0x28df
++				VF610_PAD_PTD19__NF_IO3		0x28df
++				VF610_PAD_PTD18__NF_IO2		0x28df
++				VF610_PAD_PTD17__NF_IO1		0x28df
++				VF610_PAD_PTD16__NF_IO0		0x28df
++				VF610_PAD_PTB24__NF_WE_B	0x28c2
++				VF610_PAD_PTB25__NF_CE0_B	0x28c2
++				VF610_PAD_PTB27__NF_RE_B	0x28c2
++				VF610_PAD_PTC26__NF_RB_B	0x283d
++				VF610_PAD_PTC27__NF_ALE		0x28c2
++				VF610_PAD_PTC28__NF_CLE		0x28c2
++			>;
++		};
++
++		pinctrl_uart0: uart0grp {
++			fsl,pins = <
++				VF610_PAD_PTB10__UART0_TX		0x21a2
++				VF610_PAD_PTB11__UART0_RX		0x21a1
++			>;
++		};
++
++		pinctrl_uart1: uart1grp {
++			fsl,pins = <
++				VF610_PAD_PTB4__UART1_TX		0x21a2
++				VF610_PAD_PTB5__UART1_RX		0x21a1
++			>;
++		};
++
++		pinctrl_uart2: uart2grp {
++			fsl,pins = <
++				VF610_PAD_PTD0__UART2_TX		0x21a2
++				VF610_PAD_PTD1__UART2_RX		0x21a1
++				VF610_PAD_PTD2__UART2_RTS		0x21a2
++				VF610_PAD_PTD3__UART2_CTS		0x21a1
++			>;
++		};
++
++		pinctrl_usbh1_reg: gpio_usb_vbus {
++			fsl,pins = <
++				VF610_PAD_PTD4__GPIO_83			0x005e
++			>;
++		};
++		pinctrl_additionalgpio: additionalgpios {
++			fsl,pins = <
++				VF610_PAD_PTB28__GPIO_98	0x22cd /*100kpull down on mclr_reset pin and dse 20ohm*/
++	
++			>;
++		};
++	};
++};
+diff --git a/arch/arm/boot/dts/vf610-mx4-c61.dts b/arch/arm/boot/dts/vf610-mx4-c61.dts
+new file mode 100644
+index 000000000000..151b81a05ebd
+--- /dev/null
++++ b/arch/arm/boot/dts/vf610-mx4-c61.dts
+@@ -0,0 +1,17 @@
++/*
++ * Copyright 2016 Host Mobility AB
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ */
++
++/dts-v1/;
++#include "vf610-mx4.dtsi"
++#include "vf-mx4-c61.dtsi"
++
++/ {
++	model = "Toradex Colibri VF61 on Host Mobility MX-4 C61 board";
++	compatible = "hostmobility,vf610-mx4_c61", "hostmobility,vf610-mx4_c61", "fsl,vf610";
++};
+diff --git a/arch/arm/boot/dts/vf610-mx4-v61.dts b/arch/arm/boot/dts/vf610-mx4-v61.dts
+new file mode 100644
+index 000000000000..2bf5a2d5f6b0
+--- /dev/null
++++ b/arch/arm/boot/dts/vf610-mx4-v61.dts
+@@ -0,0 +1,22 @@
++/*
++ * Copyright 2015 Host Mobility AB
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ */
++
++/dts-v1/;
++#include "vf610-mx4.dtsi"
++#include "vf-mx4-v61.dtsi"
++
++/ {
++	model = "Toradex Colibri VF61 on Host Mobility MX-4 V61 board";
++	compatible = "hostmobility,vf610-mx4_v61", "hostmobility,vf610-mx4_v61", "fsl,vf610";
++
++	aliases {
++		rtc0 = "/i2c@400e6000/rtc@51";
++		rtc1 = "/snvs@400a7000/snvs-rtc-lp@34";
++	};
++};
+diff --git a/arch/arm/boot/dts/vf610-mx4.dtsi b/arch/arm/boot/dts/vf610-mx4.dtsi
+new file mode 100644
+index 000000000000..fd025fdc8202
+--- /dev/null
++++ b/arch/arm/boot/dts/vf610-mx4.dtsi
+@@ -0,0 +1,103 @@
++/*
++ * Copyright 2015 Host Mobility AB
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ */
++
++#include "vf610.dtsi"
++#include "vf-mx4.dtsi"
++
++/ {
++	model = "Host Mobility AB MX-4 V61";
++	compatible = "hostmobility,vf610-mx4_v61", "fsl,vf610";
++
++	memory {
++		reg = <0x80000000 0x10000000>;
++	};
++
++	sound {
++		compatible = "fsl,fsl-sai-audio-wm9712";
++		fsl,ac97-controller = <&sai2>;
++
++		fsl,model = "Colibri VF61 AC97 Audio";
++
++		fsl,audio-routing =
++			"Headphone", "HPOUTL",
++			"Headphone", "HPOUTR",
++			"LINEINL", "LineIn",
++			"LINEINR", "LineIn",
++			"MIC1", "Mic";
++	};
++};
++
++&sai0 {
++	compatible = "fsl,vf610-sai-clk";
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_sai0>;
++};
++
++&sai2 {
++	compatible = "fsl,vf610-sai-ac97";
++	#sound-dai-cells = <0>;
++
++	pinctrl-names = "default", "ac97-running", "ac97-reset",
++			"ac97-warm-reset";
++	pinctrl-0 = <&pinctrl_sai2_ac97_running>;
++	pinctrl-1 = <&pinctrl_sai2_ac97_running>;
++	pinctrl-2 = <&pinctrl_sai2_ac97_reset>;
++	pinctrl-3 = <&pinctrl_sai2_ac97_reset>;
++	ac97-gpios = <&gpio0 9 GPIO_ACTIVE_HIGH &gpio0 8 GPIO_ACTIVE_HIGH
++		      &gpio0 13 GPIO_ACTIVE_HIGH>;
++};
++
++&L2 {
++	arm,data-latency = <2 1 2>;
++	arm,tag-latency = <3 2 3>;
++};
++
++&iomuxc {
++	vf610-colibri {
++		pinctrl_sai0: sai0grp_1 {
++			fsl,pins = <
++				VF610_PAD_PTB23__SAI0_TX_BCLK	0x31C3
++			>;
++		};
++		pinctrl_sai2_ac97_reset: sai2grp_1 {
++			fsl,pins = <
++				/* Pen-down */
++				VF610_PAD_PTA11__GPIO_4		0x22ed
++				/* AC97 SData Out (test mode selection) */
++				VF610_PAD_PTA18__GPIO_8		0x22ed
++				/* AC97 Sync (warm reset) */
++				VF610_PAD_PTA19__GPIO_9		0x22ed
++				/* AC97 Reset (cold reset) */
++				VF610_PAD_PTA23__GPIO_13	0x22eb
++			>;
++		};
++
++		pinctrl_sai2_ac97_running: sai2grp_2 {
++			fsl,pins = <
++				/* AC97 Bit clock */
++				VF610_PAD_PTA16__SAI2_TX_BCLK	0x31C3
++
++				/* AC97 SData Out */
++				VF610_PAD_PTA18__SAI2_TX_DATA	0x31C2
++
++				/* AC97 Sync */
++				VF610_PAD_PTA19__SAI2_TX_SYNC	0x31C3
++
++				/* AC97 SData In */
++				VF610_PAD_PTA22__SAI2_RX_DATA	0x0041
++
++				/* AC97 Reset (cold reset, keep output buffer on) */
++				VF610_PAD_PTA23__GPIO_13	0x22eb
++
++				/* GenIRQ */
++				VF610_PAD_PTB2__GPIO_24		0x22ed
++			>;
++		};
++	};
++};
+-- 
+2.34.1
+

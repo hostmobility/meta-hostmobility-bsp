@@ -8,7 +8,8 @@ FILESEXTRAPATHS:prepend := "${THISDIR}/linux-hostmobility-mainline-6.1:"
 
 inherit kernel siteinfo
 
-COMPATIBLE_MACHINE = "(mx4-t30|vfcv61|mx4-hostcom)"
+
+COMPATIBLE_MACHINE = "(mx4-t30|vfcv61|)"
 
 LINUX_VERSION ?= "6.1.26"
 
@@ -33,7 +34,16 @@ MACHINE_PATCHES:tegra3 = " \
 
 MACHINE_PATCHES:vfcv61 = " \
     file://0001-add-device-tree-for-c61-v61.patch \
+    file://0002-Add-support-on-USB-for-EG25-modem.patch \
     file://vfcv61_delta_imx_v6_v7_defconfig.cfg \
+"
+
+MACHINE_PATCHES:mx4-c61-rio = " \
+    file://0001-add-device-tree-for-c61-v61.patch \
+    file://0005-add-serdev-node-to-rs485.patch \
+    file://0002-Add-support-on-USB-for-EG25-modem.patch \
+    file://vfcv61_delta_imx_v6_v7_defconfig.cfg \
+    file://serdev.cfg \
 "
 
 DELTA_KERNEL_DEFCONFIG:vfcv61 = "vfcv61_delta_imx_v6_v7_defconfig.cfg"
@@ -61,11 +71,6 @@ SRC_URI_use-head-next = " \
 
 KERNEL_EXTRA_ARGS = " LOADADDR=0x80008000 "
 
-# One possibiltiy for changes to the defconfig:
-config_script () {
-    echo "dummy" > /dev/null
-}
-
 KCONFIG_MODE="--alldefconfig"
 
 KBUILD_DEFCONFIG ?= "${KERNEL_DEFCONFIG}"
@@ -75,23 +80,4 @@ do_uboot_mkimage:prepend() {
 }
 
 #For Vf (mx4)
-#KERNEL_MODULE_AUTOLOAD:vf60 += "${@bb.utils.contains('COMBINED_FEATURES', 'usbgadget', ' libcomposite', '',d)}"
-
-DEPENDS:vf60 += "u-boot-mkimage-native"
-
-
-# We use CONFIG_ARM_APPENDED_DTB=y and below shall take care of that
-do_deploy:append:vf60() {
-    cd ${B}
-    cat ${KERNEL_OUTPUT_DIR}/zImage ${KERNEL_OUTPUT_DIR}/dts/${KERNEL_DEVICETREE} > combined-image
-    mkimage -A arm -C none -a ${UBOOT_ENTRYPOINT} -e ${UBOOT_ENTRYPOINT} -T kernel -d combined-image ${KERNEL_OUTPUT_DIR}/uImage
-    cd -
-
-    type=uImage
-    base_name=${type}-${KERNEL_IMAGETYPE}
-    install -m 0644 ${KERNEL_OUTPUT_DIR}/${type} ${DEPLOYDIR}/${base_name}.bin
-
-    symlink_name=uImage-${KERNEL_IMAGE_SYMLINK_NAME}
-    ln -sf ${base_name}.bin ${DEPLOYDIR}/${symlink_name}.bin
-    ln -sf ${base_name}.bin ${DEPLOYDIR}/${type}
-}
+KERNEL_MODULE_AUTOLOAD:vf60 += "${@bb.utils.contains('COMBINED_FEATURES', 'usbgadget', ' libcomposite', '',d)}"

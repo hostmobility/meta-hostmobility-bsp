@@ -19,13 +19,13 @@ PV = "${LINUX_VERSION}"
 S = "${WORKDIR}/linux-${PV}"
 
 GENERIC_PATCHES = " \
+    file://0003-Add-mx4_pic-and-can-xcvr-to-spidev.patch \
 "
 
 MACHINE_PATCHES:tegra3 = " \
     file://defconfig \
     file://0001-Add-pps-generator-gpio-for-flexray.patch \
     file://0002-Add-support-for-flexray-device-driver.patch \
-    file://0003-Add-mx4_pic-and-can-xcvr-to-spidev.patch \
     file://0004-T30-Update-device-tree-with-better-suspend-routine.patch \
     file://0005-To-get-the-SD-MMC-host-device-ID-read-the-alias-from.patch \
     file://0009-Change-asix-driver-to-version-4.23.patch \
@@ -79,5 +79,20 @@ do_uboot_mkimage:prepend() {
     cd ${B}
 }
 
-#For Vf (mx4)
+#For Vf (mx4) only
 KERNEL_MODULE_AUTOLOAD:vf60 += "${@bb.utils.contains('COMBINED_FEATURES', 'usbgadget', ' libcomposite', '',d)}"
+# use an old way to add device tree to the end of the uImage for C61. changing uboot from 2015 than change to load dtb seperate
+do_deploy:append:vf60() {
+    cd ${B}
+    cat ${KERNEL_OUTPUT_DIR}/uImage ${KERNEL_OUTPUT_DIR}/dts/${KERNEL_DEVICETREE} > combined-image
+    cp ${KERNEL_OUTPUT_DIR}/uImage ${KERNEL_OUTPUT_DIR}/only_uImage
+    cd -
+
+    type=uImage
+    base_name=${type}-${KERNEL_IMAGETYPE}
+    install -m 0644 ${B}/combined-image ${DEPLOYDIR}/${base_name}.bin
+
+    symlink_name=uImage-${KERNEL_IMAGE_SYMLINK_NAME}
+    ln -sf ${base_name}.bin ${DEPLOYDIR}/${symlink_name}.bin
+    ln -sf ${base_name}.bin ${DEPLOYDIR}/${type}
+}

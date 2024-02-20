@@ -13,16 +13,19 @@ KERNEL_IMAGETYPE = "uImage"
 # We store kernel on seperate MTD partition so no need to deploy to rootfs.
 RDEPENDS:${KERNEL_PACKAGE_NAME}-base = ""
 
-PREFERRED_PROVIDER_u-boot ?= "u-boot-hostmobility"
-PREFERRED_PROVIDER_virtual/bootloader ?= "u-boot-hostmobility"
-#PREFERRED_PROVIDER_u-boot-fw-utils ?= "u-boot-hostmobility-fw-utils"
+PREFERRED_PROVIDER_u-boot ?= "u-boot-imx"
+PREFERRED_PROVIDER_virtual/bootloader ?= "u-boot-imx"
+#PREFERRED_PROVIDER_u-boot-fw-utils ?= "u-boot-fw-utils"
 
 # U-Boot NAND binary includes 0x400 padding required for NAND boot
-UBOOT_BINARY ?= "u-boot-nand.imx"
-UBOOT_MAKE_TARGET = "u-boot-nand.imx"
 
-#disable build uboot for now.
-#EXTRA_IMAGEDEPENDS += "u-boot"
+UBOOT_BINARY ?= "u-boot-nand.imx"
+UBOOT_MAKE_TARGET ?= "u-boot.imx"
+UBOOT_MACHINE ?= "colibri_vf_defconfig"
+UBOOT_SUFFIX = "imx"
+
+
+EXTRA_IMAGEDEPENDS += "u-boot"
 
 IMAGE_FSTYPES = "tar.xz ubifs"
 

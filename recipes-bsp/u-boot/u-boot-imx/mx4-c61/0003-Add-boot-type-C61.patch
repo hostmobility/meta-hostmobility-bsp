@@ -1,0 +1,38 @@
+From 0b1207e2ddf4b559c4009d651b83d4821b207bc8 Mon Sep 17 00:00:00 2001
+From: rikardo <rikard.olander@hostmobility.com>
+Date: Mon, 19 Feb 2024 10:28:44 +0000
+Subject: [PATCH 3/3] Add boot type C61
+
+---
+ configs/colibri_vf_defconfig | 2 +-
+ include/configs/colibri_vf.h | 1 +
+ 2 files changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/configs/colibri_vf_defconfig b/configs/colibri_vf_defconfig
+index b0fe19dc51..eb963dd22b 100644
+--- a/configs/colibri_vf_defconfig
++++ b/configs/colibri_vf_defconfig
+@@ -28,7 +28,7 @@ CONFIG_ARCH_MISC_INIT=y
+ CONFIG_BOARD_EARLY_INIT_F=y
+ CONFIG_HUSH_PARSER=y
+ # CONFIG_SYS_LONGHELP is not set
+-CONFIG_SYS_PROMPT="Colibri VFxx # "
++CONFIG_SYS_PROMPT="MX-4 C61 # "
+ # CONFIG_CMD_BOOTD is not set
+ CONFIG_CMD_BOOTM=y
+ CONFIG_CMD_BOOTZ=y
+diff --git a/include/configs/colibri_vf.h b/include/configs/colibri_vf.h
+index c3eb27b30a..cd77d25512 100644
+--- a/include/configs/colibri_vf.h
++++ b/include/configs/colibri_vf.h
+@@ -34,6 +34,7 @@
+ /* We boot from the gfxRAM area of the OCRAM. */
+ #define CONFIG_BOARD_SIZE_LIMIT		520192
+ 
++#define MX4_PRODUCT_TYPE "c61"
+ #define CONFIG_SYS_BOOTM_LEN		SZ_16M
+ 
+ 	//fdt_addr_r ours 0x84000000
+-- 
+2.34.1
+

@@ -1,0 +1,324 @@
+From 7cba23d1f12c4ebc309adeb6e8144c98fba6ef96 Mon Sep 17 00:00:00 2001
+From: rikardo <rikard.olander@hostmobility.com>
+Date: Mon, 19 Feb 2024 10:27:38 +0000
+Subject: [PATCH 2/3] VF60:vc61: Add hm special boot into colibri_vf boot Add
+ support to communicate with co-cpu (pic) This is more generic so if you need
+ to boot a and falsh a V61 change MX4_PRODUCT_TYPE in next patch and optional
+ CONFIG_SYS_PROMPT
+
+---
+ arch/arm/Kconfig                      |  1 +
+ arch/arm/dts/vf-colibri.dtsi          | 32 +++++++++++++-
+ board/toradex/colibri_vf/Makefile     |  3 +-
+ board/toradex/colibri_vf/colibri_vf.c |  4 ++
+ configs/colibri_vf_defconfig          | 29 ++++++++-----
+ include/configs/colibri_vf.h          | 62 +++++++++++++++++++++++++--
+ 6 files changed, 115 insertions(+), 16 deletions(-)
+
+diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
+index 5cef18b8f6..5977a3313d 100644
+--- a/arch/arm/Kconfig
++++ b/arch/arm/Kconfig
+@@ -1160,6 +1160,7 @@ config ARCH_VF610
+ 	select SYS_FSL_ERRATUM_ESDHC111
+ 	imply CMD_MTDPARTS
+ 	imply MTD_RAW_NAND
++	imply CMD_SPI
+ 
+ config ARCH_ZYNQ
+ 	bool "Xilinx Zynq based platform"
+diff --git a/arch/arm/dts/vf-colibri.dtsi b/arch/arm/dts/vf-colibri.dtsi
+index 9de4b28e87..977148b4af 100644
+--- a/arch/arm/dts/vf-colibri.dtsi
++++ b/arch/arm/dts/vf-colibri.dtsi
+@@ -9,6 +9,7 @@
+ 
+ / {
+ 	chosen {
++		//stdout-path = &uart2; // should be this but does not work, instead it goes to rs232.
+ 		stdout-path = &uart0;
+ 	};
+ 
+@@ -34,8 +35,9 @@
+ 	pinctrl-0 = <&pinctrl_dspi1>;
+ 	status = "okay";
+ 
+-	spi_cmd: sspi@0 {
++	mx4_io_spi: sspi@0 {
+ 		reg = <0>;
++		spi-cpha;
+ 		spi-max-frequency = <50000000>;
+ 	};
+ };
+@@ -224,6 +226,22 @@
+ 		>;
+ 	};
+ 
++	pinctrl_uart1: uart1grp {
++			fsl,pins = <
++				VF610_PAD_PTB4__UART1_TX		0x11af
++				VF610_PAD_PTB5__UART1_RX		0x11af
++			>;
++	};
++
++	pinctrl_uart2: uart2grp {
++		fsl,pins = <
++			VF610_PAD_PTD0__UART2_TX		0x11af
++			VF610_PAD_PTD1__UART2_RX		0x11af
++			VF610_PAD_PTD2__UART2_RTS		0x11af
++			VF610_PAD_PTD3__UART2_CTS		0x11af
++		>;
++	};
++
+ 	pinctrl_usbh1_reg: gpio_usb_vbus {
+ 		fsl,pins = <
+ 			VF610_PAD_PTD4__GPIO_83			0x22ed
+@@ -243,6 +261,18 @@
+ 	status = "okay";
+ };
+ 
++&uart1 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_uart1>;
++	status = "okay";
++};
++
++&uart2 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_uart2>;
++	status = "okay";
++};
++
+ &dcu0 {
+ 	status = "okay";
+ };
+diff --git a/board/toradex/colibri_vf/Makefile b/board/toradex/colibri_vf/Makefile
+index 6272a77496..644cd2f6b0 100644
+--- a/board/toradex/colibri_vf/Makefile
++++ b/board/toradex/colibri_vf/Makefile
+@@ -2,5 +2,6 @@
+ #
+ # Copyright 2013 Freescale Semiconductor, Inc.
+ 
+-obj-y	:= colibri_vf.o
++obj-y	:= colibri_vf.o ../mx4_common/cmd_mx4_pic.o ../mx4_common/cmd_mx4_product.o
++obj-y 	+= ../mx4_common/mx4_common.o
+ obj-$(CONFIG_VIDEO_FSL_DCU_FB) += dcu.o
+diff --git a/board/toradex/colibri_vf/colibri_vf.c b/board/toradex/colibri_vf/colibri_vf.c
+index c09591e543..a6d0b90f64 100644
+--- a/board/toradex/colibri_vf/colibri_vf.c
++++ b/board/toradex/colibri_vf/colibri_vf.c
+@@ -26,6 +26,7 @@
+ #include <usb.h>
+ 
+ #include "../common/tdx-common.h"
++#include "../mx4_common/mx4_common.h"
+ 
+ DECLARE_GLOBAL_DATA_PTR;
+ 
+@@ -397,6 +398,9 @@ int board_late_init(void)
+ 		env_set("bootdelay", "-1");
+ 	}
+ 
++	if (ping_mx4_pic())
++		printf("Failed to ping mx4 pic\n");
++
+ 	return 0;
+ }
+ #endif /* CONFIG_BOARD_LATE_INIT */
+diff --git a/configs/colibri_vf_defconfig b/configs/colibri_vf_defconfig
+index 8cf8a31beb..b0fe19dc51 100644
+--- a/configs/colibri_vf_defconfig
++++ b/configs/colibri_vf_defconfig
+@@ -15,12 +15,13 @@ CONFIG_DEFAULT_DEVICE_TREE="vf610-colibri"
+ CONFIG_TARGET_COLIBRI_VF=y
+ CONFIG_ENV_VARS_UBOOT_CONFIG=y
+ CONFIG_SYS_LOAD_ADDR=0x80008000
+-CONFIG_BOOTDELAY=1
+-CONFIG_USE_BOOTCOMMAND=y
+-CONFIG_BOOTCOMMAND="run ubiboot || run distro_bootcmd;"
+-CONFIG_USE_PREBOOT=y
++CONFIG_BOOTDELAY=0
++#fdtfile fixup...CONFIG_DEFAULT_DEVICE_TREE fix..
+ CONFIG_PREBOOT="setenv fdtfile ${soc}-colibri-${fdt_board}.dtb"
++CONFIG_USE_PREBOOT=y
++CONFIG_PREBOOT="test -n ${fdtfile} || setenv fdtfile ${soc}-colibri-${fdt_board}.dtb"
+ CONFIG_LOGLEVEL=3
++CONFIG_VERSION_VARIABLE=y
+ # CONFIG_DISPLAY_BOARDINFO is not set
+ CONFIG_DISPLAY_BOARDINFO_LATE=y
+ CONFIG_ARCH_MISC_INIT=y
+@@ -29,7 +30,7 @@ CONFIG_HUSH_PARSER=y
+ # CONFIG_SYS_LONGHELP is not set
+ CONFIG_SYS_PROMPT="Colibri VFxx # "
+ # CONFIG_CMD_BOOTD is not set
+-# CONFIG_CMD_BOOTM is not set
++CONFIG_CMD_BOOTM=y
+ CONFIG_CMD_BOOTZ=y
+ # CONFIG_CMD_ELF is not set
+ # CONFIG_CMD_IMI is not set
+@@ -44,6 +45,8 @@ CONFIG_CMD_GPIO=y
+ # CONFIG_CMD_LOADS is not set
+ CONFIG_CMD_MMC=y
+ CONFIG_CMD_PART=y
++CONFIG_DEFAULT_SPI_BUS=1
++CONFIG_DEFAULT_SPI_MODE=1
+ CONFIG_CMD_USB=y
+ CONFIG_CMD_USB_MASS_STORAGE=y
+ # CONFIG_CMD_SETEXPR is not set
+@@ -56,10 +59,10 @@ CONFIG_CMD_EXT4=y
+ CONFIG_CMD_FAT=y
+ CONFIG_CMD_FS_GENERIC=y
+ CONFIG_MTDIDS_DEFAULT="nand0=vf610_nfc"
+-CONFIG_MTDPARTS_DEFAULT="mtdparts=vf610_nfc:128k(vf-bcb)ro,1408k(u-boot)ro,512k(u-boot-env),-(ubi)"
++CONFIG_MTDPARTS_DEFAULT="mtdparts=vf610_nfc:128k(vf-bcb)ro,1408k(u-boot)ro,512k(u-boot-env),512k(u-boot-env2),16m(kernel),16m(config),-(ubi)"
+ CONFIG_CMD_UBI=y
+ CONFIG_OF_CONTROL=y
+-CONFIG_ENV_OVERWRITE=y
++CONFIG_DEFAULT_DEVICE_TREE="vf610-colibri"
+ CONFIG_ENV_IS_IN_NAND=y
+ CONFIG_SYS_RELOC_GD_ENV_ADDR=y
+ CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG=y
+@@ -68,6 +71,7 @@ CONFIG_DM=y
+ CONFIG_DFU_NAND=y
+ CONFIG_SYS_DFU_DATA_BUF_SIZE=0x100000
+ CONFIG_VYBRID_GPIO=y
++CONFIG_DM_MMC=y
+ # CONFIG_MMC_HW_PARTITIONING is not set
+ CONFIG_FSL_ESDHC_IMX=y
+ CONFIG_MTD=y
+@@ -89,15 +93,20 @@ CONFIG_DM_REGULATOR=y
+ CONFIG_DM_REGULATOR_FIXED=y
+ CONFIG_DM_SERIAL=y
+ CONFIG_FSL_LPUART=y
++CONFIG_SPI=y
++CONFIG_DM_SPI=y
++CONFIG_FSL_DSPI=y
++CONFIG_FSL_QSPI=n
+ CONFIG_USB=y
++CONFIG_DM_USB=y
+ CONFIG_USB_EHCI_HCD=y
+ CONFIG_USB_STORAGE=y
+-CONFIG_USB_GADGET=y
++CONFIG_USB_GADGET=n
+ CONFIG_USB_GADGET_MANUFACTURER="Toradex"
+ CONFIG_USB_GADGET_VENDOR_NUM=0x1b67
+ CONFIG_USB_GADGET_PRODUCT_NUM=0x4000
+-CONFIG_CI_UDC=y
+-CONFIG_USB_GADGET_DOWNLOAD=y
++CONFIG_CI_UDC=n
++CONFIG_USB_GADGET_DOWNLOAD=n
+ CONFIG_DM_VIDEO=y
+ # CONFIG_VIDEO_BPP8 is not set
+ # CONFIG_VIDEO_BPP16 is not set
+diff --git a/include/configs/colibri_vf.h b/include/configs/colibri_vf.h
+index 62f85185b7..c3eb27b30a 100644
+--- a/include/configs/colibri_vf.h
++++ b/include/configs/colibri_vf.h
+@@ -34,9 +34,15 @@
+ /* We boot from the gfxRAM area of the OCRAM. */
+ #define CONFIG_BOARD_SIZE_LIMIT		520192
+ 
++#define CONFIG_SYS_BOOTM_LEN		SZ_16M
++
++	//fdt_addr_r ours 0x84000000
++	//our kernel_addr_r 0x82000000
+ #define MEM_LAYOUT_ENV_SETTINGS \
+ 	"bootm_size=0x10000000\0" \
+ 	"fdt_addr_r=0x82000000\0" \
++	"fdt_high=0xffffffff\0" \
++	"initrd_high=0xffffffff\0" \
+ 	"kernel_addr_r=0x81000000\0" \
+ 	"pxefile_addr_r=0x87100000\0" \
+ 	"ramdisk_addr_r=0x82100000\0" \
+@@ -55,17 +61,59 @@
+ 	"tftp ${fdt_addr_r} ${soc}-colibri-${fdt_board}.dtb && " \
+ 	"run fdt_fixup && bootz ${kernel_addr_r} - ${fdt_addr_r}\0" \
+ 
++//"ubiboot=run setup; "...
++//"mx4_pic restart; " ? why?! SW reset, chage to set state 1 Running.
++/*
++"mx4_pic restart; " \
++	//
++	//our "nboot ${kernel_addr_r} 0 0x00280000; && bootm ${kernel_addr_r}" before
++	"ubi part ubi && " \
++*/
+ #define UBI_BOOTCMD \
+ 	"ubiargs=ubi.mtd=ubi root=ubi0:rootfs rootfstype=ubifs " \
+ 	"ubi.fm_autoconvert=1\0" \
+ 	"ubiboot=run setup; " \
+ 	"setenv bootargs ${defargs} ${ubiargs} ${mtdparts} "   \
+ 	"${setupargs} ${vidargs}; echo Booting from NAND...; " \
++	"mx4_pic set_state 1; " \
+ 	"ubi part ubi && " \
+ 	"ubi read ${kernel_addr_r} kernel && " \
+ 	"ubi read ${fdt_addr_r} dtb && " \
+ 	"run fdt_fixup && bootz ${kernel_addr_r} - ${fdt_addr_r}\0" \
+ 
++	#define PROBE_USB_FOR_HMUPDATE \
++	"if mx4_pic is_extr; " \
++	"then sleep 2; usb start && fatls usb 0:1 && " \
++	"mx4_pic set_state 2 && fatload usb 0:1 ${loadaddr} ${updatefilename}; fi "
++
++#define PROBE_UBI_FOR_HMUPDATE \
++	"ubi part ubi; ubifsmount ubi0:rootfs; "\
++	"ubifsload ${loadaddr} /boot/${bsp_script} && mx4_pic set_state 2; set ret $?;" \
++	"ubifsumount; itest $ret -eq true"
++
++#define PROBE_USB_FOR_RAMDISK \
++	"kernelfilename=uImage\0" \
++	"ramargs=root=/dev/ram0 rw\0" \
++	"ramdiskfilename=uRamdisk\0" \
++	"ramdisk_loadaddr=1000000\0" \
++	"if mx4_pic is_extr; then " \
++	"usb start && fatload usb 0:1 ${loadaddr} ${kernelfilename} " \
++	"&& fatload usb 0:1 ${ramdisk_loadaddr} ${ramdiskfilename} " \
++	"&& run ramboot; fi "
++
++// thers #define CONFIG_BOOTCOMMAND "run ubiboot || run distro_bootcmd;"
++//ours
++
++#define CONFIG_BOOTCOMMAND \
++    "if run probe_usb ; then " \
++		"if source ${loadaddr}; then " \
++	    	"exit; " \
++	    "else " \
++	    	"bootm ${loadaddr}; " \
++	    "fi; " \
++    "fi; " \
++    "run probe_ubi && source ${loadaddr}; run probe_ramdisk; run ubiboot || run distro_bootcmd;"
++
+ #define BOOT_TARGET_DEVICES(func) \
+ 	func(MMC, mmc, 0) \
+ 	func(USB, usb, 0) \
+@@ -82,17 +130,23 @@
+ 	NFS_BOOTCMD \
+ 	UBI_BOOTCMD \
+ 	UBOOT_UPDATE \
+-	"console=ttyLP0\0" \
+-	"defargs=user_debug=30\0" \
++	"probe_usb=" PROBE_USB_FOR_HMUPDATE "\0" \
++	"probe_ubi=" PROBE_UBI_FOR_HMUPDATE "\0" \
++	"probe_ramdisk=" PROBE_USB_FOR_RAMDISK "\0" \
++	"console=ttyLP2\0" \
++	"updatefilename=vf_hmupdate.img\0" \
++	"bsp_script=vf_boot.scr\0" \
++	"delay_usb=true\0" \
++	"defargs=quiet\0" \
+ 	"dfu_alt_info=" DFU_ALT_NAND_INFO "\0" \
+-	"fdt_board=eval-v3\0" \
++	"fdt_board=vf610-mx4-c61\0" \
+ 	"fdt_fixup=;\0" \
+ 	"kernel_image=zImage\0" \
+ 	"mtdparts=" CONFIG_MTDPARTS_DEFAULT "\0" \
+ 	"setsdupdate=mmc rescan && set interface mmc && " \
+ 		"fatload ${interface} 0:1 ${loadaddr} flash_blk.img && " \
+ 		"source ${loadaddr}\0" \
+-	"setup=setenv setupargs console=tty1 console=${console}" \
++	"setup=setenv setupargs fec_mac=${ethaddr} console=tty1 console=${console}" \
+ 		",${baudrate}n8 ${memargs}\0" \
+ 	"setupdate=run setsdupdate || run setusbupdate\0" \
+ 	"setusbupdate=usb start && set interface usb && " \
+-- 
+2.34.1
+

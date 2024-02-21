@@ -26,10 +26,11 @@ MACHINE_PATCHES:tegra3 = " \
     file://defconfig \
     file://0001-Add-pps-generator-gpio-for-flexray.patch \
     file://0002-Add-support-for-flexray-device-driver.patch \
+    file://0003-Add-sdhci-tegra-sdcard.c-based-on-4.19.patch \
     file://0004-T30-Update-device-tree-with-better-suspend-routine.patch \
     file://0005-To-get-the-SD-MMC-host-device-ID-read-the-alias-from.patch \
     file://0009-Change-asix-driver-to-version-4.23.patch \
-    file://0010-fix-missing-operating-points-v2-for-mmc-4-and-2.patch \
+    file://0001-backport-sdhci-tegra-from-4.19.270.patch \
 "
 
 MACHINE_PATCHES:vfcv61 = " \

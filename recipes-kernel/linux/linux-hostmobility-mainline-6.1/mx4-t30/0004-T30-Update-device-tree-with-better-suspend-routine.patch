@@ -205,12 +205,12 @@ index 000000000000..7282461e3320
 +	mmc@78000200 {
 +		//pinctrl-names = "default" , "sleep";
 +		//pinctrl-0 = <&sdhci_sd_default>;
-+		//pinctrl-1 = <&sdhci_sd_sleep>;
++		compatible = "nvidia,tegra30-sdhci-sdcard";
 +		status = "okay";
 +		bus-width = <4>;
 +		//cd-gpios = <&gpio TEGRA_GPIO(T, 6) GPIO_ACTIVE_LOW>;
-+		max-frequency = <25500000>;
-+		nvidia,default-tap = <0x0F>;
++		//max-frequency = <25500000>; //tested with lower freq, Why is emmc set to this low freq is ist an old mistake?
++		//nvidia,default-tap = <0x0F>;
 +	};
 +
 +	mmc@78000000 {

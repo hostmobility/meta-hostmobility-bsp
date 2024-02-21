@@ -1639,7 +1639,7 @@ index 000000000000..a7647b0a349e
 +		vmmc-supply = <&sys_3v3_reg>;
 +		vqmmc-supply = <&vio_reg>;
 +		nvidia,default-tap = <0x0F>;
-+		max-frequency = <25500000>;
++		max-frequency = <52000000>;
 +	};
 +
 +	clocks {

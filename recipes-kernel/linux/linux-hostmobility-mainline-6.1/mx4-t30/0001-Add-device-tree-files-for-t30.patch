@@ -1464,7 +1464,7 @@ index 000000000000..a7647b0a349e
 +	pmc@7000e400 {
 +		status = "okay";
 +		nvidia,invert-interrupt;
-+		nvidia,suspend-mode = <1>;
++		nvidia,suspend-mode = <2>; // FIXME Does not work in LP1 mode (will hang on resume), so set to LP2(CPU voltage off)
 +		nvidia,cpu-pwr-good-time = <5000>;
 +		nvidia,cpu-pwr-off-time = <5000>;
 +		nvidia,core-pwr-good-time = <3845 3845>;

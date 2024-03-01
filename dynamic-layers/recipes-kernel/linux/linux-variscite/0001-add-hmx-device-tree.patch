@@ -83,7 +83,7 @@ new file mode 100644
 index 000000000000..5f50de9f45ae
 --- /dev/null
 +++ b/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts
-@@ -0,0 +1,1252 @@
+@@ -0,0 +1,1249 @@
 +// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 +/*
 + * Copyright 2022 Host Mobility AB
@@ -589,10 +589,7 @@ index 000000000000..5f50de9f45ae
 +
 +
 +&pcie {
-+	//  TODO: schematics says do not know if 
-+	    //these should be used
-+	//reset-gpio = <&pca6408_2 3 GPIO_ACTIVE_LOW>;
-+	//
++	reset-gpio = <&gpio5 19 GPIO_ACTIVE_LOW>;
 +	ext_osc = <1>;
 +	clocks = <&clk IMX8MP_CLK_HSIO_ROOT>,
 +		 <&clk IMX8MP_CLK_PCIE_AUX>,

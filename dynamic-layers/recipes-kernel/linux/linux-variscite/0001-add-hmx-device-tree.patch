@@ -290,7 +290,7 @@ index 000000000000..5f50de9f45ae
 +			color = <LED_COLOR_ID_GREEN>;
 +			function = LED_FUNCTION_WAN;
 +			gpios = <&pca9535 9 GPIO_ACTIVE_LOW>;
-+			//linux,default-trigger = "heartbeat";
++			linux,default-trigger = "heartbeat";
 +			default-state = "off";
 +		};
 +
@@ -870,7 +870,7 @@ index 000000000000..5f50de9f45ae
 +			MX8MP_IOMUXC_I2C3_SCL__GPIO5_IO18	0x0
 +			MX8MP_IOMUXC_GPIO1_IO01__GPIO1_IO01	0x0
 +			MX8MP_IOMUXC_SPDIF_RX__GPIO5_IO04	0x0                     
-+
++			MX8MP_IOMUXC_I2C3_SDA__GPIO5_IO19       (PE_1_PULL_ENABLE | PUE_1_WEAK_PULL_UP)
 +			MX8MP_IOMUXC_GPIO1_IO14__GPIO1_IO14	0x0
 +			MX8MP_IOMUXC_NAND_DATA02__GPIO3_IO08	PE_1_PULL_ENABLE 
 +		>;

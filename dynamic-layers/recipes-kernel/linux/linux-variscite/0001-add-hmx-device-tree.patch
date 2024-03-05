@@ -62,6 +62,9 @@ v16. Add wakeup-source property to tcan4x5x nodes. This is used by new
      driver patch to allow wake-up when interface in up when going into
      suspend.
 
+v17. Rename gpio-leds identifiers for consistency and clarity.
+     Update copyright years.
+
 ---
  arch/arm64/boot/dts/freescale/Makefile        |    2 +
  .../dts/freescale/imx8mp-var-dart-hmx1.dts    | 1247 +++++++++++++++++
@@ -86,7 +89,7 @@ index 000000000000..5f50de9f45ae
 @@ -0,0 +1,1252 @@
 +// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 +/*
-+ * Copyright 2022 Host Mobility AB
++ * Copyright 2022, 2023, 2024 Host Mobility AB
 + * Inspired by arch/arm64/boot/dts/freescale/imx8mp-var-dart-dt8mcustomboard.dts 
 + */
 +
@@ -240,7 +243,7 @@ index 000000000000..5f50de9f45ae
 +		pinctrl-names = "default";
 +		pinctrl-0 = <&pinctrl_gpio_leds>;
 +		status = "okay";
-+		red_func {
++		green_func {
 +			color = <LED_COLOR_ID_GREEN>;
 +			function = "func";
 +			gpios = <&pca9535 15 GPIO_ACTIVE_LOW>;
@@ -248,7 +251,7 @@ index 000000000000..5f50de9f45ae
 +			default-state = "off";
 +		};
 +
-+		green_func {
++		red_func {
 +			color = <LED_COLOR_ID_RED>;
 +			function = "func";
 +			gpios = <&pca9535 14 GPIO_ACTIVE_LOW>;
@@ -256,14 +259,14 @@ index 000000000000..5f50de9f45ae
 +			default-state = "off";
 +		};
 +
-+		red_gps {
++		green_gps {
 +			color = <LED_COLOR_ID_GREEN>;
 +			function = "gps";
 +			gpios = <&pca9535 13 GPIO_ACTIVE_LOW>;
 +			//linux,default-trigger = "heartbeat";
 +			default-state = "off";
 +		};
-+		green_gps {
++		red_gps {
 +			color = <LED_COLOR_ID_RED>;
 +			function = "gps";
 +			gpios = <&pca9535 12 GPIO_ACTIVE_LOW>;
@@ -271,14 +274,14 @@ index 000000000000..5f50de9f45ae
 +			default-state = "off";
 +		};
 +
-+		red_wifi {
++		green_wifi {
 +			color = <LED_COLOR_ID_GREEN>;
 +			function = LED_FUNCTION_WLAN;
 +			gpios = <&pca9535 11 GPIO_ACTIVE_LOW>;
 +			//linux,default-trigger = "phy0rx";
 +			default-state = "off";
 +		};
-+		green_wifi {
++		red_wifi {
 +			color = <LED_COLOR_ID_RED>;
 +			function = LED_FUNCTION_WLAN;
 +			gpios = <&pca9535 10 GPIO_ACTIVE_LOW>;
@@ -286,7 +289,7 @@ index 000000000000..5f50de9f45ae
 +			default-state = "off";
 +		};
 +		
-+		red_gsm {
++		green_wwan {
 +			color = <LED_COLOR_ID_GREEN>;
 +			function = LED_FUNCTION_WAN;
 +			gpios = <&pca9535 9 GPIO_ACTIVE_LOW>;
@@ -294,7 +297,7 @@ index 000000000000..5f50de9f45ae
 +			default-state = "off";
 +		};
 +
-+		green_gsm {
++		red_wwan {
 +			color = <LED_COLOR_ID_RED>;
 +			function = LED_FUNCTION_WAN;
 +			gpios = <&pca9535 8 GPIO_ACTIVE_LOW>;

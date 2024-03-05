@@ -1,4 +1,4 @@
-From 25e02869137d42a402849757a17efa1213589cee Mon Sep 17 00:00:00 2001
+From c404ddd99f49494dd003fc4e37769a72a65d7d64 Mon Sep 17 00:00:00 2001
 From: rikardo <rikard.olander@hostmobility.com>
 Date: Tue, 3 Oct 2023 14:46:18 +0000
 Subject: [PATCH] add hmx device tree
@@ -65,10 +65,15 @@ v16. Add wakeup-source property to tcan4x5x nodes. This is used by new
 v17. Rename gpio-leds identifiers for consistency and clarity.
      Update copyright years.
 
+v18. Enable PCI Express in preparation for 5G modem support:
+     - Fix and activate reference clock
+     - Add pcie reset pin (without it the modem will be in PCI reset
+     and therefore not detected)
+
 ---
  arch/arm64/boot/dts/freescale/Makefile        |    2 +
- .../dts/freescale/imx8mp-var-dart-hmx1.dts    | 1247 +++++++++++++++++
- 2 files changed, 1249 insertions(+)
+ .../dts/freescale/imx8mp-var-dart-hmx1.dts    | 1257 +++++++++++++++++
+ 2 files changed, 1259 insertions(+)
  create mode 100644 arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts
 
 diff --git a/arch/arm64/boot/dts/freescale/Makefile b/arch/arm64/boot/dts/freescale/Makefile
@@ -83,10 +88,10 @@ index 7d2b8b4ad321..2607fdffaa44 100644
 +dtb-$(CONFIG_ARCH_MXC) += imx8mp-var-dart-hmx1.dtb
 diff --git a/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts b/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts
 new file mode 100644
-index 000000000000..5f50de9f45ae
+index 000000000000..a83de0cace6b
 --- /dev/null
 +++ b/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts
-@@ -0,0 +1,1252 @@
+@@ -0,0 +1,1257 @@
 +// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 +/*
 + * Copyright 2022, 2023, 2024 Host Mobility AB
@@ -143,6 +148,12 @@ index 000000000000..5f50de9f45ae
 +		compatible = "regulator-fixed";
 +		regulator-name = "regulator-base-3v3";
 +		regulator-always-on;
++	};
++
++	pcie0_refclk: pcie0-refclk {
++		compatible = "fixed-clock";
++		#clock-cells = <0>;
++		clock-frequency = <100000000>;
 +	};
 +
 +	gpio-keys {
@@ -592,10 +603,7 @@ index 000000000000..5f50de9f45ae
 +
 +
 +&pcie {
-+	//  TODO: schematics says do not know if 
-+	    //these should be used
-+	//reset-gpio = <&pca6408_2 3 GPIO_ACTIVE_LOW>;
-+	//
++	reset-gpio = <&gpio5 19 GPIO_ACTIVE_HIGH>;
 +	ext_osc = <1>;
 +	clocks = <&clk IMX8MP_CLK_HSIO_ROOT>,
 +		 <&clk IMX8MP_CLK_PCIE_AUX>,
@@ -612,7 +620,9 @@ index 000000000000..5f50de9f45ae
 +};
 +
 +&pcie_phy {
-+	ext_osc = <1>;
++	fsl,refclk-pad-mode = <IMX8_PCIE_REFCLK_PAD_INPUT>;
++	clocks = <&pcie0_refclk>;
++	clock-names = "ref";
 +	status = "okay";
 +};
 +
@@ -876,7 +886,7 @@ index 000000000000..5f50de9f45ae
 +			MX8MP_IOMUXC_I2C3_SCL__GPIO5_IO18	0x0
 +			MX8MP_IOMUXC_GPIO1_IO01__GPIO1_IO01	0x0
 +			MX8MP_IOMUXC_SPDIF_RX__GPIO5_IO04	0x0                     
-+
++			MX8MP_IOMUXC_I2C3_SDA__GPIO5_IO19       (PE_1_PULL_ENABLE | PUE_1_WEAK_PULL_UP)
 +			MX8MP_IOMUXC_GPIO1_IO14__GPIO1_IO14	0x0
 +			MX8MP_IOMUXC_NAND_DATA02__GPIO3_IO08	PE_1_PULL_ENABLE 
 +		>;
@@ -1340,5 +1350,5 @@ index 000000000000..5f50de9f45ae
 +};
 +
 -- 
-2.34.1
+2.25.1
 

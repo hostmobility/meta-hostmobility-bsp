@@ -1,7 +1,7 @@
-From c404ddd99f49494dd003fc4e37769a72a65d7d64 Mon Sep 17 00:00:00 2001
+From d72565f13ba2db9fb11cfb8eb4945a13c70054d4 Mon Sep 17 00:00:00 2001
 From: rikardo <rikard.olander@hostmobility.com>
 Date: Tue, 3 Oct 2023 14:46:18 +0000
-Subject: [PATCH] add hmx device tree
+Subject: [PATCH 04/14] add hmx device tree
 
 v1.  Files merged to single file.
 	0004-HMX-DT-update-for-ethernet-on-USB.patch
@@ -70,6 +70,7 @@ v18. Enable PCI Express in preparation for 5G modem support:
      - Add pcie reset pin (without it the modem will be in PCI reset
      and therefore not detected)
 
+v19. Enable support for m7 (co-cpu)
 ---
  arch/arm64/boot/dts/freescale/Makefile        |    2 +
  .../dts/freescale/imx8mp-var-dart-hmx1.dts    | 1257 +++++++++++++++++
@@ -88,7 +89,7 @@ index 7d2b8b4ad321..2607fdffaa44 100644
 +dtb-$(CONFIG_ARCH_MXC) += imx8mp-var-dart-hmx1.dtb
 diff --git a/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts b/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts
 new file mode 100644
-index 000000000000..a83de0cace6b
+index 000000000000..e80c300b82bd
 --- /dev/null
 +++ b/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts
 @@ -0,0 +1,1257 @@
@@ -100,7 +101,7 @@ index 000000000000..a83de0cace6b
 +
 +#include <dt-bindings/leds/common.h>
 +#include "imx8mp-var-dart.dtsi"
-+
++#include "imx8mp-var-common-m7.dtsi"
 +/ {
 +	model = "Host Mobility HMX1 imx8mp";
 +	comment = "";
@@ -1350,5 +1351,5 @@ index 000000000000..a83de0cace6b
 +};
 +
 -- 
-2.25.1
+2.34.1
 

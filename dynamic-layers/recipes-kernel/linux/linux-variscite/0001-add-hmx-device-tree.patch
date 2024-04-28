@@ -62,7 +62,8 @@ v16. Add wakeup-source property to tcan4x5x nodes. This is used by new
      driver patch to allow wake-up when interface in up when going into
      suspend.
 
-v17. Add co-cpu m7 ram area and driver.
+v17. Add co-cpu m7 ram include and watchdog driver. 
+Not tested if the hm-watchdog node works.
 ---
  arch/arm64/boot/dts/freescale/Makefile        |    2 +
  .../dts/freescale/imx8mp-var-dart-hmx1.dts    | 1274 +++++++++++++++++

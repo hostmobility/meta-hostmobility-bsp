@@ -1,0 +1,960 @@
+From 3afac21df62be3f8ace98b259857ccc361c9e1b3 Mon Sep 17 00:00:00 2001
+From: rikardo <rikard.olander@hostmobility.com>
+Date: Fri, 26 Apr 2024 13:13:48 +0000
+Subject: [PATCH 1/2] host-watchdog-driver-v25
+
+---
+ drivers/rpmsg/Makefile                  |   2 +-
+ drivers/rpmsg/imx_rpmsg_host_watchdog.c | 929 ++++++++++++++++++++++++
+ 2 files changed, 930 insertions(+), 1 deletion(-)
+ create mode 100644 drivers/rpmsg/imx_rpmsg_host_watchdog.c
+
+diff --git a/drivers/rpmsg/Makefile b/drivers/rpmsg/Makefile
+index 7c4ee52e92c4..eea56638646d 100644
+--- a/drivers/rpmsg/Makefile
++++ b/drivers/rpmsg/Makefile
+@@ -11,5 +11,5 @@ obj-$(CONFIG_RPMSG_QCOM_GLINK_SMEM) += qcom_glink_smem.o
+ obj-$(CONFIG_RPMSG_QCOM_SMD)	+= qcom_smd.o
+ obj-$(CONFIG_RPMSG_VIRTIO)	+= virtio_rpmsg_bus.o
+ obj-$(CONFIG_HAVE_IMX_RPMSG)	+= imx_rpmsg.o
+-obj-$(CONFIG_IMX_RPMSG_PINGPONG)	+= imx_rpmsg_pingpong.o
++obj-$(CONFIG_IMX_RPMSG_PINGPONG)	+= imx_rpmsg_pingpong.o imx_rpmsg_host_watchdog.o
+ obj-$(CONFIG_IMX_RPMSG_TTY)	+= imx_rpmsg_tty.o
+diff --git a/drivers/rpmsg/imx_rpmsg_host_watchdog.c b/drivers/rpmsg/imx_rpmsg_host_watchdog.c
+new file mode 100644
+index 000000000000..31f73e969489
+--- /dev/null
++++ b/drivers/rpmsg/imx_rpmsg_host_watchdog.c
+@@ -0,0 +1,929 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * Copyright 2024 Host Mobility
++ */
++
++#include <linux/device.h>
++#include <linux/kernel.h>
++#include <linux/module.h>
++#include <linux/virtio.h>
++#include <linux/rpmsg.h>
++#include <linux/timer.h>
++#include <linux/suspend.h>
++#include <linux/reboot.h>
++
++#include <linux/delay.h>
++
++#include <linux/gpio/consumer.h>
++#include <linux/of.h>
++#include <linux/of_gpio.h>
++#include <linux/interrupt.h>
++#include <linux/platform_device.h>
++
++#include <asm/cacheflush.h>
++
++#define DEVICE_NAME "host_watchdog"
++#define HEARBEAT_TIMEOUT_MS 2000
++
++typedef enum {
++	WD_STATE = 48,/* '0' */
++	WD_PERIOD, /* '1' */
++	WD_INIT, /* '2' target is in boot mode or init*/
++	WD_MONITOR, /* '3' target is in start mode*/
++	WD_DISABLE, /* '4' target is in disabled or stoped mode*/
++	WD_SUSPEND, /* '5' */
++	WD_RESUME, /* '6' */
++	WD_REBOOT, /* '7' */
++	WD_SHUTDOWN, /* '8' */
++} Command;
++
++typedef enum {
++	MSG_COMMAND = '!', /* 33 */
++	MSG_HEARTBEAT = 'H', /* 72 */
++	MSG_READ = 'R',
++	MSG_SUPEND = 'Z'
++} Message;
++
++/*Convert enum to userspace text*/
++static const struct {
++	const char *str;
++	Command cmd;
++} cmd_table[] = {
++	{ "GET_STATE", WD_STATE },
++	{ "PERIOD", WD_PERIOD },
++	{ "BOOT", WD_INIT },
++	{ "START", WD_MONITOR },
++	{ "STOP", WD_DISABLE },
++	{ "SUSPEND", WD_SUSPEND },
++	{ "RESUME", WD_RESUME },
++	{ "REBOOT", WD_REBOOT },
++	{ "SHUTDOWN", WD_SHUTDOWN },
++};
++
++static struct {
++	unsigned int before; /* command enum*/
++	unsigned int now; /* command enum*/
++	unsigned int next; /* command enum*/
++	unsigned int error; /* status error, 0 no error*/
++} status_state = { WD_INIT, WD_INIT, WD_INIT, 0 };
++
++static struct {
++	unsigned int period;
++	unsigned int boot;
++	unsigned int start;
++	unsigned int stop;
++	unsigned int suspend;
++	unsigned int resume;
++	unsigned int reboot;
++	unsigned int shutdown;
++} cmd_times = { 45, 0, 0, 0, 0, 0, 0 };
++
++static DEFINE_MUTEX(heartbeat_mutex);
++static struct delayed_work heartbeat_work;
++static struct delayed_work period_work;
++
++static struct rpmsg_endpoint *global_ept;
++
++struct v_watchdog_gpio_chip {
++        struct gpio_chip chip;
++        struct mutex lock;
++} *watchdog_gpio_chip;
++
++static const char *gpio_names[2] = {
++	"wdt_poweroff", "wdt_reset"
++};
++
++#define RESET_GPIO_PIN 2 // GPIO 1 IO 2 (reset pin), TODO fix hard coded value to get io from device tree.
++//#define RESET_GPIO_PIN 11 // GPIO 1 IO 11 imx8mp-var-dart-dt8mcustomboard.dts test.
++#define RESET_TOGGLE_INTERVAL_MS 250
++
++static struct timer_list reset_gpio_toggle_timer;
++static int reset_gpio_value = 1;
++
++static void reset_gpio_toggle_callback(struct timer_list *unused)
++{
++	reset_gpio_value = !reset_gpio_value;
++	gpio_set_value(RESET_GPIO_PIN, reset_gpio_value);
++	mod_timer(&reset_gpio_toggle_timer,
++		  jiffies + msecs_to_jiffies(RESET_TOGGLE_INTERVAL_MS));
++}
++
++/*Take over the reset pin from co-cpu and do a reboot. We assume lost communication with the co-cpu*/
++static int start_reset_no_communication_to_co_cpu(void)
++{
++	int ret;
++
++	mdelay(5000);
++
++	flush_cache_all();
++	mb();
++
++
++	ret = gpio_request(RESET_GPIO_PIN, "reset_now");
++	if (ret) {
++		pr_err("Failed to request GPIO\n");
++		return ret;
++	}
++
++	ret = gpio_direction_output(RESET_GPIO_PIN, reset_gpio_value);
++	if (ret) {
++		pr_err("Failed to set GPIO direction\n");
++		gpio_free(RESET_GPIO_PIN);
++		return ret;
++	}
++
++	// Initialize and start the timer
++	timer_setup(&reset_gpio_toggle_timer, reset_gpio_toggle_callback, 0);
++	reset_gpio_toggle_callback(NULL);
++
++	return 0;
++}
++
++static u8 calculate_checksum(u32 data)
++{
++	return ((data >> 24) & 0xFF) + ((data >> 16) & 0xFF) +
++		((data >> 8) & 0xFF) + (data & 0xFF);
++}
++
++static int pm_rpmsg_send(struct rpmsg_endpoint *ept, u8 msg_type, u8 command,
++			 u8 time)
++{
++	u32 message;
++	u8 checksum;
++	int err;
++
++	message = (msg_type << 24) | (command << 16) | (time << 8) | 0;
++	checksum = calculate_checksum(message);
++	message |= checksum;
++
++	mutex_lock(&heartbeat_mutex);
++
++	if (msg_type == MSG_COMMAND)
++	{
++		if (command >= WD_INIT)
++		{
++			/* save next state do check in handle_state_message if the state= current state and set erro and keep now state. */
++			status_state.next = command;
++			status_state.error = 0; // clear command error code.
++		}
++	}
++
++
++	err = rpmsg_trysend(ept, &message, sizeof(u32));
++	dev_dbg(&ept->rpdev->dev, "send err: 0x%x\n", err);
++	if (err) {
++		dev_err(&ept->rpdev->dev, "rpmsg_send failed: %d\n", err);
++		mutex_unlock(&heartbeat_mutex);
++		start_reset_no_communication_to_co_cpu();
++		while (1)
++			mdelay(5000);
++		return err;
++	}
++	mutex_unlock(&heartbeat_mutex);
++
++	dev_dbg(&ept->rpdev->dev, "Sent message: 0x%x\n", message);
++
++	return 0;
++}
++
++static void host_watchdog_heartbeat_worker_handler(struct work_struct *work)
++{
++
++	dev_dbg(&global_ept->rpdev->dev, "Start send heartbeat message\n");
++	pm_rpmsg_send(global_ept, MSG_HEARTBEAT, WD_STATE, 0);
++	dev_dbg(&global_ept->rpdev->dev, "Heartbeat message sent");
++	/* Restart the timer */
++	schedule_delayed_work(&heartbeat_work, msecs_to_jiffies(HEARBEAT_TIMEOUT_MS));
++	dev_dbg(&global_ept->rpdev->dev, "Restart the timer");
++
++}
++
++static void host_watchdog_timeout_period_worker_handler(struct work_struct *work)
++{
++	dev_err(&global_ept->rpdev->dev, "No message received from co-cpu going to emergency reset now.\n");
++	start_reset_no_communication_to_co_cpu();
++}
++
++/* Set individual time for user space */
++static void set_period_time(u8 time)
++{
++	cmd_times.period = time;
++}
++
++static void set_boot_time(u8 time)
++{
++	cmd_times.boot = time;
++}
++
++static void set_start_time(u8 time)
++{
++	cmd_times.start = time;
++}
++
++static void set_stop_time(u8 time)
++{
++	cmd_times.stop = time;
++}
++
++static void set_suspend_time(u8 time)
++{
++	cmd_times.suspend = time;
++}
++
++static void set_resume_time(u8 time)
++{
++	cmd_times.resume = time;
++}
++
++static void set_reboot_time(u8 time)
++{
++	cmd_times.reboot = time;
++}
++
++static void set_shutdown_time(u8 time)
++{
++	cmd_times.shutdown = time;
++}
++
++
++/* Get state for user space and activate or inactivate functions like heartbeat timers*/
++static void handle_boot_state(u8 message_state, u8 error_code)
++{
++	if (error_code == 0) {
++		cmd_times.boot = error_code;
++	}
++}
++
++static void handle_start_state(u8 message_state, u8 error_code)
++{
++	if (error_code == 0) {
++		cmd_times.start = error_code;
++		/*Change to 5 second period time. for faster respones on failure behaviors like no communication to m7*/
++		/*start heartbeat co-cpu is waiting for it*/
++		schedule_delayed_work(&heartbeat_work,msecs_to_jiffies(HEARBEAT_TIMEOUT_MS));
++		pm_rpmsg_send(global_ept, MSG_COMMAND, WD_PERIOD, 5);
++	}
++}
++
++static void handle_stop_state(u8 message_state, u8 error_code)
++{
++	if (error_code == 0) {
++		cmd_times.stop = error_code;
++		cancel_delayed_work_sync(&heartbeat_work);
++	}
++}
++
++static void handle_suspend_state(u8 message_state, u8 error_code)
++{
++	if (error_code == 0) {
++		cmd_times.suspend = error_code;
++		/*Important to send any messae here before the system suspend*/
++		dev_info(&global_ept->rpdev->dev, "Entered first part of suspend state\n");
++		pm_rpmsg_send(global_ept, MSG_SUPEND, WD_STATE, 0);
++		dev_info(&global_ept->rpdev->dev, "Leave second part of suspend\n");
++
++	} else {
++		/*TODO Do something if we fail enter suspend*/
++	}
++}
++
++static void handle_resume_state(u8 message_state, u8 error_code)
++{
++	if (error_code == 0) {
++		cmd_times.resume = error_code;
++		/* short period here and expect go to start_state */
++		pm_rpmsg_send(global_ept, MSG_COMMAND, WD_MONITOR, 0);
++	}
++}
++
++static void handle_reboot_state(u8 message_state, u8 error_code)
++{
++	if (error_code == 0) {
++		cmd_times.reboot = error_code;
++	}
++}
++
++static void handle_shutdown_state(u8 message_state, u8 error_code)
++{
++	if (error_code == 0) {
++		cmd_times.shutdown = error_code;
++	}
++}
++
++static ssize_t ctl_get_state_show(struct class *class,
++				  struct class_attribute *attr, char *buf)
++{
++	if ((status_state.now - WD_STATE) >= ARRAY_SIZE(cmd_table) ||
++		(status_state.before - WD_STATE) >= ARRAY_SIZE(cmd_table) ||
++		(status_state.next - WD_STATE) >= ARRAY_SIZE(cmd_table)) {
++		return snprintf(buf, PAGE_SIZE,
++			"Unknown state (now:%u, before:%u, next:%u) with error code: %u\n",
++			status_state.now, status_state.before, status_state.next, status_state.error);
++	}
++
++	return snprintf(buf, PAGE_SIZE, "Current:%s, Previous:%s, Most recent cmd:%s, Error(recent cmd):%u\n",
++		cmd_table[status_state.now - WD_STATE].str,
++		cmd_table[status_state.before - WD_STATE].str,
++		cmd_table[status_state.next - WD_STATE].str,
++		status_state.error);
++}
++
++static ssize_t ctl_period_show(struct class *class,
++			       struct class_attribute *attr, char *buf)
++{
++	return snprintf(buf, PAGE_SIZE, "%u\n", cmd_times.period);
++}
++static ssize_t ctl_period_store(struct class *class,
++				struct class_attribute *attr, const char *buf,
++				size_t count)
++{
++	unsigned int time;
++	int err;
++
++	err = kstrtouint(buf, 10, &time);
++	if (err) {
++		dev_err(&global_ept->rpdev->dev,
++			"use only number from 0-120, where number is seconds.\n");
++		return err;
++	}
++
++	if ( (time > 120 ) || (time <= 3) ) {
++		dev_err(&global_ept->rpdev->dev,
++			"Invalid time value. Value should be between 4 and 120.\n");
++		return -EINVAL;
++	}
++
++	err = pm_rpmsg_send(global_ept, MSG_COMMAND, WD_PERIOD, time);
++	if (err)
++		return err;
++
++	return count;
++}
++
++static ssize_t ctl_boot_show(struct class *class, struct class_attribute *attr,
++			     char *buf)
++{
++	return snprintf(buf, PAGE_SIZE, "%u\n", cmd_times.boot);
++}
++
++static ssize_t ctl_boot_store(struct class *class, struct class_attribute *attr,
++			      const char *buf, size_t count)
++{
++	unsigned int time;
++	int err;
++
++	err = kstrtouint(buf, 10, &time);
++	if (err) {
++		dev_err(&global_ept->rpdev->dev,
++			"use only number from 0-120, where number is seconds.\n");
++		return err;
++	}
++
++	if (time > 120) {
++		dev_err(&global_ept->rpdev->dev,
++			"Invalid time value. Value should be between 0 and 120.\n");
++		return -EINVAL;
++	}
++
++	err = pm_rpmsg_send(global_ept, MSG_COMMAND, WD_INIT, time);
++	if (err)
++		return err;
++
++	return count;
++}
++static ssize_t ctl_start_show(struct class *class, struct class_attribute *attr,
++			      char *buf)
++{
++	return snprintf(buf, PAGE_SIZE, "%u\n", cmd_times.start);
++}
++
++static ssize_t ctl_start_store(struct class *class,
++			       struct class_attribute *attr, const char *buf,
++			       size_t count)
++{
++	unsigned int time;
++	int err;
++
++	err = kstrtouint(buf, 10, &time);
++	if (err) {
++		dev_err(&global_ept->rpdev->dev,
++			"use only number from 0-120, where number is seconds.\n");
++		return err;
++	}
++
++	if (time > 120) {
++		dev_err(&global_ept->rpdev->dev,
++			"Invalid time value. Value should be between 0 and 120.\n");
++		return -EINVAL;
++	}
++
++	err = pm_rpmsg_send(global_ept, MSG_COMMAND, WD_MONITOR, time);
++	if (err)
++		return err;
++
++
++
++	return count;
++}
++
++static ssize_t ctl_stop_show(struct class *class, struct class_attribute *attr,
++			     char *buf)
++{
++	return snprintf(buf, PAGE_SIZE, "%u\n", cmd_times.stop);
++}
++
++static ssize_t ctl_stop_store(struct class *class, struct class_attribute *attr,
++			      const char *buf, size_t count)
++{
++	unsigned int time;
++	int err;
++
++	err = kstrtouint(buf, 10, &time);
++	if (err) {
++		dev_err(&global_ept->rpdev->dev,
++			"use only number from 0-120, where number is seconds.\n");
++		return err;
++	}
++	/*123 is a magic number that make the co-cpu not responding on the link anymore.
++	This is to simulate a fw crash and that the driver can handle it.*/
++	if (time > 120 && time != 123 && time != 124) {
++		dev_err(&global_ept->rpdev->dev,
++			"Invalid time value. Value should be between 0 and 120.\n");
++		return -EINVAL;
++	}
++
++	err = pm_rpmsg_send(global_ept, MSG_COMMAND, WD_DISABLE, time);
++	if (err)
++		return err;
++
++	return count;
++}
++
++static ssize_t ctl_suspend_show(struct class *class,
++				struct class_attribute *attr, char *buf)
++{
++	return snprintf(buf, PAGE_SIZE, "%u\n", cmd_times.suspend);
++}
++
++static ssize_t ctl_suspend_store(struct class *class,
++				 struct class_attribute *attr, const char *buf,
++				 size_t count)
++{
++	unsigned int time;
++	int err;
++
++	err = kstrtouint(buf, 10, &time);
++	if (err) {
++		dev_err(&global_ept->rpdev->dev,
++			"use only number from 0-120, where number is seconds.\n");
++		return err;
++	}
++
++	if (time > 120) {
++		dev_err(&global_ept->rpdev->dev,
++			"Invalid time value. Value should be between 0 and 120.\n");
++		return -EINVAL;
++	}
++
++	err = pm_rpmsg_send(global_ept, MSG_COMMAND, WD_SUSPEND, time);
++	if (err)
++		return err;
++
++	return count;
++}
++
++static ssize_t ctl_resume_show(struct class *class,
++			       struct class_attribute *attr, char *buf)
++{
++	return snprintf(buf, PAGE_SIZE, "%u\n", cmd_times.resume);
++}
++
++static ssize_t ctl_resume_store(struct class *class,
++				struct class_attribute *attr, const char *buf,
++				size_t count)
++{
++	unsigned int time;
++	int err;
++
++	err = kstrtouint(buf, 10, &time);
++	if (err) {
++		dev_err(&global_ept->rpdev->dev,
++			"use only number from 0-120, where number is seconds.\n");
++		return err;
++	}
++
++	if (time > 120) {
++		dev_err(&global_ept->rpdev->dev,
++			"Invalid time value. Value should be between 0 and 120.\n");
++		return -EINVAL;
++	}
++
++	err = pm_rpmsg_send(global_ept, MSG_COMMAND, WD_RESUME, time);
++	if (err)
++		return err;
++
++	return count;
++}
++
++static ssize_t ctl_reboot_show(struct class *class,
++			       struct class_attribute *attr, char *buf)
++{
++	return snprintf(buf, PAGE_SIZE, "%u\n", cmd_times.reboot);
++}
++
++static ssize_t ctl_reboot_store(struct class *class,
++				struct class_attribute *attr, const char *buf,
++				size_t count)
++{
++	unsigned int time;
++	int err;
++
++	err = kstrtouint(buf, 10, &time);
++	if (err) {
++		dev_err(&global_ept->rpdev->dev,
++			"use only number from 0-120, where number is seconds.\n");
++		return err;
++	}
++
++	if (time > 120) {
++		dev_err(&global_ept->rpdev->dev,
++			"Invalid time value. Value should be between 0 and 120.\n");
++		return -EINVAL;
++	}
++
++	err = pm_rpmsg_send(global_ept, MSG_COMMAND, WD_REBOOT, time);
++	if (err)
++		return err;
++
++	return count;
++}
++
++static ssize_t ctl_shutdown_show(struct class *class,
++				 struct class_attribute *attr, char *buf)
++{
++	return snprintf(buf, PAGE_SIZE, "%u\n", cmd_times.shutdown);
++}
++
++static ssize_t ctl_shutdown_store(struct class *class,
++				  struct class_attribute *attr, const char *buf,
++				  size_t count)
++{
++	unsigned int time;
++	int err;
++
++	err = kstrtouint(buf, 10, &time);
++	if (err) {
++		dev_err(&global_ept->rpdev->dev,
++			"use only number from 0-120, where number is seconds.\n");
++		return err;
++	}
++
++	if (time > 120) {
++		dev_err(&global_ept->rpdev->dev,
++			"Invalid time value. Value should be between 0 and 120.\n");
++		return -EINVAL;
++	}
++
++	err = pm_rpmsg_send(global_ept, MSG_COMMAND, WD_SHUTDOWN, time);
++	if (err)
++		return err;
++
++	return count;
++}
++
++static struct class_attribute class_attr_ctl_get_state =
++	__ATTR(ctl_get_state, 0440, ctl_get_state_show, NULL);
++
++static struct class_attribute class_attr_ctl_period =
++	__ATTR(ctl_period, 0660, ctl_period_show, ctl_period_store);
++
++static struct class_attribute class_attr_ctl_boot =
++	__ATTR(ctl_boot, 0660, ctl_boot_show, ctl_boot_store);
++
++	static struct class_attribute class_attr_ctl_start =
++	__ATTR(ctl_start, 0660, ctl_start_show, ctl_start_store);
++
++static struct class_attribute class_attr_ctl_stop =
++	__ATTR(ctl_stop, 0660, ctl_stop_show, ctl_stop_store);
++
++static struct class_attribute class_attr_ctl_suspend =
++	__ATTR(ctl_suspend, 0660, ctl_suspend_show, ctl_suspend_store);
++
++static struct class_attribute class_attr_ctl_resume =
++	__ATTR(ctl_resume, 0660, ctl_resume_show, ctl_resume_store);
++
++static struct class_attribute class_attr_ctl_reboot =
++	__ATTR(ctl_reboot, 0660, ctl_reboot_show, ctl_reboot_store);
++
++static struct class_attribute class_attr_ctl_shutdown =
++	__ATTR(ctl_shutdown, 0660, ctl_shutdown_show, ctl_shutdown_store);
++
++static struct class *host_watchdog_class;
++
++static void handle_command_message(struct rpmsg_device *rpdev, u8 msg_command,
++				   u8 msg_time_s)
++{
++	u8 command_table;
++	struct {
++		Command cmd;
++		void (*action)(u8);
++	} cmd_actions[] = {
++		{ WD_STATE, NULL },
++		{ WD_PERIOD, set_period_time },
++		{ WD_INIT, set_boot_time },
++		{ WD_MONITOR, set_start_time },
++		{ WD_DISABLE, set_stop_time },
++		{ WD_SUSPEND, set_suspend_time },
++		{ WD_RESUME, set_resume_time },
++		{ WD_REBOOT, set_reboot_time },
++		{ WD_SHUTDOWN, set_shutdown_time },
++	};
++
++	if (msg_command < WD_STATE || msg_command > WD_SHUTDOWN) {
++		dev_err(&rpdev->dev, "Unknown command: %u\n", msg_command);
++		return;
++	}
++	command_table =  msg_command - WD_STATE;
++
++	dev_info(&rpdev->dev, "%s command message received with time: %u\n",
++		 cmd_table[command_table].str, msg_time_s);
++
++	if (cmd_actions[command_table].action) {
++		cmd_actions[command_table].action(msg_time_s);
++	}
++}
++
++static void handle_state_message(struct rpmsg_device *rpdev, u8 msg_command, u8 error_code)
++{
++	u8 command_table;
++	struct {
++		Command cmd;
++		void (*action)(u8, u8);
++	} cmd_actions[] = {
++		{ WD_STATE, NULL },
++		{ WD_PERIOD, NULL },
++		{ WD_INIT, handle_boot_state },
++		{ WD_MONITOR, handle_start_state },
++		{ WD_DISABLE, handle_stop_state },
++		{ WD_SUSPEND, handle_suspend_state },
++		{ WD_RESUME, handle_resume_state },
++		{ WD_REBOOT, handle_reboot_state },
++		{ WD_SHUTDOWN, handle_shutdown_state },
++	};
++
++	if (msg_command < WD_STATE || msg_command > WD_SHUTDOWN) {
++		dev_err(&rpdev->dev, "Unknown command: %u\n", msg_command);
++		return;
++	}
++
++	command_table =  msg_command - WD_STATE;
++	dev_info(&rpdev->dev, "%s state message received with error code: %u\n",
++		 cmd_table[command_table].str, error_code);
++
++	if (cmd_actions[command_table].action) {
++		cmd_actions[command_table].action(msg_command, error_code);
++		/*update status state, if we get a state shift next to now and now to before if error_code is 0 and */
++		mutex_lock(&heartbeat_mutex);
++		if (error_code == 0 && status_state.next == msg_command) {
++			status_state.before = status_state.now;
++			status_state.now = msg_command;
++		}else if (status_state.next == msg_command) {
++			status_state.error = error_code;
++		}
++		if (error_code != 0 )
++		{
++			dev_err(&global_ept->rpdev->dev, "Enter state: %s failed with ERROR: %u\n",
++				cmd_table[command_table].str, error_code);
++		}
++		mutex_unlock(&heartbeat_mutex);
++	}
++}
++
++static int host_watchdog_read(struct rpmsg_device *rpdev, void *data, int len,
++			      void *priv, u32 src)
++{
++	u32 message = *(u32 *)data;
++	u8 msg_type = (message >> 24) & 0xFF;
++	u8 msg_command = (message >> 16) & 0xFF;
++	u8 msg_time_s = (message >> 8) & 0xFF;
++	u8 msg_checksum = message & 0xFF;
++	u8 checksum = msg_type + msg_command + msg_time_s;
++
++	if (msg_checksum != checksum) {
++		dev_err(&rpdev->dev,
++			"Checksum mismatch! Command: 0x%x, time: %u sec \n",
++			msg_command, msg_time_s);
++		dev_err(&rpdev->dev,
++			"Message checksum: 0x%x != 0x%x calculated\n",
++			msg_checksum, checksum);
++		return -EINVAL;
++	}
++
++	if (msg_type == MSG_COMMAND) {
++		handle_command_message(rpdev, msg_command, msg_time_s);
++	} else if (msg_type == MSG_READ) {
++		handle_state_message(rpdev, msg_command, msg_time_s);
++	} else if (msg_type == MSG_HEARTBEAT) {
++		/*clear timeout with period time*/
++		dev_dbg(&rpdev->dev, "Got hearbeat\n");
++		cancel_delayed_work_sync(&period_work);
++		schedule_delayed_work(&period_work,msecs_to_jiffies((cmd_times.period * 1000)));
++	} else {
++		dev_err(&rpdev->dev, "Unsupported msg_type: %u\n", msg_type);
++		return -EINVAL;
++	}
++
++	return 0;
++}
++
++/* offsets 0..1 ==
++line   0: "wdt_poweroff" unused output active-high
++line   1:  "wdt_reset"       unused  output  active-high
++*/
++static void host_watchdog_set_output (struct gpio_chip *chip, unsigned offset, int value)
++{
++ 	dev_info(&global_ept->rpdev->dev,"Configuring GPIO%d as output with initial value %d\n", offset, value);
++}
++
++static int  host_watchdog_gpio_dir_output(struct gpio_chip *chip, unsigned offset, int value)
++{
++	dev_info(&global_ept->rpdev->dev, "Setting GPIO%d to %d\n", offset, value);
++
++	if (offset == 0 && value == 0) {
++		dev_info(&global_ept->rpdev->dev, "Got shutdown signal");
++		pm_rpmsg_send(global_ept, MSG_COMMAND, WD_SHUTDOWN, 0);
++	} else if (offset == 1 && value == 0) {
++		dev_info(&global_ept->rpdev->dev, "got reboot signal from wdog1, flush system and reboot");
++		flush_cache_all();
++		mb();
++		pm_rpmsg_send(global_ept, MSG_COMMAND, WD_REBOOT, 0);
++	} else {
++		dev_info(&global_ept->rpdev->dev, "Do nothing, Setting GPIO%d to %d\n", offset, value);
++	}
++	return 0;
++}
++
++static int host_watchdog_probe(struct rpmsg_device *rpdev)
++{
++	struct platform_device *pdev = to_platform_device(rpdev->dev.parent);
++	int ret;
++	global_ept = rpdev->ept;
++
++	dev_info(&rpdev->dev, "Probe new channel: 0x%x -> 0x%x!\n", rpdev->src,
++		 rpdev->dst);
++
++	watchdog_gpio_chip = devm_kzalloc(
++		&pdev->dev, sizeof(*watchdog_gpio_chip), GFP_KERNEL);
++	if (!watchdog_gpio_chip)
++		return -ENOMEM;
++
++	// Initialize GPIO chip structure
++	watchdog_gpio_chip->chip.label = "watchdog_gpio_chip";
++	watchdog_gpio_chip->chip.parent = &pdev->dev;
++	watchdog_gpio_chip->chip.owner = THIS_MODULE;
++	watchdog_gpio_chip->chip.direction_output = host_watchdog_gpio_dir_output;
++	watchdog_gpio_chip->chip.set =	host_watchdog_set_output;
++	watchdog_gpio_chip->chip.base = -1;
++	watchdog_gpio_chip->chip.ngpio = 2;
++	watchdog_gpio_chip->chip.can_sleep = true;
++	watchdog_gpio_chip->chip.names = gpio_names;
++
++	mutex_init(&watchdog_gpio_chip->lock);
++
++	ret = gpiochip_add_data(&watchdog_gpio_chip->chip, watchdog_gpio_chip);
++	if (ret) {
++		dev_err(&rpdev->dev, "Failed to add GPIO chip\n");
++		return ret;
++	}
++
++	mutex_init(&heartbeat_mutex);
++
++
++
++
++	/* Start the heartbeat timer */
++	dev_info(&global_ept->rpdev->dev, "Start watchdog hearbeat worker with timer: %u", HEARBEAT_TIMEOUT_MS);
++	/* set start time to wait time plus HEARBEAT_TIMEOUT_MS so we don't send the first heartbeat too soon. next callback will be HEARBEAT_TIMEOUT_MS */
++	INIT_DELAYED_WORK(&heartbeat_work, host_watchdog_heartbeat_worker_handler);
++	/*Set period worker and clear timer on heartbeat message receive*/
++	INIT_DELAYED_WORK(&period_work, host_watchdog_timeout_period_worker_handler);
++
++
++	dev_info(&rpdev->dev, "Probe complete");
++
++	return 0;
++}
++
++static void host_watchdog_remove(struct rpmsg_device *rpdev)
++{
++	/* Send REBOOT command before removal */
++	pm_rpmsg_send(global_ept, MSG_COMMAND, WD_REBOOT, 1);
++	flush_cache_all();
++	mb();
++	mdelay(1000);
++	dev_info(&rpdev->dev, "Remove timer and heartbeat callback\n");
++	cancel_delayed_work_sync(&heartbeat_work);
++	cancel_delayed_work_sync(&period_work);
++	dev_err(&rpdev->dev, "Emergency reset activated, we should never be here!\n");
++	start_reset_no_communication_to_co_cpu();
++	dev_info(&rpdev->dev, "Driver is removed\n");
++}
++
++static int host_watchdog_suspend(struct device *dev)
++{
++	dev_info(&global_ept->rpdev->dev, "Enter suspend routine\n");
++	pm_rpmsg_send(global_ept, MSG_COMMAND, WD_SUSPEND, 0);
++	mdelay(100);
++	cancel_delayed_work_sync(&heartbeat_work);
++	cancel_delayed_work_sync(&period_work);
++
++	dev_info(&global_ept->rpdev->dev, "Now ready to suspend the system\n");
++	return 0;
++}
++
++static int host_watchdog_resume(struct device *dev)
++{
++
++	schedule_delayed_work(&heartbeat_work,msecs_to_jiffies(HEARBEAT_TIMEOUT_MS));
++	schedule_delayed_work(&period_work,msecs_to_jiffies((cmd_times.period * 1000)));
++
++	return pm_rpmsg_send(global_ept, MSG_COMMAND, WD_RESUME, 0);
++}
++
++static struct rpmsg_device_id rpmsg_driver_host_watchdog_id_table[] = {
++	{ .name = "rpmsg-lite-host-watchdog" },
++	{},
++};
++
++static struct dev_pm_ops rpmsg_host_watchdog_pm_ops = {
++	.suspend = host_watchdog_suspend,
++	.resume = host_watchdog_resume,
++};
++
++static struct rpmsg_driver rpmsg_host_watchdog_driver = {
++	.drv.name = "hm-watchdog", //KBUILD_MODNAME
++	.drv.owner = THIS_MODULE,
++	.id_table = rpmsg_driver_host_watchdog_id_table,
++	.probe = host_watchdog_probe,
++	.callback = host_watchdog_read,
++	.remove = host_watchdog_remove,
++	.drv.pm = &rpmsg_host_watchdog_pm_ops,
++};
++
++static int __init init(void)
++{
++	int ret;
++
++	host_watchdog_class = class_create(THIS_MODULE, DEVICE_NAME);
++	if (IS_ERR(host_watchdog_class)) {
++		return PTR_ERR(host_watchdog_class);
++	}
++
++	ret = register_rpmsg_driver(&rpmsg_host_watchdog_driver);
++	if (ret) {
++		class_destroy(host_watchdog_class);
++		return ret;
++	}
++
++	ret = class_create_file(host_watchdog_class, &class_attr_ctl_get_state);
++	ret |= class_create_file(host_watchdog_class, &class_attr_ctl_period);
++	ret |= class_create_file(host_watchdog_class, &class_attr_ctl_boot);
++	ret |= class_create_file(host_watchdog_class, &class_attr_ctl_start);
++	ret |= class_create_file(host_watchdog_class, &class_attr_ctl_stop);
++	ret |= class_create_file(host_watchdog_class, &class_attr_ctl_suspend);
++	ret |= class_create_file(host_watchdog_class, &class_attr_ctl_resume);
++	ret |= class_create_file(host_watchdog_class, &class_attr_ctl_reboot);
++	ret |= class_create_file(host_watchdog_class, &class_attr_ctl_shutdown);
++
++	if (ret) {
++		unregister_rpmsg_driver(&rpmsg_host_watchdog_driver);
++		class_destroy(host_watchdog_class);
++		return ret;
++	}
++
++	return 0;
++}
++
++static void __exit fini(void)
++{
++	class_remove_file(host_watchdog_class, &class_attr_ctl_get_state);
++	class_remove_file(host_watchdog_class, &class_attr_ctl_period);
++	class_remove_file(host_watchdog_class, &class_attr_ctl_boot);
++	class_remove_file(host_watchdog_class, &class_attr_ctl_start);
++	class_remove_file(host_watchdog_class, &class_attr_ctl_stop);
++	class_remove_file(host_watchdog_class, &class_attr_ctl_suspend);
++	class_remove_file(host_watchdog_class, &class_attr_ctl_resume);
++	class_remove_file(host_watchdog_class, &class_attr_ctl_reboot);
++	class_remove_file(host_watchdog_class, &class_attr_ctl_shutdown);
++
++	unregister_rpmsg_driver(&rpmsg_host_watchdog_driver);
++	class_destroy(host_watchdog_class);
++}
++
++module_init(init);
++module_exit(fini);
++
++MODULE_AUTHOR("Host Mobility");
++MODULE_DESCRIPTION("iMX virtio remote processor messaging host watchdog driver with heartbeat");
++MODULE_ALIAS("host-watchdog");
++MODULE_LICENSE("GPL v2");
+-- 
+2.34.1
+

@@ -1,0 +1,77 @@
+From d2723c918596ed6c3d1ab10987bd5a413033682b Mon Sep 17 00:00:00 2001
+From: rikardo <rikard.olander@hostmobility.com>
+Date: Fri, 26 Apr 2024 13:14:11 +0000
+Subject: [PATCH 2/2] temp-custom-board-dts
+
+---
+ .../imx8mp-var-dart-dt8mcustomboard.dts       | 33 ++++++++++++++++++-
+ 1 file changed, 32 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm64/boot/dts/freescale/imx8mp-var-dart-dt8mcustomboard.dts b/arch/arm64/boot/dts/freescale/imx8mp-var-dart-dt8mcustomboard.dts
+index 48e771501a89..694e68e57beb 100644
+--- a/arch/arm64/boot/dts/freescale/imx8mp-var-dart-dt8mcustomboard.dts
++++ b/arch/arm64/boot/dts/freescale/imx8mp-var-dart-dt8mcustomboard.dts
+@@ -5,6 +5,7 @@
+  */
+ 
+ #include "imx8mp-var-dart.dtsi"
++#include "imx8mp-var-common-m7.dtsi"
+ 
+ / {
+ 	model = "Variscite DART-MX8M-PLUS on DT8MCustomBoard 2.x";
+@@ -13,6 +14,21 @@ chosen {
+ 		stdout-path = &uart1;
+ 	};
+ 
++	hm_watchdog: hm-watchdog {
++	compatible = "hm-watchdog";
++	status = "okay";
++	gpio-controller;
++	#gpio-cells = <2>;
++	/*wdt_poweroff: wdt-poweroff {
++			//gpio-line-name = "wdt_poweroff";
++			gpios = <&hm_watchdog 0 GPIO_ACTIVE_LOW>;
++		};*/
++	/*wdt_reset: wdt-reset {
++			//gpio-line-name = "wdt_reset";
++			gpios = <&hm_watchdog 1 GPIO_ACTIVE_LOW>;
++		};*/
++	};
++
+ 	gpio-keys {
+ 		compatible = "gpio-keys";
+ 		status = "okay";
+@@ -55,7 +71,7 @@ gpio-leds {
+ 		emmc {
+ 			label = "eMMC";
+ 			gpios = <&gpio4 18 GPIO_ACTIVE_HIGH>;
+-			linux,default-trigger = "mmc2";
++			linux,default-trigger = "heartbeat";
+ 		};
+ 	};
+ 
+@@ -157,6 +173,21 @@ cpu {
+ 			};
+ 		};
+ 	};
++	gpio-poweroff {
++		compatible = "gpio-poweroff";
++		gpios = <&hm_watchdog 0 GPIO_ACTIVE_LOW>;
++		timeout-ms = <30000>;
++		force-mode;
++	};
++};
++
++&wdog1 {
++	//TODO
++	/delete-property/pinctrl-names;
++	/delete-property/pinctrl-0;
++	//gpios = <&hm_watchdog 1 GPIO_ACTIVE_LOW>;
++	fsl,ext-reset-output;
++	status = "okay";
+ };
+ 
+ &aud2htx {
+-- 
+2.34.1
+

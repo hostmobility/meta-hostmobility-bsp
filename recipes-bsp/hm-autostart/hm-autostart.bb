@@ -32,4 +32,5 @@ FILES:${PN} = "\
     /opt/hm/autostart.sh \
     ${systemd_unitdir}/system/autostart.service \
     ${sysconfdir}/first_boot_after_update.txt \
+    /lib/firmware/rpmsg_lite_host_watchdog.bin \
 "

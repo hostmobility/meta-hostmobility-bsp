@@ -74,7 +74,7 @@ v19. Add co-cpu m7 ram area and driver.
 
 ---
  arch/arm64/boot/dts/freescale/Makefile        |    2 +
- .../dts/freescale/imx8mp-var-dart-hmx1.dts    | 1276 +++++++++++++++++
+ .../dts/freescale/imx8mp-var-dart-hmx1.dts    | 1278 +++++++++++++++++
  2 files changed, 1276 insertions(+)
  create mode 100644 arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts
 
@@ -93,7 +93,7 @@ new file mode 100644
 index 000000000000..35b84c2090f9
 --- /dev/null
 +++ b/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts
-@@ -0,0 +1,1276 @@
+@@ -0,0 +1,1278 @@
 +// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 +/*
 + * Copyright 2022, 2023, 2024 Host Mobility AB

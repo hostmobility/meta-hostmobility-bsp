@@ -266,7 +266,7 @@ index cf725dde22..0207350ddb 100644
  	"m7_addr=0x7e0000\0" \
 -	"m7_bin=hello_world.bin\0" \
 -	"use_m7=no\0" \
-+	"m7_bin=rpmsg-lite-host-watchdog\0" "m7_addr=0x80000000\0" \
++	"m7_bin=imx_rpmsg_host_watchdog.bin\0" "m7_addr=0x80000000\0" \
 +	"use_m7=yes\0" \
  	"dfu_alt_info=mmc 2=1 raw 0x40 0x1000 mmcpart\0" \
  	"loadm7bin=" \

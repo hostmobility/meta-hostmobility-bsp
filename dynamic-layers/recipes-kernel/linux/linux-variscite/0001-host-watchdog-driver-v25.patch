@@ -305,10 +305,11 @@ index 000000000000..31f73e969489
 +{
 +	if (error_code == 0) {
 +		cmd_times.suspend = error_code;
-+		/*Important to send any messae here before the system suspend*/
++		/*Important to send any message here before the system suspend*/
 +		dev_info(&global_ept->rpdev->dev, "Entered first part of suspend state\n");
 +		pm_rpmsg_send(global_ept, MSG_SUPEND, WD_STATE, 0);
-+		dev_info(&global_ept->rpdev->dev, "Leave second part of suspend\n");
++		dev_info(&global_ept->rpdev->dev, "Leave second part of suspend, inactivate emergency reset(period_work)\n");
++	    cancel_delayed_work_sync(&period_work);
 +
 +	} else {
 +		/*TODO Do something if we fail enter suspend*/
@@ -512,7 +513,7 @@ index 000000000000..31f73e969489
 +			"Invalid time value. Value should be between 0 and 120.\n");
 +		return -EINVAL;
 +	}
-+
++	cancel_delayed_work_sync(&heartbeat_work);
 +	err = pm_rpmsg_send(global_ept, MSG_COMMAND, WD_SUSPEND, time);
 +	if (err)
 +		return err;
@@ -860,11 +861,10 @@ index 000000000000..31f73e969489
 +static int host_watchdog_suspend(struct device *dev)
 +{
 +	dev_info(&global_ept->rpdev->dev, "Enter suspend routine\n");
-+	pm_rpmsg_send(global_ept, MSG_COMMAND, WD_SUSPEND, 0);
-+	mdelay(100);
 +	cancel_delayed_work_sync(&heartbeat_work);
-+	cancel_delayed_work_sync(&period_work);
-+
++	mdelay(100);
++	pm_rpmsg_send(global_ept, MSG_COMMAND, WD_SUSPEND, 0);
++   mdelay(100);
 +	dev_info(&global_ept->rpdev->dev, "Now ready to suspend the system\n");
 +	return 0;
 +}

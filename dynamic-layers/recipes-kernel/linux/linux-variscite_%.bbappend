@@ -3,7 +3,6 @@ FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 unset KBUILD_DEFCONFIG
 
 SRC_URI += "\
-file://0001-host-watchdog-driver-v25.patch \
 file://0002-temp-custom-board-dts.patch \
 file://0001-add-hmx-device-tree.patch \
 file://0002-Set-I2C1-for-imx8mp-var-dart.dtsi-to-lower-clock-fre.patch \

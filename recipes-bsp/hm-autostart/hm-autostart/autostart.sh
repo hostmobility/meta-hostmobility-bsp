@@ -5,9 +5,8 @@ MACHINE=$(cat /etc/platform-system-type)
 
 FIRST_TIME_BOOT_FILE=/etc/first_boot_after_update.txt
 
+# we can now set the host watchdog to start state from boot(this will start the heartbeats to prevent reset of the system)
 if [[ "$MACHINE" == "imx8mp-var-dart-hmx1" ]]; then
-	insmod /lib/modules/6.1.36-imx8mp+ga8d36173a6e5/kernel/drivers/rpmsg/imx_rpmsg_host_watchdog.ko
-	sleep 0.1
 	echo "0" > /sys/class/host_watchdog/ctl_start
 fi
 

@@ -1,8 +1,7 @@
-From 7a77a5cca80d1582aa431a3f7b3efb1d8d1b3e68 Mon Sep 17 00:00:00 2001
+From 691a47dfedf93401aa29e82e622799d1b67190cf Mon Sep 17 00:00:00 2001
 From: rikardo <rikard.olander@hostmobility.com>
-Date: Thu, 28 Sep 2023 07:07:11 +0000V1.
+Date: Thu, 16 May 2024 12:44:48 +0000
 Subject: [PATCH 1/1] HMX custom imx8mp_var_dart
-
 V1.
 change uart1 to uart3
 Update u-boot environment settings to set device tree to
@@ -24,12 +23,16 @@ V3.
 Add set product-number to device tree on boot.
 Add set rbg led controller register to device tree on boot.
 Add load support for m7 co cpu (hmx-m7-fw.bin), the m7 will load before boot linux and flashing bsp.
-Subject: [PATCH 1/1] patch
+
+v4.
+Change name of the cocpu binary
+Add DDR memory load for cocpu
+Delay loading the co-cpu firmware until after flashing so that it doesn't timeout and reset the system before it has finished flashing.
 
 ---
  .../imx8mp_var_dart/imx8mp_var_dart.c         | 138 +++++++++++++++++-
- include/configs/imx8mp_var_dart.h             |  29 ++--
- 2 files changed, 155 insertions(+), 12 deletions(-)
+ include/configs/imx8mp_var_dart.h             |  37 +++--
+ 2 files changed, 159 insertions(+), 16 deletions(-)
 
 diff --git a/board/variscite/imx8mp_var_dart/imx8mp_var_dart.c b/board/variscite/imx8mp_var_dart/imx8mp_var_dart.c
 index e1a1215536..b188df6143 100644
@@ -234,7 +237,7 @@ index e1a1215536..b188df6143 100644
  }
  
 diff --git a/include/configs/imx8mp_var_dart.h b/include/configs/imx8mp_var_dart.h
-index cf725dde22..0207350ddb 100644
+index cf725dde22..42cd0ab326 100644
 --- a/include/configs/imx8mp_var_dart.h
 +++ b/include/configs/imx8mp_var_dart.h
 @@ -44,7 +44,7 @@
@@ -260,13 +263,15 @@ index cf725dde22..0207350ddb 100644
  	"fdt_addr_r=0x43000000\0" \
  	"fdt_addr=0x43000000\0"			\
  	"fdt_high=0xffffffffffffffff\0"		\
-@@ -97,11 +97,11 @@
+@@ -96,12 +96,12 @@
+ 	"mmcblk=1\0" \
  	"mmcpart=1\0" \
  	"mmcautodetect=yes\0" \
- 	"m7_addr=0x7e0000\0" \
+-	"m7_addr=0x7e0000\0" \
 -	"m7_bin=hello_world.bin\0" \
 -	"use_m7=no\0" \
-+	"m7_bin=hmx-m7-fw.bin\0" \
++	"m7_addr=0x80000000\0" \
++	"m7_bin=rpmsg_lite_host_watchdog.bin\0" \
 +	"use_m7=yes\0" \
  	"dfu_alt_info=mmc 2=1 raw 0x40 0x1000 mmcpart\0" \
  	"loadm7bin=" \
@@ -284,7 +289,7 @@ index cf725dde22..0207350ddb 100644
  				"else " \
  					"setenv fdt_file imx8mp-var-dart-dt8mcustomboard.dtb;" \
  				"fi; " \
-@@ -181,7 +181,13 @@
+@@ -181,16 +181,27 @@
  				"echo WARN: Cannot load the DT; " \
  			"fi; " \
  		"fi;\0" \
@@ -299,9 +304,9 @@ index cf725dde22..0207350ddb 100644
  		"run ramsize_check; " \
  		"mmc dev ${mmcdev}; " \
  		"if mmc rescan; then " \
-@@ -189,7 +195,12 @@
- 				"run runm7bin; " \
- 			"fi; " \
+-			"if test ${use_m7} = yes && run loadm7bin; then " \
+-				"run runm7bin; " \
+-			"fi; " \
  			"if run loadbootscript; then " \
 +				"run set_white_flashing_led; " \
  				"run bootscript; " \
@@ -310,8 +315,12 @@ index cf725dde22..0207350ddb 100644
 +				"run set_white_flashing_led; " \
 +				"run try_usb_flash; " \
  			"else " \
++				"if test ${use_m7} = yes && run loadm7bin; then " \
++					"run runm7bin; " \
++				"fi; " \
  				"if run loadimage; then " \
  					"run mmcboot; " \
+ 				"else " \
 @@ -213,7 +224,7 @@
  #define PHYS_SDRAM			0x40000000
  #define DEFAULT_SDRAM_SIZE		(512 * SZ_1M)

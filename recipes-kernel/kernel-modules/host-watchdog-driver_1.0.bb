@@ -2,9 +2,8 @@ SUMMARY = "Host watchdog driver"
 DESCRIPTION = "${SUMMARY} for Host Monitor X"
 LICENSE = "GPL-2.0-or-later"
 LIC_FILES_CHKSUM = "file://COPYING;md5=65dd37ccb3e888dc57e47d925b80b38a"
-SRCREV = "90cc1162e4af0e65a668eae1e445f95b59c803c6"
-SRCBRANCH = "hmx-driver"
-#SRCBRANCH = "main"
+SRCREV = "dbee158d3540913c0f93b04e88e0191ba74ce896"
+SRCBRANCH = "main"
 
 #SUBPATH="drivers/platform/host_monitor_x_cocpu"
 

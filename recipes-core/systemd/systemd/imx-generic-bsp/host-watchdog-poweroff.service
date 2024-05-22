@@ -1,0 +1,22 @@
+#  SPDX-License-Identifier: LGPL-2.1-or-later
+#
+#  This file is for host monitor x or related products.
+#  It require the host-watchdog-driver( and  firmware) to safely shutdown the unit.
+#
+#  The command executes shutdown on M7 (cocpu) after 5 seconds or reboot if the start signal is set (high).
+#  This behaviour is the same for older Host Mobility platforms.
+#  Shutdown (cocpu) will release the internal start signal and, after a timeout period, toggle the reset pin.
+#  This service will work with system 'halt' or a systemd-poweroff.service with halt instead of shutdown.
+
+[Unit]
+Description=Host Watchdog Shutdown Service
+DefaultDependencies=no
+Before=shutdown.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c '/bin/echo 5 > /sys/class/host_watchdog/ctl_shutdown'
+RemainAfterExit=yes
+
+[Install]
+WantedBy=shutdown.target

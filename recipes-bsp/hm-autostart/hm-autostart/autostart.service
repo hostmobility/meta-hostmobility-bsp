@@ -1,6 +1,6 @@
 [Unit]
 Description=Run autostart scripts
-After=getty.target
+After=network-pre.target
 
 [Service]
 Type=oneshot

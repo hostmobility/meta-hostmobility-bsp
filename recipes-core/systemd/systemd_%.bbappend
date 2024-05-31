@@ -17,14 +17,14 @@ do_install:append:imx8mp-var-dart() {
     install -Dm 0644 ${WORKDIR}/imx.conf ${D}${sysconfdir}/systemd/logind.conf.d/imx.conf
 
     install -Dm 0644 ${WORKDIR}/systemd-poweroff.service ${D}${systemd_system_unitdir}/systemd-poweroff.service
-    install -Dm 0644 ${WORKDIR}/host-watchdog-poweroff.service ${D}${systemd_system_unitdir}/host-watchdog-poweroff.service
+    install -Dm 0644 ${WORKDIR}/host-watchdog-poweroff.service ${D}${systemd_system_unitdir}/host-poweroff.service
 
 }
 
 do_install:append:vf60() {
-    install -Dm 0644 ${WORKDIR}/host-vf-poweroff.service ${D}${systemd_system_unitdir}/host-vf-poweroff.service
+    install -Dm 0644 ${WORKDIR}/host-vf-poweroff.service ${D}${systemd_system_unitdir}/host-poweroff.service
 }
 
 do_install:append:tegra() {
-    install -Dm 0644 ${WORKDIR}/host-tegra-poweroff.service ${D}${systemd_system_unitdir}/host-tegra-poweroff.service
+    install -Dm 0644 ${WORKDIR}/host-tegra-poweroff.service ${D}${systemd_system_unitdir}/host-poweroff.service
 }

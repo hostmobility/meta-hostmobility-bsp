@@ -1,0 +1,18 @@
+#  SPDX-License-Identifier: LGPL-2.1-or-later
+#
+#  This service is for machines on the MX-4 platform.
+#  It will call the co-cpu to force the unit into power off state, also called cut off, after 5 seconds.
+#  If the start signal is high it will result in a reboot.
+
+[Unit]
+Description=Host Vf Shutdown Service
+DefaultDependencies=no
+Before=shutdown.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c '/bin/echo 5 > /opt/hm/pic_attributes/ctrl_on_4v'
+RemainAfterExit=yes
+
+[Install]
+WantedBy=shutdown.target

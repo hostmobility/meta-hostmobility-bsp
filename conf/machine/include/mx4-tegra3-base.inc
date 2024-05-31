@@ -68,6 +68,7 @@ MACHINE_EXTRA_RDEPENDS += " \
 
 CORE_IMAGE_EXTRA_INSTALL += " \
     kernel-module-pic \
+    host-poweroff \
 "
 
 BBMASK= "meta-imx/"

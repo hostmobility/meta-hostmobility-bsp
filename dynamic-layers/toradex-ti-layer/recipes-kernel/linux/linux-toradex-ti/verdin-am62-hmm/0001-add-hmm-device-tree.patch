@@ -1,0 +1,585 @@
+From 188d224c727f75cb3f9c9d6f6e97247be6a73868 Mon Sep 17 00:00:00 2001
+From: OpenEmbedded <oe.patch@oe>
+Date: Fri, 14 Jun 2024 11:30:36 +0000
+Subject: [PATCH 1/1] adtset
+
+v1. Add our customization based on k3-am62-verdin-dev.
+We have removed or disabled interfaces that we will not use( like sound, gpio-keys and eth2)
+and add i2c handling, USB otg, digital in/out and som minor configuration changes.
+Also add gpio names that we will use. There is still a lot of
+TODOs in this file but this should be a good start.
+
+v2. Add serialnumber, part-number and product-number.
+
+TODO pinmux  for:
+CAN1 Standby, GPIO på SOM pin 215 / aktiv hög
+CAN2 Standby, GPIO på SOM pin 217 / aktiv hög
+---
+ arch/arm64/boot/dts/ti/Makefile               |   1 +
+ .../arm64/boot/dts/ti/k3-am62-verdin-hmm.dtsi | 505 ++++++++++++++++++
+ .../boot/dts/ti/k3-am625-verdin-wifi-hmm.dts  |  29 +
+ 3 files changed, 535 insertions(+)
+ create mode 100644 arch/arm64/boot/dts/ti/k3-am62-verdin-hmm.dtsi
+ create mode 100644 arch/arm64/boot/dts/ti/k3-am625-verdin-wifi-hmm.dts
+
+diff --git a/arch/arm64/boot/dts/ti/Makefile b/arch/arm64/boot/dts/ti/Makefile
+index 028c924bfa2c..3541d71e9632 100644
+--- a/arch/arm64/boot/dts/ti/Makefile
++++ b/arch/arm64/boot/dts/ti/Makefile
+@@ -32,6 +32,7 @@ dtb-$(CONFIG_ARCH_K3) += k3-am625-verdin-nonwifi-mallow.dtb
+ dtb-$(CONFIG_ARCH_K3) += k3-am625-verdin-nonwifi-yavia.dtb
+ dtb-$(CONFIG_ARCH_K3) += k3-am625-verdin-wifi-dahlia.dtb
+ dtb-$(CONFIG_ARCH_K3) += k3-am625-verdin-wifi-dev.dtb
++dtb-$(CONFIG_ARCH_K3) += k3-am625-verdin-wifi-hmm.dtb
+ dtb-$(CONFIG_ARCH_K3) += k3-am625-verdin-wifi-mallow.dtb
+ dtb-$(CONFIG_ARCH_K3) += k3-am625-verdin-wifi-yavia.dtb
+ 
+diff --git a/arch/arm64/boot/dts/ti/k3-am62-verdin-hmm.dtsi b/arch/arm64/boot/dts/ti/k3-am62-verdin-hmm.dtsi
+new file mode 100644
+index 000000000000..e96959b38681
+--- /dev/null
++++ b/arch/arm64/boot/dts/ti/k3-am62-verdin-hmm.dtsi
+@@ -0,0 +1,505 @@
++// SPDX-License-Identifier: GPL-2.0-or-later OR MIT
++/*
++ * Copyright 2023 Toradex
++ * Copyright 2024 SETEK Systems AB
++ *
++ * Common dtsi for Verdin AM62 SoM on Host monitor mini
++ */
++
++#include <dt-bindings/leds/common.h>
++
++/ {
++	/*just and example for now, so the pins might change number update when HW schematic has been set.*/
++	leds {
++		compatible = "gpio-leds";
++
++		/*TODO fix pins for leds they are copy from hmx, HW schematic is TBD. */
++		green_func {
++			color = <LED_COLOR_ID_GREEN>;
++			function = "func";
++			gpios = <&max7321 0 GPIO_ACTIVE_LOW>;
++			//linux,default-trigger = "heartbeat";
++			default-state = "off";
++		};
++
++		red_func {
++			color = <LED_COLOR_ID_RED>;
++			function = "func";
++			gpios = <&max7321 1 GPIO_ACTIVE_LOW>;
++			//linux,default-trigger = "heartbeat";
++			default-state = "off";
++		};
++
++		green_gps {
++			color = <LED_COLOR_ID_GREEN>;
++			function = "gps";
++			gpios = <&max7321 2 GPIO_ACTIVE_LOW>;
++			//linux,default-trigger = "heartbeat";
++			default-state = "off";
++		};
++		red_gps {
++			color = <LED_COLOR_ID_RED>;
++			function = "gps";
++			gpios = <&max7321 3 GPIO_ACTIVE_LOW>;
++			//linux,default-trigger = "heartbeat";
++			default-state = "off";
++		};
++
++		green_wifi {
++			color = <LED_COLOR_ID_GREEN>;
++			function = LED_FUNCTION_WLAN;
++			gpios = <&max7321 4 GPIO_ACTIVE_LOW>;
++			//linux,default-trigger = "phy0rx";
++			default-state = "off";
++		};
++		red_wifi {
++			color = <LED_COLOR_ID_RED>;
++			function = LED_FUNCTION_WLAN;
++			gpios = <&max7321 5 GPIO_ACTIVE_LOW>;
++			linux,default-trigger = "phy0rx";
++			default-state = "off";
++		};
++
++		green_wwan {
++			color = <LED_COLOR_ID_GREEN>;
++			function = LED_FUNCTION_WAN;
++			gpios = <&max7321 6 GPIO_ACTIVE_LOW>;
++			//linux,default-trigger = "heartbeat";
++			default-state = "off";
++		};
++
++		red_wwan {
++			color = <LED_COLOR_ID_RED>;
++			function = LED_FUNCTION_WAN;
++			gpios = <&max7321 7 GPIO_ACTIVE_LOW>;
++			default-state = "off";
++			//linux,default-trigger = "heartbeat";
++		};
++
++		/*yellow_power {
++			color = <LED_COLOR_ID_YELLOW>;
++			function = LED_FUNCTION_POWER;
++			gpios = <&max7321 7 GPIO_ACTIVE_LOW>;
++			linux,default-trigger = "heartbeat";
++			default-state = "on";
++		};*/
++	};
++};
++
++/* Verdin ETHs */
++&cpsw3g {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_rgmii1>;
++	status = "okay";
++};
++
++/* MDIO, shared by Verdin ETH_1 (On-module PHY) and removed not used Verdin ETH_2_RGMII */
++&cpsw3g_mdio {
++	status = "okay";
++};
++
++/* Verdin ETH_1 (On-module PHY) */
++&cpsw_port1 {
++	status = "okay";
++};
++
++
++/* Verdin I2C_1 */
++&main_i2c1 {
++	status = "okay";
++
++	max7321: gpio-expander@3C {
++		compatible = "maxim,max7321";
++		reg = <0x3C>; 
++		gpio-controller;
++		#gpio-cells = <2>;
++		gpio-line-names = "green_func", "red_func",
++				"green_gps", "red_gps",
++				"green_wifi", "red_wifi",
++				  "green_wwan", "red_wwan";
++		//TODO proberly not needed since all will be outputs. replace with correct pin for interrupt. text is from hmx.
++		//pinctrl-names = "default";
++		//pinctrl-0 = <&pinctrl_max7321>;
++		//interrupt-parent = <&gpio1>;
++		//interrupts = <11 IRQ_TYPE_LEVEL_LOW>;
++		interrupt-controller;
++		#interrupt-cells = <2>;
++	};
++
++	/*USB-C controller*/
++	typec@3d {
++		compatible = "nxp,ptn5150";
++		reg = <0x3d>;
++		status ="okay";
++	};
++
++	/*TODO for eeprom HW?*/
++	eeprom@54 {
++		compatible = "st,24c02", "atmel,24c04";
++		reg = <0x54>;
++		status = "okay";
++		//vcc-supply = <&reg_base_3v3>;
++	};
++
++	/* HW confirmed, TMP103D has address 0x73 */
++	temperature-sensor@73 {
++		compatible = "ti,tmp103";
++		reg = <0x73>;
++		status = "okay";
++	};
++
++
++	/* TODO will we use this? NXP PCF85063A RTC module or built in module  epson,rx8130*/
++	/*rtc_extern: rtc@51 {
++		compatible = "nxp,pcf85063a";
++		reg = <0x51>;
++		quartz-load-femtofarads = <12500>;
++		//TODO fix interrupt pin for wake up..
++		//pinctrl-names = "default";
++		//pinctrl-0 = <&pinctrl_rtc>;
++		//interrupt-parent = <&gpio1>;
++		//interrupts = <9 IRQ_TYPE_LEVEL_LOW>;
++		interrupt-names = "RTC-INT";
++		wakeup-source;
++		status = "okay";
++	};*/
++
++};
++
++/* Verdin CAN_1 */
++&main_mcan0 {
++	status = "okay";
++};
++
++/* Verdin CAN_2 */
++&mcu_mcan0 {
++	status = "okay";
++};
++
++/* Verdin SPI_1 , not used right now but maybe in the future HW*/
++&main_spi1 {
++	status = "disabled";
++};
++
++/* Verdin UART_3 (debug console)*/
++&main_uart0 {
++	status = "okay";
++};
++
++/* Verdin UART_1, (RS485) */
++&main_uart1 {
++	linux,rs485-enabled-at-boot-time;
++	rs485-rx-during-tx;
++	status = "okay";
++};
++
++/* Verdin UART_4 (m4 or not connected)*/
++&mcu_uart0 {
++	status = "disabled";
++};
++
++/* Verdin UART_2 (RS232)*/
++&wkup_uart0 {
++	status = "okay";
++};
++
++
++
++/* Verdin SD_1 , SD card TODO maybe change driver-strength-ohm*/
++&sdhci1 {
++	ti,driver-strength-ohm = <33>;
++	status = "okay";
++};
++
++/* Verdin USB_1 */
++&usbss0 {
++	status = "okay";
++};
++
++&usb0 {
++	status = "okay";
++	dr_mode = "otg";
++};
++
++/* Verdin USB_2 */
++&usbss1 {
++	status = "okay";
++};
++
++/*USB for modem*/
++&usb1 {
++	status = "okay";
++	dr_mode = "host";
++};
++
++/* Verdin PCIE_1_RESET# SODIM 244*/
++&verdin_pcie_1_reset_hog {
++	status = "okay";
++};
++
++&main_gpio0 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_ctrl_sleep_moci>,
++		<&pinctrl_dio_2a>;
++
++	gpio-line-names =
++		"SODIMM_52", /* 0 */
++		"",
++		"",
++		"SODIMM_56",
++		"SODIMM_58",
++		"SODIMM_60",
++		"SODIMM_62",
++		"",
++		"",
++		"",
++		"", /* 10 */
++		"SODIMM_54",
++		"SODIMM_64",
++		"",
++		"",
++		"SODIMM_174",
++		"SODIMM_172",
++		"",
++		"",
++		"",
++		"", /* 20 */
++		"",
++		"",
++		"",
++		"",
++		"",
++		"",
++		"",
++		"",
++		"SODIMM_76",
++		"SODIMM_21", /* 30 */
++		"SODIMM_256",
++		"SODIMM_252",
++		"",
++		"SODIMM_46",
++		"SODIMM_42",
++		"SODIMM_218",
++		"",
++		"SODIMM_189",
++		"",
++		"SODIMM_216", /* 40 */
++		"SODIMM_220",
++		"SODIMM_222",
++		"",
++		"",
++		"",
++		"",
++		"",
++		"",
++		"",
++		"", /* 50 */
++		"",
++		"",
++		"",
++		"",
++		"",
++		"",
++		"",
++		"",
++		"",
++		"", /* 60 */
++		"",
++		"",
++		"",
++		"",
++		"",
++		"",
++		"",
++		"",
++		"",
++		"", /* 70 */
++		"SODIMM_157",
++		"SODIMM_187",
++		"",
++		"",
++		"",
++		"",
++		"",
++		"",
++		"",
++		"", /* 80 */
++		"",
++		"",
++		"",
++		"",
++		"",
++		"",
++		"SOM_SOSI_DIO_2",
++		"SOM_DATA_DIO_2"; /* 88 */
++
++	verdin_ctrl_sleep_moci: ctrl-sleep-moci-hog {
++		gpio-hog;
++		/* Verdin CTRL_SLEEP_MOCI# (SODIMM 256) */
++		gpios = <31 GPIO_ACTIVE_HIGH>;
++		line-name = "CTRL_SLEEP_MOCI#";
++		output-high;
++	};
++};
++
++
++&main_gpio1 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_ctrl_sleep_moci>,
++		<&pinctrl_dio_1>,
++		<&pinctrl_dio_2b>;
++
++	gpio-line-names =
++		"", /* 0 */
++		"SOM_DIR_DIO_1",
++		"SOM_EN_DIO_1",
++		"SOM_SOSI_DIO_1",
++		"SOM_DATA_DIO_1",
++		"SOM_EN_DIO_2",
++		"SOM_DIR_DIO_2",
++		"",
++		"",
++		"",
++		"", /* 10 */
++		"",
++		"",
++		"",
++		"",
++		"SODIMM_15",
++		"SODIMM_16",
++		"SODIMM_19",
++		"SODIMM_66",
++		"SODIMM_161",
++		"", /* 20 */
++		"",
++		"",
++		"",
++		"",
++		"",
++		"",
++		"",
++		"",
++		"",
++		"", /* 30 */
++		"",
++		"",
++		"",
++		"",
++		"",
++		"",
++		"",
++		"",
++		"",
++		"", /* 40 */
++		"",
++		"",
++		"",
++		"",
++		"",
++		"",
++		"",
++		"",
++		"SODIMM_17",
++		"SODIMM_155", /* 50 */
++		"",
++		"",
++		"",
++		"",
++		"",
++		"",
++		"",
++		"",
++		"",
++		"", /* 60 */
++		"",
++		"",
++		"",
++		"",
++		"",
++		"",
++		"",
++		"",
++		"",
++		"", /* 70 */
++		"",
++		"",
++		"",
++		"",
++		"",
++		"",
++		"",
++		"",
++		"",
++		"", /* 80 */
++		"",
++		"",
++		"",
++		"",
++		"",
++		"",
++		"";
++};
++
++&mcu_gpio0 {
++
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_pcie_1_reset>;
++	gpio-line-names =
++		"SODIMM_244_PCIE_RESET",
++		"SODIMM_206",
++		"SODIMM_208",
++		"SODIMM_210",
++		"SODIMM_212",
++		"",
++		"",
++		"",
++		"",
++		"",
++		"",
++		"",
++		"",
++		"",
++		"",
++		"",
++		"",
++		"",
++		"",
++		"",
++		"",
++		"",
++		"",
++		"";
++
++	verdin_pcie_1_reset_hog: pcie-1-reset-hog {
++		gpio-hog;
++		/* Verdin PCIE_1_RESET# (SODIMM 244) */
++		gpios = <0 GPIO_ACTIVE_LOW>;
++		line-name = "PCIE_1_RESET#";
++		output-low;
++		status = "disabled";
++	};
++
++};
++
++&main_pmx0 {
++	pinctrl_dio_1: pinctrl-dio-1-default-pins {
++		pinctrl-single,pins = <
++			AM62X_IOPAD(0x017c, PIN_OUTPUT, 7) /* (W19) RGMII2_RX_CTL.GPIO1_1 */ /* SOM_DIR_DIO_1 */
++			AM62X_IOPAD(0x0180, PIN_OUTPUT, 7) /* (V18) RGMII2_RXC.GPIO1_2 */ /* SOM_EN_DIO_1 */
++			AM62X_IOPAD(0x0184, PIN_OUTPUT, 7) /* (W18) RGMII2_RD0.GPIO1_3 */ /* SOM_SOSI_DIO_1 */
++			AM62X_IOPAD(0x0188, PIN_INPUT, 7) /* (Y20) RGMII2_RD1.GPIO1_4 */ /* SOM_DATA_DIO_1 */
++		>;
++	};
++	pinctrl_dio_2a: pinctrl-dio-2a-default-pins {
++		pinctrl-single,pins = <
++			AM62X_IOPAD(0x0164, PIN_OUTPUT, 7) /* (Y21) RGMII2_TX_CTL.GPIO0_87 */ /* SOM_SOSI_DIO_2 */
++			AM62X_IOPAD(0x0168, PIN_INPUT, 7) /* (Y18) RGMII2_TXC.GPIO0_88 */ /* SOM_DATA_DIO_2 */
++		>;
++	};
++	pinctrl_dio_2b: pinctrl-dio-2b-default-pins {
++		pinctrl-single,pins = <
++			AM62X_IOPAD(0x018c, PIN_OUTPUT, 7) /* (Y19) RGMII2_RD2.GPIO1_5 */ /* SOM_EN_DIO_2 */
++			AM62X_IOPAD(0x0190, PIN_OUTPUT, 7) /* (W20) RGMII2_RD3.GPIO1_6 */ /* SOM_DIR_DIO_2 */
++		>;
++	};
++};
+diff --git a/arch/arm64/boot/dts/ti/k3-am625-verdin-wifi-hmm.dts b/arch/arm64/boot/dts/ti/k3-am625-verdin-wifi-hmm.dts
+new file mode 100644
+index 000000000000..50b96e202a59
+--- /dev/null
++++ b/arch/arm64/boot/dts/ti/k3-am625-verdin-wifi-hmm.dts
+@@ -0,0 +1,29 @@
++/*
++ * SPDX-License-Identifier: GPL-2.0-or-later OR MIT
++ *
++ * Copyright 2023 Toradex
++ * Copyright 2024 SETEK Systems AB
++ *
++ */
++
++/dts-v1/;
++
++#include "k3-am625.dtsi"
++#include "k3-am62-verdin.dtsi"
++#include "k3-am62-verdin-wifi.dtsi"
++#include "k3-am62-verdin-hmm.dtsi"
++
++/ {
++	model = "Toradex Verdin AM62 WB on Host Monitor Mini board";
++	compatible = "SETEK Systems AB,verdin-am62-hmm",
++		     "toradex,verdin-am62-wifi",
++		     "toradex,verdin-am62",
++		     "ti,am625";
++
++	chosen {
++		stdout-path = "serial2:115200n8";
++		serial-number = "103101XXXXX";
++		part-number = "HMP1031-0001";
++		product-number = "hm20";
++	};
++};
+-- 
+2.25.1
+

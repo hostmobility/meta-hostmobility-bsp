@@ -8,9 +8,7 @@ SRCREV = "7ef2fbed9e69867e7985dda796c1984adc59524e"
 inherit module
 DEPENDS += "virtual/kernel"
 
-SRC_URI = "git://github.com/hostmobility/hm-commercial.git;protocol=git;branch=${SRCREV}"
 S = "${WORKDIR}/git/drivers/gpio/gpio-firecrest"
-
 
 SRC_URI = "git://git@github.com/hostmobility/hm-commercial.git;branch=${DRIVERBRANCH};protocol=ssh"
 

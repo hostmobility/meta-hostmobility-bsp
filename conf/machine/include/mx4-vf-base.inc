@@ -50,8 +50,8 @@ MACHINE_EXTRA_RDEPENDS += " \
 
 CORE_IMAGE_EXTRA_INSTALL += " \
     kernel-module-pic \
+    host-poweroff \
 "
-
 
 BBMASK += "recipes-bsp/u-boot/u-boot-hostmobility_2019.04.bb"
 

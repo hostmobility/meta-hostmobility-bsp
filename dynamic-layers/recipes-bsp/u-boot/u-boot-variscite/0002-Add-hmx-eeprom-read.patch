@@ -18,9 +18,9 @@ index 0000000000..7250f09417
 +++ b/board/variscite/common/hmx_eeprom.c
 @@ -0,0 +1,114 @@
 +/*
-+ * Copyright (C) 2018-2022 Variscite Ltd.
++ * Copyright (C) 2023 Host Mobility
 + *
-+ * SPDX-License-Identifier: GPL-2.0+
++ * SPDX-License-Identifier: GPL-2.0-or-later
 + */
 +
 +#include <common.h>
@@ -140,7 +140,7 @@ index 0000000000..e6db8fc87f
 +/*
 + * Copyright (C) 2023 Host Mobility
 + *
-+ * SPDX-License-Identifier: GPL-2.0+
++ * SPDX-License-Identifier: GPL-2.0-or-later
 + */
 +
 +#ifndef HMX_EEPROM_H_

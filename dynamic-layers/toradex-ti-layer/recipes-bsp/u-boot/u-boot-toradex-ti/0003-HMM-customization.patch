@@ -1,0 +1,171 @@
+From 841d838377d61d975b336f552fb8ad312dfec39e Mon Sep 17 00:00:00 2001
+From: rikardo <rikard.olander@hostmobility.com>
+Date: Fri, 14 Jun 2024 07:43:27 +0000
+Subject: [PATCH 3/3] HMM customization
+
+---
+ board/toradex/common/tdx-common.c       | 62 +++++++++++++++++++++++++
+ board/toradex/verdin-am62/verdin-am62.c | 18 ++++++-
+ include/configs/verdin-am62.h           |  5 +-
+ 3 files changed, 82 insertions(+), 3 deletions(-)
+
+diff --git a/board/toradex/common/tdx-common.c b/board/toradex/common/tdx-common.c
+index d144914397..6f61aaf94d 100644
+--- a/board/toradex/common/tdx-common.c
++++ b/board/toradex/common/tdx-common.c
+@@ -1,6 +1,7 @@
+ // SPDX-License-Identifier: GPL-2.0+
+ /*
+  * Copyright (c) 2016 Toradex, Inc.
++ * Copyright 2024 SETEK Systems AB
+  */
+ 
+ #include <common.h>
+@@ -181,6 +182,17 @@ int g_dnl_bind_fixup(struct usb_device_descriptor *dev, const char *name)
+ #if defined(CONFIG_OF_LIBFDT)
+ int ft_common_board_setup(void *blob, struct bd_info *bd)
+ {
++	/* Set serial number and part number from environment to device tree blob chosen.
++		serial-number = "23078888";
++		part-number = "hmp00xx"; 
++		product-number = hmxxx;.
++	*/
++	char *serial;
++	char *part;
++	char *product;
++	int offset;
++	int err = 1;
++	const char *path;
+ 	if (tdx_serial) {
+ 		fdt_setprop(blob, 0, "serial-number", tdx_serial_str,
+ 			    strlen(tdx_serial_str) + 1);
+@@ -196,6 +208,56 @@ int ft_common_board_setup(void *blob, struct bd_info *bd)
+ 			    strlen(tdx_board_rev_str) + 1);
+ 	}
+ 
++	path = "/chosen";
++	offset = fdt_path_offset(blob, path);
++	if (offset < 0) {
++		debug("Node %s not found.\n", path);
++		return err;
++	}
++
++	debug("ft_board_setup: config FDT\n");
++
++	serial = env_get("serial");
++	if (serial) {
++		err = fdt_setprop(blob, offset, "serial-number", serial,
++				  strlen(serial) + 1);
++
++		if (err < 0) {
++			printf("WARNING: could not set serial-number %s.\n",
++			       fdt_strerror(err));
++			return err;
++		}
++	} else {
++		printf("WARNING: could not read serial-number from env list.\n");
++	}
++	part = env_get("part_nr");
++	if (part) {
++		err = fdt_setprop(blob, offset, "part-number", part,
++				  strlen(part) + 1);
++
++		if (err < 0) {
++			printf("WARNING: could not set part-number %s.\n",
++			       fdt_strerror(err));
++			return err;
++		}
++	} else {
++		printf("WARNING: could not read part-number from env list.\n");
++	}
++	product = env_get("product_nr");
++	if (product) {
++		err = fdt_setprop(blob, offset, "product-number", product,
++				  strlen(product) + 1);
++
++		if (err < 0) {
++			printf("WARNING: could not set product-number %s.\n",
++			       fdt_strerror(err));
++			return err;
++		}
++	} else {
++		printf("WARNING: could not read product-number from env list.\n");
++	}
++
++
+ 	return 0;
+ }
+ #endif
+diff --git a/board/toradex/verdin-am62/verdin-am62.c b/board/toradex/verdin-am62/verdin-am62.c
+index 3d699f3205..a5580b2b27 100644
+--- a/board/toradex/verdin-am62/verdin-am62.c
++++ b/board/toradex/verdin-am62/verdin-am62.c
+@@ -3,7 +3,7 @@
+  * Board specific initialization for Verdin AM62 SoM
+  *
+  * Copyright 2023 Toradex - https://www.toradex.com/
+- *
++ * Copyright 2024 SETEK Systems AB
+  */
+ 
+ #include <asm/arch/hardware.h>
+@@ -15,6 +15,8 @@
+ #include <k3-ddrss.h>
+ #include <spl.h>
+ 
++#include "../common/hmm_eeprom.h"
++
+ #include "../common/tdx-cfg-block.h"
+ 
+ DECLARE_GLOBAL_DATA_PTR;
+@@ -84,8 +86,22 @@ static void select_dt_from_module_version(void)
+ 
+ int board_late_init(void)
+ {
++	uchar eeprom_data [0xffff];
++	int err = 1;
++
+ 	select_dt_from_module_version();
+ 
++	/* HMM get env from eeprom serial number, partnumber and mac adress(eth2addr, eth3addr) and more */
++	err = get_environment_data_from_eeprom(eeprom_data);
++	if (err != 0) {
++		printf("Failed to get environment data from eeprom, error: %x\n", err);
++	} else {
++		err = set_environment_data_from_eeprom((char *)eeprom_data);
++		if (err != 0) {
++			printf("Failed to set environment data to environment area failed, error: %x\n", err);
++		}
++	}
++
+ 	return 0;
+ }
+ 
+diff --git a/include/configs/verdin-am62.h b/include/configs/verdin-am62.h
+index a2cbcce33d..f7aa42923d 100644
+--- a/include/configs/verdin-am62.h
++++ b/include/configs/verdin-am62.h
+@@ -3,6 +3,7 @@
+  * Configuration header file for Verdin AM62 SoM
+  *
+  * Copyright 2023 Toradex - https://www.toradex.com/
++ * Copyright 2024 SETEK Systems AB
+  */
+ 
+ #ifndef __VERDIN_AM62_H
+@@ -49,10 +50,10 @@
+ 	BOOTENV \
+ 	EXTRA_ENV_DFUARGS \
+ 	MEM_LAYOUT_ENV_SETTINGS \
+-	"boot_scripts=boot.scr\0" \
++	"boot_scripts=hmm_boot.scr\0" \
+ 	"boot_script_dhcp=boot.scr\0" \
+ 	"console=ttyS2\0" \
+-	"fdt_board=dev\0" \
++	"fdt_board=hmm\0" \
+ 	"setup=setenv setupargs console=tty1 console=${console},${baudrate} " \
+ 		"consoleblank=0 earlycon=ns16550a,mmio32,0x02800000\0" \
+ 	"update_tiboot3=askenv confirm Did you load tiboot3.bin (y/N)?; " \
+-- 
+2.34.1
+

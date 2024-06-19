@@ -1,0 +1,222 @@
+From acc0e027f878e697840e179efb45aa4d6ef799bf Mon Sep 17 00:00:00 2001
+From: rikardo <rikard.olander@hostmobility.com>
+Date: Fri, 14 Jun 2024 09:35:47 +0000
+Subject: [PATCH 1/1] Use dev board dtsi for hmm with modifications
+
+V.1. remove unused parts and add i2c buss handling which is the most important part. Disable eth2 that is not supported by hmm board.
+	Enable otg usb.
+
+---
+ arch/arm/dts/k3-am62-verdin-dev.dtsi          | 112 +++++-------------
+ .../dts/k3-am625-verdin-wifi-dev-u-boot.dtsi  |  12 +-
+ 2 files changed, 29 insertions(+), 95 deletions(-)
+
+diff --git a/arch/arm/dts/k3-am62-verdin-dev.dtsi b/arch/arm/dts/k3-am62-verdin-dev.dtsi
+index 54dabe1437..9a53652022 100644
+--- a/arch/arm/dts/k3-am62-verdin-dev.dtsi
++++ b/arch/arm/dts/k3-am62-verdin-dev.dtsi
+@@ -11,23 +11,13 @@
+ /* Verdin ETHs */
+ &cpsw3g {
+ 	pinctrl-names = "default";
+-	pinctrl-0 = <&pinctrl_rgmii1>, <&pinctrl_rgmii2>;
++	pinctrl-0 = <&pinctrl_rgmii1>;
+ 	status = "okay";
+ };
+ 
+ /* MDIO, shared by Verdin ETH_1 (On-module PHY) and Verdin ETH_2_RGMII */
+ &cpsw3g_mdio {
+ 	status = "okay";
+-
+-	cpsw3g_phy1: ethernet-phy@7 {
+-		compatible = "ethernet-phy-ieee802.3-c22";
+-		reg = <7>;
+-		interrupt-parent = <&main_gpio0>;
+-		interrupts = <38 IRQ_TYPE_EDGE_FALLING>;
+-		pinctrl-names = "default";
+-		pinctrl-0 = <&pinctrl_eth2_rgmii_int>;
+-		micrel,led-mode = <0>;
+-	};
+ };
+ 
+ /* Verdin ETH_1 (On-module PHY) */
+@@ -35,75 +25,46 @@
+ 	status = "okay";
+ };
+ 
+-/* Verdin ETH_2_RGMII */
+-&cpsw_port2 {
+-	phy-handle = <&cpsw3g_phy1>;
+-	phy-mode = "rgmii-rxid";
+-	status = "okay";
+-};
+-
+-/* Verdin PWM_1, PWM_2 */
+-&epwm0 {
+-	status = "okay";
+-};
+-
+-/* Verdin PWM_3_DSI */
+-&epwm1 {
+-	status = "okay";
+-};
+-
+-&main_gpio0 {
+-	pinctrl-names = "default";
+-	pinctrl-0 = <&pinctrl_ctrl_sleep_moci>,
+-		    <&pinctrl_gpio_5>,
+-		    <&pinctrl_gpio_6>,
+-		    <&pinctrl_gpio_7>,
+-		    <&pinctrl_gpio_8>;
+-};
+-
+ /* Verdin I2C_1 */
+ &main_i2c1 {
+ 	status = "okay";
+ 
+-	/* IO Expander */
+-	gpio_expander_21: gpio@21 {
+-		compatible = "nxp,pcal6416";
+-		reg = <0x21>;
+-		#gpio-cells = <2>;
++	max7321: gpio-expander@3C {
++		compatible = "maxim,max7321";
++		reg = <0x3C>; 
+ 		gpio-controller;
++		#gpio-cells = <2>;
++		gpio-line-names = "green_func", "red_func",
++				"green_gps", "red_gps",
++				"green_wifi", "red_wifi",
++				  "green_wwan", "red_wwan";
++		interrupt-controller;
++		#interrupt-cells = <2>;
+ 	};
+ 
+-	/* Current measurement into module VCC */
+-	hwmon@40 {
+-		compatible = "ti,ina219";
+-		reg = <0x40>;
+-		shunt-resistor = <10000>;
++	/*USB-C controller*/
++	typec@3d {
++		compatible = "nxp,ptn5150";
++		reg = <0x3d>;
++		status ="okay";
+ 	};
+ 
+-	/* Temperature sensor */
+-	sensor@4f {
+-		compatible = "ti,tmp75c";
+-		reg = <0x4f>;
++	/*TODO for eeprom HW?*/
++	eeprom_hmm_board: eeprom@54 {
++		compatible = "st,24c02", "atmel,24c04";
++		reg = <0x54>;
++		status = "okay";
++		//vcc-supply = <&reg_base_3v3>;
+ 	};
+ 
+-	/* EEPROM */
+-	eeprom@57 {
+-		compatible = "st,24c02", "atmel,24c02";
+-		reg = <0x57>;
+-		pagesize = <16>;
++	/* HW confirmed, TMP103D has address 0x73 */
++	temperature-sensor@73 {
++		compatible = "ti,tmp103";
++		reg = <0x73>;
++		status = "okay";
+ 	};
+ };
+ 
+-/* Verdin I2C_2_DSI */
+-&main_i2c2 {
+-	status = "okay";
+-};
+-
+-/* Verdin I2C_4_CSI */
+-&main_i2c3 {
+-	status = "okay";
+-};
+-
+ /* Verdin CAN_1 */
+ &main_mcan0 {
+ 	status = "okay";
+@@ -133,29 +94,11 @@
+ };
+ #endif
+ 
+-&mcu_gpio0 {
+-	pinctrl-names = "default";
+-	pinctrl-0 = <&pinctrl_gpio_1>,
+-		    <&pinctrl_gpio_2>,
+-		    <&pinctrl_gpio_3>,
+-		    <&pinctrl_gpio_4>;
+-};
+-
+-/* Verdin I2C_3_HDMI */
+-&mcu_i2c0 {
+-	status = "okay";
+-};
+-
+ /* Verdin UART_4 */
+ &mcu_uart0 {
+ 	status = "okay";
+ };
+ 
+-/* Verdin QSPI_1 */
+-&ospi0 {
+-	status = "okay";
+-};
+-
+ /* Verdin SD_1 */
+ &sdhci1 {
+ 	ti,driver-strength-ohm = <33>;
+@@ -169,6 +112,7 @@
+ 
+ &usb0 {
+ 	status = "okay";
++	dr_mode = "otg";
+ };
+ 
+ /* Verdin USB_2 */
+diff --git a/arch/arm/dts/k3-am625-verdin-wifi-dev-u-boot.dtsi b/arch/arm/dts/k3-am625-verdin-wifi-dev-u-boot.dtsi
+index 487485c895..c015aa8181 100644
+--- a/arch/arm/dts/k3-am625-verdin-wifi-dev-u-boot.dtsi
++++ b/arch/arm/dts/k3-am625-verdin-wifi-dev-u-boot.dtsi
+@@ -8,7 +8,7 @@
+ / {
+ 	aliases {
+ 		eeprom0 = &eeprom_module;
+-		eeprom1 = &eeprom_carrier_board;
++		eeprom1 = &eeprom_hmm_board;
+ 		eeprom2 = &eeprom_display_adapter;
+ 	};
+ 
+@@ -69,9 +69,6 @@
+ 	bootph-pre-ram;
+ };
+ 
+-&cpsw3g_phy1 {
+-	bootph-pre-ram;
+-};
+ 
+ &cpsw_port1 {
+ 	bootph-pre-ram;
+@@ -162,13 +159,6 @@
+ 		reg = <0x50>;
+ 		pagesize = <16>;
+ 	};
+-
+-	/* EEPROM on carrier board */
+-	eeprom_carrier_board: eeprom@57 {
+-		compatible = "i2c-eeprom";
+-		reg = <0x57>;
+-		pagesize = <16>;
+-	};
+ };
+ 
+ &main_pktdma {
+-- 
+2.34.1
+

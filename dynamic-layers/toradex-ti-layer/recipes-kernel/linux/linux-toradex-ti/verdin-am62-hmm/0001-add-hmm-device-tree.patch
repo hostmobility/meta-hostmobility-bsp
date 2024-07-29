@@ -387,9 +387,9 @@ index 000000000000..e96959b38681
 +
 +&main_gpio1 {
 +	pinctrl-names = "default";
-+	pinctrl-0 = <&pinctrl_ctrl_sleep_moci>,
-+		<&pinctrl_dio_1>,
++	pinctrl-0 = <&pinctrl_dio_1>,
 +		<&pinctrl_dio_2b>;
++
 +
 +	gpio-line-names =
 +		"", /* 0 */

@@ -12,8 +12,6 @@ COMPATIBLE_MACHINE = "(mx4-t30|vfcv61|mx4-hostcom)"
 
 LINUX_VERSION ?= "6.1.26"
 
-LOCALVERSION = "-${PR}"
-
 PV = "${LINUX_VERSION}"
 S = "${WORKDIR}/linux-${PV}"
 

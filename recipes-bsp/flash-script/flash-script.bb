@@ -13,10 +13,6 @@ do_compile() {
     uboot-mkimage -A arm -T script -C none -n "Update script" -d "${WORKDIR}/flash.cmd" flash.scr
 }
 
-do_compile:append:verdin-am62-hmm() {
-    uboot-mkimage -A arm -T script -C none -n "Update rom script" -d "${WORKDIR}/rom_flash.cmd" rom_flash.scr
-}
-
 inherit deploy
 
 do_deploy:append:mx5-pt() {
@@ -31,7 +27,6 @@ do_deploy:append:imx8mp-var-dart-hmx1() {
 
 do_deploy:append:verdin-am62-hmm() {
     install -m 0644 flash.scr ${DEPLOYDIR}/hmm_boot.scr
-    install -m 0644 rom_flash.scr ${DEPLOYDIR}/hmm_rom_boot.scr
 }
 
 do_deploy() {

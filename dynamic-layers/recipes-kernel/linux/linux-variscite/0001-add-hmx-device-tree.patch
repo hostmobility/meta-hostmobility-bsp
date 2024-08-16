@@ -131,18 +131,18 @@ index 000000000000..35b84c2090f9
 +		product-number = "hm010";
 +	};
 +
-+	hm_watchdog: hm-watchdog {
++	host_watchdog: hm-watchdog {
 +	compatible = "hm-watchdog";
 +	status = "okay";
 +	gpio-controller;
 +	#gpio-cells = <2>;
 +	/*wdt_poweroff: wdt-poweroff {
 +			//gpio-line-name = "wdt_poweroff";
-+			gpios = <&hm_watchdog 0 GPIO_ACTIVE_LOW>;
++
 +		};*/
 +	/*wdt_reset: wdt-reset {
 +			//gpio-line-name = "wdt_reset";
-+			gpios = <&hm_watchdog 1 GPIO_ACTIVE_LOW>;
++
 +		};*/
 +	};
 +

@@ -1,29 +1,13 @@
-From e6df21e317992af7f055328708639ea845e2f678 Mon Sep 17 00:00:00 2001
+From 4fcb351c0f37fadeb35d52180af9f4efe3547963 Mon Sep 17 00:00:00 2001
 From: OpenEmbedded <oe.patch@oe>
-Date: Fri, 14 Jun 2024 11:30:36 +0000
-Subject: [PATCH 1/1] Device tree for host monitor mini
-MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Date: Mon, 19 Aug 2024 09:14:28 +0000
+Subject: [PATCH 1/1] version 6
 
-v1. Add our customization based on k3-am62-verdin-dev.
-We have removed or disabled interfaces that we will not use( like sound, gpio-keys and eth2)
-and add i2c handling, USB otg, digital in/out and som minor configuration changes.
-Also add gpio names that we will use. There is still a lot of
-TODOs in this file but this should be a good start.
-
-v2. Add serialnumber, part-number and product-number.
-
-V3. Add activate remoteproc for m4 processor.
-
-TODO pinmux  for:
-CAN1 Standby, GPIO på SOM pin 215 / aktiv hög
-CAN2 Standby, GPIO på SOM pin 217 / aktiv hög
 ---
  arch/arm64/boot/dts/ti/Makefile               |   1 +
- .../arm64/boot/dts/ti/k3-am62-verdin-hmm.dtsi | 505 ++++++++++++++++++
- .../boot/dts/ti/k3-am625-verdin-wifi-hmm.dts  |  72 +++
- 3 files changed, 578 insertions(+)
+ .../arm64/boot/dts/ti/k3-am62-verdin-hmm.dtsi | 512 ++++++++++++++++++
+ .../boot/dts/ti/k3-am625-verdin-wifi-hmm.dts  |  73 +++
+ 3 files changed, 586 insertions(+)
  create mode 100644 arch/arm64/boot/dts/ti/k3-am62-verdin-hmm.dtsi
  create mode 100644 arch/arm64/boot/dts/ti/k3-am625-verdin-wifi-hmm.dts
 
@@ -41,10 +25,10 @@ index 028c924bfa2c..3541d71e9632 100644
  
 diff --git a/arch/arm64/boot/dts/ti/k3-am62-verdin-hmm.dtsi b/arch/arm64/boot/dts/ti/k3-am62-verdin-hmm.dtsi
 new file mode 100644
-index 000000000000..ba13d9c8157b
+index 000000000000..46672a26ce09
 --- /dev/null
 +++ b/arch/arm64/boot/dts/ti/k3-am62-verdin-hmm.dtsi
-@@ -0,0 +1,505 @@
+@@ -0,0 +1,512 @@
 +// SPDX-License-Identifier: GPL-2.0-or-later OR MIT
 +/*
 + * Copyright 2023 Toradex
@@ -130,6 +114,13 @@ index 000000000000..ba13d9c8157b
 +			linux,default-trigger = "heartbeat";
 +			default-state = "on";
 +		};*/
++	};
++	host_watchdog {
++		compatible = "host_watchdog";
++		status = "okay";
++		gpios = <&mcu_gpio0 1 GPIO_ACTIVE_HIGH>; //FORCE_RESET, not used by driver maybe in the future.
++		nwdog = <489>; //FORCE_RESET, used to select correct reset pin (see /sys/kernel/debug/gpio)
++
 +	};
 +};
 +
@@ -493,7 +484,7 @@ index 000000000000..ba13d9c8157b
 +	pinctrl-0 = <&pinctrl_pcie_1_reset>;
 +	gpio-line-names =
 +		"SODIMM_244_PCIE_RESET",
-+		"SODIMM_206",
++		"FORCE_RESET",
 +		"SODIMM_208",
 +		"SODIMM_210",
 +		"SODIMM_212",
@@ -552,10 +543,10 @@ index 000000000000..ba13d9c8157b
 +};
 diff --git a/arch/arm64/boot/dts/ti/k3-am625-verdin-wifi-hmm.dts b/arch/arm64/boot/dts/ti/k3-am625-verdin-wifi-hmm.dts
 new file mode 100644
-index 000000000000..bbf2709fd9f5
+index 000000000000..65fbb517c1a8
 --- /dev/null
 +++ b/arch/arm64/boot/dts/ti/k3-am625-verdin-wifi-hmm.dts
-@@ -0,0 +1,72 @@
+@@ -0,0 +1,73 @@
 +/*
 + * SPDX-License-Identifier: GPL-2.0-or-later OR MIT
 + *
@@ -583,6 +574,7 @@ index 000000000000..bbf2709fd9f5
 +		serial-number = "103101XXXXX";
 +		part-number = "HMP1031-0001";
 +		product-number = "hm20";
++
 +	};
 +	reserved-memory {
 +		#address-cells = <2>;

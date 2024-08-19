@@ -1,13 +1,13 @@
-From 3c1695948ef7df14e0d656673c2028fcc55c0d70 Mon Sep 17 00:00:00 2001
+From 4fcb351c0f37fadeb35d52180af9f4efe3547963 Mon Sep 17 00:00:00 2001
 From: OpenEmbedded <oe.patch@oe>
-Date: Fri, 16 Aug 2024 05:40:13 +0000
-Subject: [PATCH 1/1] version 5
+Date: Mon, 19 Aug 2024 09:14:28 +0000
+Subject: [PATCH 1/1] version 6
 
 ---
  arch/arm64/boot/dts/ti/Makefile               |   1 +
- .../arm64/boot/dts/ti/k3-am62-verdin-hmm.dtsi | 511 ++++++++++++++++++
+ .../arm64/boot/dts/ti/k3-am62-verdin-hmm.dtsi | 512 ++++++++++++++++++
  .../boot/dts/ti/k3-am625-verdin-wifi-hmm.dts  |  73 +++
- 3 files changed, 585 insertions(+)
+ 3 files changed, 586 insertions(+)
  create mode 100644 arch/arm64/boot/dts/ti/k3-am62-verdin-hmm.dtsi
  create mode 100644 arch/arm64/boot/dts/ti/k3-am625-verdin-wifi-hmm.dts
 
@@ -25,10 +25,10 @@ index 028c924bfa2c..3541d71e9632 100644
  
 diff --git a/arch/arm64/boot/dts/ti/k3-am62-verdin-hmm.dtsi b/arch/arm64/boot/dts/ti/k3-am62-verdin-hmm.dtsi
 new file mode 100644
-index 000000000000..6deeb8b126f3
+index 000000000000..46672a26ce09
 --- /dev/null
 +++ b/arch/arm64/boot/dts/ti/k3-am62-verdin-hmm.dtsi
-@@ -0,0 +1,511 @@
+@@ -0,0 +1,512 @@
 +// SPDX-License-Identifier: GPL-2.0-or-later OR MIT
 +/*
 + * Copyright 2023 Toradex
@@ -115,10 +115,11 @@ index 000000000000..6deeb8b126f3
 +			default-state = "on";
 +		};*/
 +	};
-+	host_watchdog: hm-watchdog {
-+		compatible = "hm-watchdog";
++	host_watchdog {
++		compatible = "host_watchdog";
 +		status = "okay";
-+		gpios = <&mcu_gpio0 1 GPIO_ACTIVE_HIGH>;
++		gpios = <&mcu_gpio0 1 GPIO_ACTIVE_HIGH>; //FORCE_RESET, not used by driver maybe in the future.
++		nwdog = <489>; //FORCE_RESET, used to select correct reset pin (see /sys/kernel/debug/gpio)
 +
 +	};
 +};
@@ -542,7 +543,7 @@ index 000000000000..6deeb8b126f3
 +};
 diff --git a/arch/arm64/boot/dts/ti/k3-am625-verdin-wifi-hmm.dts b/arch/arm64/boot/dts/ti/k3-am625-verdin-wifi-hmm.dts
 new file mode 100644
-index 000000000000..adb0dfa77974
+index 000000000000..65fbb517c1a8
 --- /dev/null
 +++ b/arch/arm64/boot/dts/ti/k3-am625-verdin-wifi-hmm.dts
 @@ -0,0 +1,73 @@

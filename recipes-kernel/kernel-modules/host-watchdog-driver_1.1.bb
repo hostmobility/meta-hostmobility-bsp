@@ -2,8 +2,8 @@ SUMMARY = "Host watchdog driver"
 DESCRIPTION = "${SUMMARY} for Host Monitor Platforms"
 LICENSE = "GPL-2.0-or-later"
 LIC_FILES_CHKSUM = "file://COPYING;md5=65dd37ccb3e888dc57e47d925b80b38a"
-SRCREV = "5bc6679c0a33eac12b78dc2c3182990ae32d99ae"
-SRCBRANCH = "watchdog-driver"
+SRCREV = "65b2fb04b5a34f3175787f86371c961d4dd0e3da"
+SRCBRANCH = "main"
 
 #SUBPATH="drivers/platform/host_monitor_cocpu"
 

@@ -4,7 +4,7 @@ LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda
 
 SRC_URI = "file://flash.cmd"
 
-SRC_URI:append:verdin-am62-hmm = " file://rom_flash.cmd"
+SRC_URI:append:verdin-am62-hmm = " file://flash.cmd"
 
 DEPENDS = "u-boot-mkimage-native"
 

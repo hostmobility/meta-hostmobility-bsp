@@ -1,12 +1,15 @@
 SUMMARY = "rpmsg host watchdog firmware"
-DESCRIPTION = "Cortex M4 firmware ${SUMMARY} for Host Monitor Mini"
+DESCRIPTION = "Cortex M4 ${SUMMARY} for Host Monitor Mini"
 LICENSE = "CLOSED"
-# LICENSE TBD -- includes files from TI's MCU SDK
+# LICENSE = "GPL-2.0-or-later"
+# LIC_FILES_CHKSUM = "file://${WORKDIR}/git/COPYING;md5=b234ee4d69f5fce4486a80fdaf4a4263"
 
 SRCREV = "84898b05603b7da1b5941e8d0093a17023b37b9b"
 SRCBRANCH = "as/dev/extract-wd-from-sdk"
 
 S = "${WORKDIR}"
+
+DEPENDS += "openssl-native"
 
 SRC_URI += " \
     gitsm://git@gitlab.com/hostmobility/host-monitor-am62-firmware.git;protocol=ssh;branch=${SRCBRANCH} \
@@ -50,3 +53,5 @@ do_install() {
 FILES:${PN} = "\
     ${nonarch_base_libdir}/firmware/am62-mcu-m4f0_0-fw \
 "
+
+INSANE_SKIP:${PN} += "arch"

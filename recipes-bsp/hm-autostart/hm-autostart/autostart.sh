@@ -6,7 +6,7 @@ MACHINE=$(cat /etc/platform-system-type)
 FIRST_TIME_BOOT_FILE=/etc/first_boot_after_update.txt
 
 # We can now change the state of the host watchdog from boot to start. This will enable heartbeats resetting the watchdog timer, preventing a reset of the system.
-if [[ "$MACHINE" == "imx8mp-var-dart-hmx1" ]]; then
+if [[ "$MACHINE" == "imx8mp-var-dart-hmx1" || "$MACHINE" == "verdin-am62-hmm" ]]; then
 	echo "0" > /sys/class/host_watchdog/ctl_start
 fi
 
@@ -14,7 +14,7 @@ if [[ -f $FIRST_TIME_BOOT_FILE ]];
 then
 
 #Set hostname to ${MACHINE}-SERIAL. TODO this could be compatible with MXV(&& "$MACHINE" == "mx5-pt").
-if [[ "$MACHINE" == "imx8mp-var-dart-hmx1" ]]; then
+if [[ "$MACHINE" == "imx8mp-var-dart-hmx1" || "$MACHINE" == "verdin-am62-hmm" ]]; then
 	# Retrieve the serial number from /proc/device-tree/chosen/serial-number
 	serial_number=0
 	serial_number=$(cat /proc/device-tree/chosen/serial-number)

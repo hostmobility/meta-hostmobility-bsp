@@ -4,12 +4,10 @@ LICENSE = "CLOSED"
 # LICENSE = "GPL-2.0-or-later"
 # LIC_FILES_CHKSUM = "file://${WORKDIR}/git/COPYING;md5=b234ee4d69f5fce4486a80fdaf4a4263"
 
-SRCREV = "84898b05603b7da1b5941e8d0093a17023b37b9b"
+SRCREV = "f1df0b9c087afb3a15fa1666db772c52eeec44c4"
 SRCBRANCH = "as/dev/extract-wd-from-sdk"
 
 S = "${WORKDIR}"
-
-DEPENDS += "openssl-native"
 
 SRC_URI += " \
     gitsm://git@gitlab.com/hostmobility/host-monitor-am62-firmware.git;protocol=ssh;branch=${SRCBRANCH} \
@@ -54,4 +52,5 @@ FILES:${PN} = "\
     ${nonarch_base_libdir}/firmware/am62-mcu-m4f0_0-fw \
 "
 
+PACKAGE_ARCH = "all"
 INSANE_SKIP:${PN} += "arch"

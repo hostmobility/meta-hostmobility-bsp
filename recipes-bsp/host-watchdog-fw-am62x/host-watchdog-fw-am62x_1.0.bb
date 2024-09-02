@@ -1,16 +1,15 @@
 SUMMARY = "rpmsg host watchdog firmware"
-DESCRIPTION = "Cortex M4 ${SUMMARY} for Host Monitor Mini"
-LICENSE = "CLOSED"
-# LICENSE = "GPL-2.0-or-later"
-# LIC_FILES_CHKSUM = "file://${WORKDIR}/git/COPYING;md5=b234ee4d69f5fce4486a80fdaf4a4263"
+DESCRIPTION = "Cortex M4 firmware ${SUMMARY} for Host Monitor Mini"
+LICENSE = "GPL-2.0-or-later"
+LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/GPL-2.0-or-later;md5=fed54355545ffd980b814dab4a3b312c"
 
-SRCREV = "f1df0b9c087afb3a15fa1666db772c52eeec44c4"
-SRCBRANCH = "as/dev/extract-wd-from-sdk"
+SRCREV = "0206cfd8f27f5349af877e3de63a163a379638e3"
+SRCBRANCH = "main"
 
 S = "${WORKDIR}"
 
 SRC_URI += " \
-    gitsm://git@gitlab.com/hostmobility/host-monitor-am62-firmware.git;protocol=ssh;branch=${SRCBRANCH} \
+    git://git@github.com/hostmobility/host-monitor-cocpu-fw.git;protocol=ssh;branch=${SRCBRANCH} \
     https://dr-download.ti.com/software-development/software-development-kit-sdk/MD-IIN1zFBAlS/09.02.01.06/mcu_plus_sdk_am62x_09_02_01_06-linux-x64-installer.run;name=mcu_plus_sdk_installer \
     https://dr-download.ti.com/software-development/ide-configuration-compiler-or-debugger/MD-nsUM6f7Vvb/1.20.0.3587/sysconfig-1.20.0_3587-setup.run;name=sysconfig_installer \
     https://dr-download.ti.com/software-development/ide-configuration-compiler-or-debugger/MD-ayxs93eZNN/3.2.2.LTS/ti_cgt_armllvm_3.2.2.LTS_linux-x64_installer.bin;name=armllvm_installer \
@@ -20,9 +19,10 @@ SRC_URI[mcu_plus_sdk_installer.sha256sum] = "1814c98e3f7d5a9e6570a464ef9a5db0b38
 SRC_URI[sysconfig_installer.sha256sum] = "983a2aa6677d6dadc14942a8f3e3b1fbe9c3a36269fd46ea259dfa499b97c373"
 SRC_URI[armllvm_installer.sha256sum] = "2864bb1013ec60b1290f92ff723a4fc222653db1278c08ad81af6063f698dec9"
 
-WD_BUILD_DIR = "${WORKDIR}/git/ti-am62/rpmsg_host_watchdog/am62x-sk/m4fss0-0_freertos/ti-arm-clang"
+WD_BUILD_DIR = "${WORKDIR}/git/am62x/rpmsg_host_watchdog/am62x-sk/m4fss0-0_freertos/ti-arm-clang"
 
 TI_DIR = "${WORKDIR}/ti"
+
 
 do_configure() {
     mkdir -p ${TI_DIR}

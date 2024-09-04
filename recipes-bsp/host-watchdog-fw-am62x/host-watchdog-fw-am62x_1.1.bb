@@ -52,5 +52,4 @@ FILES:${PN} = "\
     ${nonarch_base_libdir}/firmware/am62-mcu-m4f0_0-fw \
 "
 
-PACKAGE_ARCH = "all"
 INSANE_SKIP:${PN} += "arch"

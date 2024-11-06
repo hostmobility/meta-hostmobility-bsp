@@ -4,6 +4,8 @@ LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda
 
 SRC_URI = "file://flash.cmd"
 
+SRC_URI:append:verdin-am62-hmm = " file://flash.cmd"
+
 DEPENDS = "u-boot-mkimage-native"
 
 
@@ -21,6 +23,10 @@ do_deploy:append:mx5-pt() {
 do_deploy:append:imx8mp-var-dart-hmx1() {
     install -d ${DEPLOYDIR}
     install -m 0644 flash.scr ${DEPLOYDIR}/hmx_boot.scr
+}
+
+do_deploy:append:verdin-am62-hmm() {
+    install -m 0644 flash.scr ${DEPLOYDIR}/hmm_boot.scr
 }
 
 do_deploy() {

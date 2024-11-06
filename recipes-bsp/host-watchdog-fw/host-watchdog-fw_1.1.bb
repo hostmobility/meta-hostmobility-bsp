@@ -3,7 +3,7 @@ DESCRIPTION = "Cortex M4/M7 Firmware ${SUMMARY} for Host Monitor X"
 LICENSE = "GPL-3.0-or-later"
 LIC_FILES_CHKSUM = "file://COPYING;md5=1ebbd3e34237af26da5dc08a4e440464"
 
-SRCREV = "478c995b182b6b4290726fcc1fb953b31c0da583"
+SRCREV = "7724aa2c5662b5ec0a0bd9f50ce26c5cdf35f252"
 SRCBRANCH = "main"
 
 DEPENDS += "cmake-native"

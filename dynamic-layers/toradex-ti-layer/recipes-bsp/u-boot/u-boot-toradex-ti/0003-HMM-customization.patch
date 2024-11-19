@@ -1,16 +1,16 @@
-From 841d838377d61d975b336f552fb8ad312dfec39e Mon Sep 17 00:00:00 2001
+From 25a0430a1e092cc8a098121733815af1b26e11e9 Mon Sep 17 00:00:00 2001
 From: rikardo <rikard.olander@hostmobility.com>
-Date: Fri, 14 Jun 2024 07:43:27 +0000
+Date: Tue, 19 Nov 2024 15:48:52 +0000
 Subject: [PATCH 3/3] HMM customization
 
 ---
  board/toradex/common/tdx-common.c       | 62 +++++++++++++++++++++++++
  board/toradex/verdin-am62/verdin-am62.c | 18 ++++++-
- include/configs/verdin-am62.h           |  5 +-
- 3 files changed, 82 insertions(+), 3 deletions(-)
+ include/configs/verdin-am62.h           | 41 +++++++++-------
+ 3 files changed, 102 insertions(+), 19 deletions(-)
 
 diff --git a/board/toradex/common/tdx-common.c b/board/toradex/common/tdx-common.c
-index d144914397..6f61aaf94d 100644
+index d144914397..d0bcae7012 100644
 --- a/board/toradex/common/tdx-common.c
 +++ b/board/toradex/common/tdx-common.c
 @@ -1,6 +1,7 @@
@@ -46,7 +46,7 @@ index d144914397..6f61aaf94d 100644
 +	path = "/chosen";
 +	offset = fdt_path_offset(blob, path);
 +	if (offset < 0) {
-+		debug("Node %s not found.\n", path);
++		printf("WARNING: Node %s not found in device tree.\n", path);
 +		return err;
 +	}
 +
@@ -97,7 +97,7 @@ index d144914397..6f61aaf94d 100644
  }
  #endif
 diff --git a/board/toradex/verdin-am62/verdin-am62.c b/board/toradex/verdin-am62/verdin-am62.c
-index 3d699f3205..a5580b2b27 100644
+index 3d699f3205..b819ab5293 100644
 --- a/board/toradex/verdin-am62/verdin-am62.c
 +++ b/board/toradex/verdin-am62/verdin-am62.c
 @@ -3,7 +3,7 @@
@@ -142,7 +142,7 @@ index 3d699f3205..a5580b2b27 100644
  }
  
 diff --git a/include/configs/verdin-am62.h b/include/configs/verdin-am62.h
-index a2cbcce33d..f7aa42923d 100644
+index a2cbcce33d..9cb9f0c59e 100644
 --- a/include/configs/verdin-am62.h
 +++ b/include/configs/verdin-am62.h
 @@ -3,6 +3,7 @@
@@ -153,19 +153,67 @@ index a2cbcce33d..f7aa42923d 100644
   */
  
  #ifndef __VERDIN_AM62_H
-@@ -49,10 +50,10 @@
+@@ -27,6 +28,7 @@
+ #if CONFIG_TARGET_VERDIN_AM62_A53
+ /* Enable Distro Boot */
+ #define BOOT_TARGET_DEVICES(func) \
++	func(USB, usb, 0) \
+ 	func(MMC, mmc, 1) \
+ 	func(MMC, mmc, 0) \
+ 	func(DHCP, dhcp, na)
+@@ -45,30 +47,33 @@
+ 	"ramdisk_addr_r ram " __stringify(RAMDISK_ADDR_R) " 0x8000000\0"
+ 
+ /* Incorporate settings into the U-Boot environment */
++/*m4boot will run in variant of Toradex boot.scr file we just declare it here instead of in the boot.scr file */
+ #define CFG_EXTRA_ENV_SETTINGS \
  	BOOTENV \
  	EXTRA_ENV_DFUARGS \
  	MEM_LAYOUT_ENV_SETTINGS \
--	"boot_scripts=boot.scr\0" \
-+	"boot_scripts=hmm_boot.scr\0" \
+ 	"boot_scripts=boot.scr\0" \
++	"bsp_script=hmm_boot.scr\0" \
  	"boot_script_dhcp=boot.scr\0" \
  	"console=ttyS2\0" \
 -	"fdt_board=dev\0" \
 +	"fdt_board=hmm\0" \
++	"bootcmd_usb=run try_usb_flash;\0" \
++	"try_usb_flash=sleep 0.1; usb reset; if load usb 0 ${scriptaddr} ${bsp_script} ; then source ${scriptaddr}; else echo UPDATE ERROR: no ${bsp_script} on first USB device. ;fi\0" \
++	"m4addr=0x82000000\0" \
++	"m4_firmware=lib/firmware/am62-mcu-m4f0_0-fw\0" \
++	"m4boot='if ext4size mmc ${root_devnum}:${root_part} ${m4_firmware}; then " \
++		"load mmc ${root_devnum}:${root_part} ${m4addr} ${m4_firmware};" \
++			"if rproc init && rproc load 0 ${m4addr} ${filesize} && rproc start 0; then" \
++				"echo "INFO: M4 firmware ${m4_firmware} successfully started";" \
++			"else" \
++				"echo "ERROR: Failed to initialize or start M4 firmware";" \
++				"env set script_warning "M4 firmware ${m4_firmware} initialization/start failed";" \
++			"fi;" \
++		"else" \
++			"echo "WARNING: File ${m4_firmware} not found on mmc ${root_devnum}:${root_part}, continue booting";" \
++			"env set script_warning 'File ${m4_firmware} not found on mmc ${root_devnum}:${root_part}, continue booting'" \
++		"fi;'\0" \
  	"setup=setenv setupargs console=tty1 console=${console},${baudrate} " \
- 		"consoleblank=0 earlycon=ns16550a,mmio32,0x02800000\0" \
- 	"update_tiboot3=askenv confirm Did you load tiboot3.bin (y/N)?; " \
+-		"consoleblank=0 earlycon=ns16550a,mmio32,0x02800000\0" \
+-	"update_tiboot3=askenv confirm Did you load tiboot3.bin (y/N)?; " \
+-		"if test \"$confirm\" = \"y\"; then " \
+-		"setexpr blkcnt ${filesize} + 0x1ff && setexpr blkcnt " \
+-		"${blkcnt} / 0x200; mmc dev 0 1; mmc write ${loadaddr} 0x0 " \
+-		"${blkcnt}; fi\0" \
+-	"update_tispl=askenv confirm Did you load tispl.bin (y/N)?; " \
+-		"if test \"$confirm\" = \"y\"; then " \
+-		"setexpr blkcnt ${filesize} + 0x1ff && setexpr blkcnt " \
+-		"${blkcnt} / 0x200; mmc dev 0 1; mmc write ${loadaddr} 0x400 " \
+-		"${blkcnt}; fi\0" \
+-	"update_uboot=askenv confirm Did you load u-boot.img (y/N)?; " \
+-		"if test \"$confirm\" = \"y\"; then " \
+-		"setexpr blkcnt ${filesize} + 0x1ff && setexpr blkcnt " \
+-		"${blkcnt} / 0x200; mmc dev 0 1; mmc write ${loadaddr} 0x1400 " \
+-		"${blkcnt}; fi\0"
++		"consoleblank=0 earlycon=ns16550a,mmio32,0x02800000\0"
+ 
+-#endif /* __VERDIN_AM62_H */
++#endif /* __VERDIN_AM62_H */
+\ No newline at end of file
 -- 
 2.34.1
 

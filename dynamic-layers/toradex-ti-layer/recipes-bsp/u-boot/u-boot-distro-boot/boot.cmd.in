@@ -50,8 +50,8 @@ test -n ${boot_devtype} || env set boot_devtype ${devtype}
 test -n ${overlays_file} || env set overlays_file "overlays.txt"
 test -n ${overlays_prefix} || env set overlays_prefix "overlays/"
 test -n ${wic_file} || env set wic_file hmm-image.wic.gz
-test -n ${loadimage} || env set loadimage "load mmc ${root_devnum}:${root_part} ${ramdisk_addr_r} ${prefix}${wic_file}"
-test -n ${writeimage} || env set writeimage "gzwrite mmc 0 ${ramdisk_addr_r} 0x${filesize} 100000 0"
+env set loadimage "load mmc ${root_devnum}:${root_part} ${ramdisk_addr_r} ${prefix}${wic_file}"
+env set writeimage "gzwrite mmc ${root_devnum} ${ramdisk_addr_r} 0x${filesize} 100000 0"
 
 test ${boot_devtype} = "mmc" && env set load_cmd 'load ${boot_devtype} ${boot_devnum}:${boot_part}'
 test ${boot_devtype} = "usb" && env set load_cmd 'load ${boot_devtype} ${boot_devnum}:${boot_part}'
@@ -149,9 +149,11 @@ env set bootcmd_run 'run m4boot; run bootcmd_dtb && run bootcmd_overlays && run 
                 else
                     echo write failed, aborting;
                     sleep 10;
-                    reset;
+                    #reset; TODO what to do if writeimage file failes here....
                 fi
             fi
+            else
+                echo "Did not found any ${prefix}${wic_file} file."
         fi
     done
 

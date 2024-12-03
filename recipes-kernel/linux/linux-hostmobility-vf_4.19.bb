@@ -1,7 +1,7 @@
 
 SUMMARY = "Linux Kernel for Host Mobility products based on Toradex Tegra COMs"
 SECTION = "kernel"
-LICENSE = "GPLv2"
+LICENSE = "GPL-2.0-only"
 
 LIC_FILES_CHKSUM = "file://COPYING;md5=bbea815ee2795b2f4230826c0c6b8814"
 

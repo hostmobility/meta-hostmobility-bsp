@@ -1,9 +1,19 @@
 SUMMARY = "rpmsg host watchdog firmware"
-DESCRIPTION = "Cortex M4 firmware ${SUMMARY} for Host Monitor Mini"
-LICENSE = "GPL-2.0-or-later"
-LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/GPL-2.0-or-later;md5=fed54355545ffd980b814dab4a3b312c"
+DESCRIPTION = "Cortex M4 ${SUMMARY} for Host Monitor Mini"
+LICENSE = "BSD-3-Clause & MIT & MPL-2.0 & TI-TFL"
 
-SRCREV = "0206cfd8f27f5349af877e3de63a163a379638e3"
+FILESEXTRAPATHS:prepend := "${THISDIR}/files/licenses:"
+
+# Define the checksums for each license
+LIC_FILES_CHKSUM = " \
+    file://${WORKDIR}/COPYING;md5=5ff03a67270a4d692a8f09f87b04186f \
+    file://${WORKDIR}/BSD-3-Clause;md5=b3990e3f8aef52635d5bb993f04f5c64 \
+    file://${WORKDIR}/MIT;md5=937e6fa0ef05f0d9f908ab91a8426f12 \
+    file://${WORKDIR}/TI-TFL;md5=8c34eb90d66683331330c490f789efea \
+    file://${COMMON_LICENSE_DIR}/MPL-2.0;md5=815ca599c9df247a0c7f619bab123dad \
+"
+
+SRCREV = "6d568b744e39fe00cd93c31fd7f901f91d47e3e1"
 SRCBRANCH = "main"
 
 S = "${WORKDIR}"
@@ -13,6 +23,10 @@ SRC_URI += " \
     https://dr-download.ti.com/software-development/software-development-kit-sdk/MD-IIN1zFBAlS/09.02.01.06/mcu_plus_sdk_am62x_09_02_01_06-linux-x64-installer.run;name=mcu_plus_sdk_installer \
     https://dr-download.ti.com/software-development/ide-configuration-compiler-or-debugger/MD-nsUM6f7Vvb/1.20.0.3587/sysconfig-1.20.0_3587-setup.run;name=sysconfig_installer \
     https://dr-download.ti.com/software-development/ide-configuration-compiler-or-debugger/MD-ayxs93eZNN/3.2.2.LTS/ti_cgt_armllvm_3.2.2.LTS_linux-x64_installer.bin;name=armllvm_installer \
+    file://COPYING \
+    file://BSD-3-Clause \
+    file://MIT \
+    file://TI-TFL \
 "
 
 SRC_URI[mcu_plus_sdk_installer.sha256sum] = "1814c98e3f7d5a9e6570a464ef9a5db0b38c7b46a36532f82463896dbe21fea6"

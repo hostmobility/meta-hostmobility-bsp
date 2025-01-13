@@ -142,7 +142,7 @@ index 000000000000..aaa0006562bc
 +					<&main_gpio1  3 GPIO_ACTIVE_HIGH>,
 +		 			<&main_gpio1  0 GPIO_ACTIVE_HIGH>;
 +
-+		UIO_ANA_IN_20MA_EN-gpios = <&main_gpio1 4 GPIO_ACTIVE_HIGH>, <&main_gpio0 91 GPIO_ACTIVE_HIGH>;	/* UIO1_ANA_IN_20MA_EN, UIO2_ANA_IN_20MA_EN (activate analog in 0-20ma messurment)*/
++		UIO_ANA_IN_20MA_EN-gpios = <&main_gpio1 4 GPIO_ACTIVE_HIGH>, <&main_gpio0 91 GPIO_ACTIVE_HIGH>;	/* UIO1_ANA_IN_20MA_EN, UIO2_ANA_IN_20MA_EN (enable analog in 0-20mA measurement) */
 +	};
 +
 +	gpio-quectel-boot {

@@ -1,8 +1,7 @@
-From 8d29c7b9c587c1c78d3c166c021c77c0c2ee4c20 Mon Sep 17 00:00:00 2001
+From 15d8a86135a5e649628cb992a4c773c43085531e Mon Sep 17 00:00:00 2001
 From: OpenEmbedded <oe.patch@oe>
-Date: Tue, 10 Dec 2024 15:11:53 +0000
-Subject: [PATCH 1/1] patch device tree v4
-
+Date: Thu, 16 Jan 2025 16:04:26 +0000
+Subject: [PATCH 1/1] patch device tree v5
 v1. Add our customization based on k3-am62-verdin-dev.
 We have removed or disabled interfaces that we will not use( like sound, gpio-keys and eth2)
 and add i2c handling, USB otg, digital in/out and som minor configuration changes.
@@ -16,11 +15,15 @@ V3. Add activate remoteproc for m4 processor.
 V4. Fix LEDs and rest of the IOs is implemented and modem driver and gpio overlay added.
     Add support for gpio out and digital in.
 
+v5. Enable support for analog in 2 enable.
+    Fix usb-c cc control, bug wrong id implemented and add missing irq pin.
+    Change UART1_CTSn to be controlled by userspace(could be driver or kernel controlled). Change so this pin is a output instead of a input. 
+    disable use of external temperature sensor, this is so far not mounted on any variant.
 ---
  arch/arm64/boot/dts/ti/Makefile               |   1 +
- .../arm64/boot/dts/ti/k3-am62-verdin-hmm.dtsi | 550 ++++++++++++++++++
+ .../arm64/boot/dts/ti/k3-am62-verdin-hmm.dtsi | 585 ++++++++++++++++++
  .../boot/dts/ti/k3-am625-verdin-wifi-hmm.dts  |  73 +++
- 3 files changed, 624 insertions(+)
+ 3 files changed, 659 insertions(+)
  create mode 100644 arch/arm64/boot/dts/ti/k3-am62-verdin-hmm.dtsi
  create mode 100644 arch/arm64/boot/dts/ti/k3-am625-verdin-wifi-hmm.dts
 
@@ -38,10 +41,10 @@ index 028c924bfa2c..3541d71e9632 100644
  
 diff --git a/arch/arm64/boot/dts/ti/k3-am62-verdin-hmm.dtsi b/arch/arm64/boot/dts/ti/k3-am62-verdin-hmm.dtsi
 new file mode 100644
-index 000000000000..aaa0006562bc
+index 000000000000..7ffb3fa1a407
 --- /dev/null
 +++ b/arch/arm64/boot/dts/ti/k3-am62-verdin-hmm.dtsi
-@@ -0,0 +1,550 @@
+@@ -0,0 +1,585 @@
 +// SPDX-License-Identifier: GPL-2.0-or-later OR MIT
 +/*
 + * Copyright 2023 Toradex
@@ -142,7 +145,7 @@ index 000000000000..aaa0006562bc
 +					<&main_gpio1  3 GPIO_ACTIVE_HIGH>,
 +		 			<&main_gpio1  0 GPIO_ACTIVE_HIGH>;
 +
-+		UIO1_ANA_IN_20MA_EN-gpios = <&main_gpio1 4 GPIO_ACTIVE_HIGH>;	/* UIO1_ANA_IN_20MA_EN */
++		UIO_ANA_IN_20MA_EN-gpios = <&main_gpio1 4 GPIO_ACTIVE_HIGH>, <&main_gpio0 91 GPIO_ACTIVE_HIGH>; /* UIO1_ANA_IN_20MA_EN, UIO2_ANA_IN_20MA_EN (enable analog in 0-20mA measurement) */
 +	};
 +
 +	gpio-quectel-boot {
@@ -205,13 +208,16 @@ index 000000000000..aaa0006562bc
 +	};
 +
 +	/*USB-C controller*/
-+	typec@7a {
++	typec@1d {
 +		compatible = "nxp,ptn5150";
-+		reg = <0x7a>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&pinctrl_usb1_irq>;
++		interrupt-parent = <&main_gpio0>;
++		interrupts = <38 IRQ_TYPE_LEVEL_HIGH>;
++		reg = <0x1d>;
 +		status ="okay";
 +	};
 +
-+	/*TODO for eeprom HW?*/
 +	eeprom@54 {
 +		compatible = "st,24c02", "atmel,24c04";
 +		reg = <0x54>;
@@ -223,7 +229,7 @@ index 000000000000..aaa0006562bc
 +	temperature-sensor@73 {
 +		compatible = "ti,tmp103";
 +		reg = <0x73>;
-+		status = "okay";
++		status = "disable";
 +	};
 +	/*
 +	Add HSM module
@@ -258,8 +264,11 @@ index 000000000000..aaa0006562bc
 +
 +/* Verdin UART_1, (RS485) */
 +&main_uart1 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_uart1_rs485>;
 +	linux,rs485-enabled-at-boot-time;
 +	rs485-rx-during-tx;
++	rs485-rts-active-low;
 +	status = "okay";
 +};
 +
@@ -417,6 +426,8 @@ index 000000000000..aaa0006562bc
 +
 +&main_gpio1 {
 +
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_uart1_cts>;
 +	gpio-line-names =
 +		"UIO2_DIG_IN", /* 0 */
 +		"UIO1_DOUT_SRC",
@@ -425,7 +436,7 @@ index 000000000000..aaa0006562bc
 +		"UIO1_ANA_IN_20MA_EN",
 +		"",
 +		"",
-+		"",
++		"RS485_RX_EN",
 +		"",
 +		"nMDM_OPERATIONAL",
 +		"nMDM_MODE_RECOV", /* 10 */
@@ -506,6 +517,14 @@ index 000000000000..aaa0006562bc
 +		"",
 +		"",
 +		"";
++	/* rs485_temp_rxen_hog: rs485-temp-rxen-hog {
++		gpio-hog; */
++		/*RS485_RX_EN*/
++		/*gpios = <7 GPIO_ACTIVE_LOW>;
++		line-name = "RS485_RX_EN#";
++		output-low;
++		status = "okay";
++	};*/
 +};
 +
 +&mcu_gpio0 {
@@ -550,6 +569,7 @@ index 000000000000..aaa0006562bc
 +};
 +
 +&main_pmx0 {
++	/*Note!: Select am62xSIP in ti sysconfig to get more information about the pin modes.*/
 +	pinctrl_dio_1: pinctrl-dio-1-default-pins {
 +		pinctrl-single,pins = <
 +			AM62X_IOPAD(0x178, PIN_INPUT, 7) /* (AC20) RGMII2_TD3, GPIO1_0    */ /* SODIMM 215 */ /*UIO2_DIG_IN*/
@@ -589,6 +609,24 @@ index 000000000000..aaa0006562bc
 +		pinctrl-single,pins = <
 +			AM62X_IOPAD(0x0010, PIN_INPUT, 7) /* (G24) OSPI0_D1.GPIO0_4 */ /* SODIMM 58 */ /*PWR_GOOD, */
 +			/*AM62X_MCU_IOPAD(0x0004, PIN_INPUT, 7) /* (B8) MCU_SPI0_CS1.MCU_GPIO0_1 */ /* SODIMM 206 */ /*SOM_FORCE_RESET used by M4*/
++		>;
++	};
++	/* Verdin UART_1 change to not use CTS here for now*/
++	pinctrl_uart1_rs485: main-uart1-rs485-pins-default {
++		pinctrl-single,pins = <
++			AM62X_IOPAD(0x0198, PIN_OUTPUT,       2) /* (A19) MCASP0_AXR2.UART1_RTSn */ /* SODIMM 133 */
++			AM62X_IOPAD(0x01ac, PIN_INPUT_PULLUP, 2) /* (E19) MCASP0_AFSR.UART1_RXD  */ /* SODIMM 129 */
++			AM62X_IOPAD(0x01b0, PIN_OUTPUT,       2) /* (A20) MCASP0_ACLKR.UART1_TXD */ /* SODIMM 131 */
++		>;
++	};
++	pinctrl_uart1_cts: main-uart1-cts-pins-default {
++		pinctrl-single,pins = <
++			AM62X_IOPAD(0x0194, PIN_OUTPUT, 7) /* (B19) MCASP0_AXR3.UART1_CTSn */ /* SODIMM 135 , GPIO1_7, hogged low until we fix a driver.*/
++		>;
++	};
++	pinctrl_usb1_irq: usb1-irq-pins-default {
++		pinctrl-single,pins = <
++			AM62X_IOPAD(0x009c, PIN_INPUT, 7) /* (V25) GPMC0_WAIT1.GPIO0_38 */ /* GPIO_SODIMM_189 */
 +		>;
 +	};
 +};

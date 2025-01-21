@@ -1,13 +1,15 @@
-From 15d8a86135a5e649628cb992a4c773c43085531e Mon Sep 17 00:00:00 2001
+From 1b42bfc54c015e79b581f36026fe5862b6f3843f Mon Sep 17 00:00:00 2001
 From: OpenEmbedded <oe.patch@oe>
-Date: Thu, 16 Jan 2025 16:04:26 +0000
+Date: Tue, 21 Jan 2025 16:30:21 +0000
 Subject: [PATCH 1/1] patch device tree v5
+Subject: [PATCH 1/1] V6
 v1. Add our customization based on k3-am62-verdin-dev.
 We have removed or disabled interfaces that we will not use( like sound, gpio-keys and eth2)
 and add i2c handling, USB otg, digital in/out and som minor configuration changes.
 Also add gpio names that we will use. There is still a lot of
 TODOs in this file but this should be a good start.
-
+ 
+ 
 v2. Add serialnumber, part-number and product-number.
 
 V3. Add activate remoteproc for m4 processor.
@@ -19,11 +21,17 @@ v5. Enable support for analog in 2 enable.
     Fix usb-c cc control, bug wrong id implemented and add missing irq pin.
     Change UART1_CTSn to be controlled by userspace(could be driver or kernel controlled). Change so this pin is a output instead of a input. 
     disable use of external temperature sensor, this is so far not mounted on any variant.
+
+v6. Enable CTRL_WAKE1_MICO to wakeup on CAN. 
+    Fix default behivor for CAN standby signals(gave 2mA better suspend on 24VDC). 
+    Fix Rs-485 RXEN signal so it is low until suspend.
+    Add name for USB_OC in gpioinfo list.
+
 ---
  arch/arm64/boot/dts/ti/Makefile               |   1 +
- .../arm64/boot/dts/ti/k3-am62-verdin-hmm.dtsi | 585 ++++++++++++++++++
+ .../arm64/boot/dts/ti/k3-am62-verdin-hmm.dtsi | 612 ++++++++++++++++++
  .../boot/dts/ti/k3-am625-verdin-wifi-hmm.dts  |  73 +++
- 3 files changed, 659 insertions(+)
+ 3 files changed, 686 insertions(+)
  create mode 100644 arch/arm64/boot/dts/ti/k3-am62-verdin-hmm.dtsi
  create mode 100644 arch/arm64/boot/dts/ti/k3-am625-verdin-wifi-hmm.dts
 
@@ -41,10 +49,10 @@ index 028c924bfa2c..3541d71e9632 100644
  
 diff --git a/arch/arm64/boot/dts/ti/k3-am62-verdin-hmm.dtsi b/arch/arm64/boot/dts/ti/k3-am62-verdin-hmm.dtsi
 new file mode 100644
-index 000000000000..7ffb3fa1a407
+index 000000000000..b8cd6c7666a7
 --- /dev/null
 +++ b/arch/arm64/boot/dts/ti/k3-am62-verdin-hmm.dtsi
-@@ -0,0 +1,585 @@
+@@ -0,0 +1,612 @@
 +// SPDX-License-Identifier: GPL-2.0-or-later OR MIT
 +/*
 + * Copyright 2023 Toradex
@@ -168,6 +176,12 @@ index 000000000000..7ffb3fa1a407
 +		MDM_NET_MODE-gpios =  <&main_gpio0  37 GPIO_ACTIVE_HIGH>; /*MDM_LTE_REGISTRED, NET_MODE*/
 +		//vdd-supply = <&reg_modem_4v>;
 +		gpio-line-names = "MODEM_ENABLE_ON","MODEM_RESET","MODEM_POWER_ENABLE","MODEM_STATUS_ON", "MODEM_RECOVERY_ENABLE";
++	};
++
++	/* Enable Verdin CTRL_WAKE1_MICO# (SODIMM 252) */
++	/* wakeup-source for CAN0, CAN 1 and Rs485 (rx) */
++	verdin_gpio_keys: gpio-keys {
++		status = "okay";
 +	};
 +};
 +
@@ -317,8 +331,9 @@ index 000000000000..7ffb3fa1a407
 +};
 +
 +&main_gpio0 {
-+	pinctrl-names = "default";
-+	pinctrl-0 = <&pinctrl_ctrl_sleep_moci>;
++	pinctrl-names = "default", "sleep";
++	pinctrl-0 = <&pinctrl_ctrl_sleep_moci>, <&pinctrl_can_standby_normal>;
++	pinctrl-1 = <&pinctrl_ctrl_sleep_moci>, <&pinctrl_can_standby_sleep>;
 +
 +	gpio-line-names =
 +		"SODIMM_52", /* 0 */
@@ -353,7 +368,7 @@ index 000000000000..7ffb3fa1a407
 +		"SD_1_PWR_EN",
 +		"SODIMM_21", /* 30 */
 +		"SODIMM_256",
-+		"SODIMM_252",
++		"WAKE_UP",
 +		"",
 +		"SODIMM_46",
 +		"MDM_NET_ACTIVITY",
@@ -392,8 +407,8 @@ index 000000000000..7ffb3fa1a407
 +		"",
 +		"",
 +		"", /* 70 */
-+		"SODIMM_157",
-+		"SODIMM_187",
++		"USB1_OC",
++		"USB2_OC",
 +		"",
 +		"",
 +		"",
@@ -420,6 +435,20 @@ index 000000000000..7ffb3fa1a407
 +		gpios = <31 GPIO_ACTIVE_HIGH>;
 +		line-name = "CTRL_SLEEP_MOCI#";
 +		output-high;
++	};
++	can0_standby_normal: can0-standby-normal-hog {
++		gpio-hog;
++		gpios = <90 GPIO_ACTIVE_HIGH>;
++		line-name = "CAN0_STBY";
++		output-low;
++		status = "okay";
++	};
++	can1_standby_normal: can1-standby-normal-hog {
++		gpio-hog;
++		gpios = <89 GPIO_ACTIVE_HIGH>;
++		line-name = "CAN1_STBY";
++		output-low;
++		status = "okay";
 +	};
 +};
 +
@@ -517,14 +546,14 @@ index 000000000000..7ffb3fa1a407
 +		"",
 +		"",
 +		"";
-+	/* rs485_temp_rxen_hog: rs485-temp-rxen-hog {
-+		gpio-hog; */
-+		/*RS485_RX_EN*/
-+		/*gpios = <7 GPIO_ACTIVE_LOW>;
-+		line-name = "RS485_RX_EN#";
-+		output-low;
++	rs485_temp_rxen_hog: rs485-temp-rxen-hog {
++		gpio-hog;
++		/*RS485_RX_EN, is low always on linux and in standby using external pull up.*/
++		gpios = <7 GPIO_ACTIVE_LOW>;
++		line-name = "RS485_RX_EN";
++		output-high;
 +		status = "okay";
-+	};*/
++	};
 +};
 +
 +&mcu_gpio0 {
@@ -587,10 +616,16 @@ index 000000000000..7ffb3fa1a407
 +		>;
 +	};
 +
-+	pinctrl_can_standby: pinctrl-can-standby-default-pins {
++	pinctrl_can_standby_normal: pinctrl-can-standby-default-pins {
 +		pinctrl-single,pins = <
-+			AM62X_IOPAD(0x16c, PIN_OUTPUT_PULLUP, 7) /*  (Y18) RGMII2_TD0.GPIO0_89 */ /* SODIMM 221 */ /*CAN2_STBY*/ /*active low? TODO add sleep pinmux that set this pins to low*/
-+			AM62X_IOPAD(0x170, PIN_OUTPUT_PULLUP, 7) /* (AA18) RGMII2_TD1.GPIO0_90 */ /* SODIMM 219 */ /*CAN1_STBY*/
++			AM62X_IOPAD(0x16c, PIN_OUTPUT, 7) /*  (Y18) RGMII2_TD0.GPIO0_89 */ /* SODIMM 221 */ /*CAN2_STBY (active normal mode on low)*/ 
++			AM62X_IOPAD(0x170, PIN_OUTPUT, 7) /* (AA18) RGMII2_TD1.GPIO0_90 */ /* SODIMM 219 */ /*CAN1_STBY */
++		>;
++	};
++	pinctrl_can_standby_sleep: pinctrl-can-standby-sleep-pins {
++		pinctrl-single,pins = <
++			AM62X_IOPAD(0x16c, PIN_INPUT_PULLUP, 7) /*  (Y18) RGMII2_TD0.GPIO0_89 */ /* SODIMM 221 */ /*CAN2_STBY (active standby on high or floating)*/ 
++			AM62X_IOPAD(0x170, PIN_INPUT_PULLUP, 7) /* (AA18) RGMII2_TD1.GPIO0_90 */ /* SODIMM 219 */ /*CAN1_STBY */
 +		>;
 +	};
 +

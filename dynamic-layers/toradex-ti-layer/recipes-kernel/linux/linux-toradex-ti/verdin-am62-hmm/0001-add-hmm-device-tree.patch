@@ -179,7 +179,7 @@ index 000000000000..b8cd6c7666a7
 +	};
 +
 +	/* Enable Verdin CTRL_WAKE1_MICO# (SODIMM 252) */
-+	/* wakeup-source for CAN0, CAN 1 and Rs485 (rx) */
++	/* wakeup-source for CAN 0, CAN 1 and RS-485 (RX) */
 +	verdin_gpio_keys: gpio-keys {
 +		status = "okay";
 +	};
@@ -548,7 +548,7 @@ index 000000000000..b8cd6c7666a7
 +		"";
 +	rs485_temp_rxen_hog: rs485-temp-rxen-hog {
 +		gpio-hog;
-+		/*RS485_RX_EN, is low always on linux and in standby using external pull up.*/
++		/* RS485_RX_EN is always low in Linux, except in standby where it's held high using an external pull up. */
 +		gpios = <7 GPIO_ACTIVE_LOW>;
 +		line-name = "RS485_RX_EN";
 +		output-high;

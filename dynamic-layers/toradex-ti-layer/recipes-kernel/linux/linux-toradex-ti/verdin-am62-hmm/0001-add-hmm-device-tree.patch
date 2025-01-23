@@ -22,9 +22,9 @@ v5. Enable support for analog in 2 enable.
     Change UART1_CTSn to be controlled by userspace(could be driver or kernel controlled). Change so this pin is a output instead of a input. 
     disable use of external temperature sensor, this is so far not mounted on any variant.
 
-v6. Enable CTRL_WAKE1_MICO to wakeup on CAN. 
-    Fix default behivor for CAN standby signals(gave 2mA better suspend on 24VDC). 
-    Fix Rs-485 RXEN signal so it is low until suspend.
+v6. Enable CTRL_WAKE1_MICO for wake on CAN. 
+    Fix default behaviour for CAN standby signals (gave 2mA lower power draw in suspend at 24VDC).
+    Fix RS-485 RXEN signal so that it's held low until suspend.
     Add name for USB_OC in gpioinfo list.
 
 ---

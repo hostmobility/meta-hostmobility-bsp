@@ -2,7 +2,7 @@ SUMMARY = "gpio overlay"
 DESCRIPTION = "${SUMMARY} for Host Monitor Platforms"
 LICENSE = "GPL-2.0-or-later"
 LIC_FILES_CHKSUM = "file://COPYING;md5=65dd37ccb3e888dc57e47d925b80b38a"
-SRCREV = "030c709b5b221de5de9993393c5746460fbabb46"
+SRCREV = "4491c035ffdb54d93ec6776bf91ae73484efcb0a"
 SRCBRANCH = "main"
 
 inherit module

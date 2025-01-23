@@ -1,6 +1,6 @@
 SUMMARY = "Linux Kernel for Host Mobility products based on Toradex Tegra COMs"
 SECTION = "kernel"
-LICENSE = "GPL-3.0-or-later"
+LICENSE = "GPL-2.0-only"
 
 LIC_FILES_CHKSUM = "file://COPYING;md5=6bc538ed5bd9a7fc9398086aedcd7e46"
 FILESEXTRAPATHS:prepend := "${THISDIR}/linux-mobility-imx:"

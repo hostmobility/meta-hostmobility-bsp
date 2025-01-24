@@ -1,18 +1,21 @@
-From acc0e027f878e697840e179efb45aa4d6ef799bf Mon Sep 17 00:00:00 2001
+From f337bf08532ef0da8bcda3299856b00d8861a43a Mon Sep 17 00:00:00 2001
 From: rikardo <rikard.olander@hostmobility.com>
-Date: Fri, 14 Jun 2024 09:35:47 +0000
-Subject: [PATCH 1/1] Use dev board dtsi for hmm with modifications
+Date: Fri, 24 Jan 2025 08:43:49 +0000
+Subject: [PATCH 4/4] Use dev board dtsi for hmm with modifications
 
-V.1. remove unused parts and add i2c buss handling which is the most important part. Disable eth2 that is not supported by hmm board.
-	Enable otg usb.
+V.1. Remove unused parts and add i2c buss handling which is the most important part. Disable eth2 that is not supported by hmm board.
+Enable otg usb.
 
+v.2 Fix eeprom, usb cc and leds controller.
+    Add gpio leds so they heartbeats on led 3 and 4 but unsynced to indicate uboot.
 ---
- arch/arm/dts/k3-am62-verdin-dev.dtsi          | 112 +++++-------------
- .../dts/k3-am625-verdin-wifi-dev-u-boot.dtsi  |  12 +-
- 2 files changed, 29 insertions(+), 95 deletions(-)
+ arch/arm/dts/k3-am62-verdin-dev.dtsi          | 124 ++++++------------
+ arch/arm/dts/k3-am62-verdin.dtsi              |   5 +
+ .../dts/k3-am625-verdin-wifi-dev-u-boot.dtsi  |  81 ++++++++++--
+ 3 files changed, 117 insertions(+), 93 deletions(-)
 
 diff --git a/arch/arm/dts/k3-am62-verdin-dev.dtsi b/arch/arm/dts/k3-am62-verdin-dev.dtsi
-index 54dabe1437..9a53652022 100644
+index 54dabe1437..696d0277cd 100644
 --- a/arch/arm/dts/k3-am62-verdin-dev.dtsi
 +++ b/arch/arm/dts/k3-am62-verdin-dev.dtsi
 @@ -11,23 +11,13 @@
@@ -40,7 +43,7 @@ index 54dabe1437..9a53652022 100644
  };
  
  /* Verdin ETH_1 (On-module PHY) */
-@@ -35,75 +25,46 @@
+@@ -35,73 +25,56 @@
  	status = "okay";
  };
  
@@ -79,15 +82,16 @@ index 54dabe1437..9a53652022 100644
 -		compatible = "nxp,pcal6416";
 -		reg = <0x21>;
 -		#gpio-cells = <2>;
-+	max7321: gpio-expander@3C {
-+		compatible = "maxim,max7321";
-+		reg = <0x3C>; 
++	max7321: gpio-expander@68 {
++		compatible = "maxim,max7320";
++		reg = <0x68>; 
  		gpio-controller;
 +		#gpio-cells = <2>;
-+		gpio-line-names = "green_func", "red_func",
-+				"green_gps", "red_gps",
-+				"green_wifi", "red_wifi",
-+				  "green_wwan", "red_wwan";
++		gpio-line-names =
++				"green_led_2", "red_led_2",
++				"green_led_1", "red_led_1",
++				"green_led_4", "red_led_4",
++				"green_led_3", "red_led_3";
 +		interrupt-controller;
 +		#interrupt-cells = <2>;
  	};
@@ -98,9 +102,13 @@ index 54dabe1437..9a53652022 100644
 -		reg = <0x40>;
 -		shunt-resistor = <10000>;
 +	/*USB-C controller*/
-+	typec@3d {
++	typec@1d {
 +		compatible = "nxp,ptn5150";
-+		reg = <0x3d>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&pinctrl_usb1_irq>;
++		interrupt-parent = <&main_gpio0>;
++		interrupts = <38 IRQ_TYPE_LEVEL_HIGH>;
++		reg = <0x1d>;
 +		status ="okay";
  	};
  
@@ -108,8 +116,7 @@ index 54dabe1437..9a53652022 100644
 -	sensor@4f {
 -		compatible = "ti,tmp75c";
 -		reg = <0x4f>;
-+	/*TODO for eeprom HW?*/
-+	eeprom_hmm_board: eeprom@54 {
++	eeprom@54 {
 +		compatible = "st,24c02", "atmel,24c04";
 +		reg = <0x54>;
 +		status = "okay";
@@ -125,10 +132,10 @@ index 54dabe1437..9a53652022 100644
 +	temperature-sensor@73 {
 +		compatible = "ti,tmp103";
 +		reg = <0x73>;
-+		status = "okay";
++		status = "disable";
  	};
- };
- 
+-};
+-
 -/* Verdin I2C_2_DSI */
 -&main_i2c2 {
 -	status = "okay";
@@ -137,12 +144,18 @@ index 54dabe1437..9a53652022 100644
 -/* Verdin I2C_4_CSI */
 -&main_i2c3 {
 -	status = "okay";
--};
--
++	/*
++	Add HSM module
++	hsm@48 {
++		compatible = "There is no driver";
++		reg = <0x48>;
++		status = "okay";
++	};
++	*/
+ };
+ 
  /* Verdin CAN_1 */
- &main_mcan0 {
- 	status = "okay";
-@@ -133,29 +94,11 @@
+@@ -133,29 +106,11 @@
  };
  #endif
  
@@ -172,7 +185,7 @@ index 54dabe1437..9a53652022 100644
  /* Verdin SD_1 */
  &sdhci1 {
  	ti,driver-strength-ohm = <33>;
-@@ -169,6 +112,7 @@
+@@ -169,6 +124,7 @@
  
  &usb0 {
  	status = "okay";
@@ -180,8 +193,24 @@ index 54dabe1437..9a53652022 100644
  };
  
  /* Verdin USB_2 */
+diff --git a/arch/arm/dts/k3-am62-verdin.dtsi b/arch/arm/dts/k3-am62-verdin.dtsi
+index 912297d01f..ef4b159e4d 100644
+--- a/arch/arm/dts/k3-am62-verdin.dtsi
++++ b/arch/arm/dts/k3-am62-verdin.dtsi
+@@ -688,6 +688,11 @@
+ 			AM62X_IOPAD(0x0060, PIN_OUTPUT, 1) /*  (R25) GPMC0_AD9.VOUT0_DATA17 */
+ 		>;
+ 	};
++	pinctrl_usb1_irq: usb1-irq-pins-default {
++		pinctrl-single,pins = <
++			AM62X_IOPAD(0x009c, PIN_INPUT, 7) /* (V25) GPMC0_WAIT1.GPIO0_38 */ /* GPIO_SODIMM_189 */
++		>;
++	};
+ };
+ 
+ &mcu_pmx0 {
 diff --git a/arch/arm/dts/k3-am625-verdin-wifi-dev-u-boot.dtsi b/arch/arm/dts/k3-am625-verdin-wifi-dev-u-boot.dtsi
-index 487485c895..c015aa8181 100644
+index 487485c895..4a5196e5ce 100644
 --- a/arch/arm/dts/k3-am625-verdin-wifi-dev-u-boot.dtsi
 +++ b/arch/arm/dts/k3-am625-verdin-wifi-dev-u-boot.dtsi
 @@ -8,7 +8,7 @@
@@ -193,7 +222,83 @@ index 487485c895..c015aa8181 100644
  		eeprom2 = &eeprom_display_adapter;
  	};
  
-@@ -69,9 +69,6 @@
+@@ -19,6 +19,75 @@
+ 	memory@80000000 {
+ 		bootph-pre-ram;
+ 	};
++	/*	The leds is read from the highest to lowest position on the module when the pcb is in horizontal position.
++		Default: Heart beat on the two lowest green/red LED (3 and 4) and the rest is off.
++	*/
++	leds {
++		compatible = "gpio-leds";
++
++		green_led_1 {
++			label = "green:led_1";
++			function = "led_1";
++			gpios = <&max7321 2 GPIO_ACTIVE_LOW>;
++			default-state = "off";
++		};
++
++		red_led_1 {
++			label = "red:led_1";
++			function = "led_1";
++			gpios = <&max7321 3 GPIO_ACTIVE_LOW>;
++			default-state = "off";
++		};
++
++		green_led_2 {
++			label = "green:led_2";
++			function = "led_2";
++			gpios = <&max7321 0 GPIO_ACTIVE_LOW>;
++			default-state = "off";
++		};
++
++		red_led_2 {
++			label = "red:led_2";
++			function = "led_2";
++			gpios = <&max7321 1 GPIO_ACTIVE_LOW>;
++			default-state = "off";
++		};
++
++		green_led_3 {
++			label = "green:led_3";
++			function = "led_3";
++			gpios = <&max7321 6 GPIO_ACTIVE_LOW>;
++			linux,default-trigger = "heartbeat";
++			default-state = "on";
++		};
++
++		red_led_3 {
++			label = "red:led_1";
++			function = "led_3";
++			gpios = <&max7321 7 GPIO_ACTIVE_LOW>;
++			linux,default-trigger = "heartbeat";
++			default-state = "on";
++		};
++
++		green_led_4 {
++			label = "green:led_4";
++			function = "led_4";
++			gpios = <&max7321 4 GPIO_ACTIVE_LOW>;
++			linux,default-trigger = "heartbeat";
++			default-state = "off";
++		};
++
++		red_led_4 {
++			label = "red:led_4";
++			function = "led_4";
++			gpios = <&max7321 5 GPIO_ACTIVE_LOW>;
++			linux,default-trigger = "heartbeat";
++			default-state = "off";
++		};
++
++
++	};
++
+ };
+ 
+ &cbass_main {
+@@ -69,9 +138,6 @@
  	bootph-pre-ram;
  };
  
@@ -203,20 +308,21 @@ index 487485c895..c015aa8181 100644
  
  &cpsw_port1 {
  	bootph-pre-ram;
-@@ -162,13 +159,6 @@
+@@ -162,12 +228,9 @@
  		reg = <0x50>;
  		pagesize = <16>;
  	};
 -
 -	/* EEPROM on carrier board */
 -	eeprom_carrier_board: eeprom@57 {
--		compatible = "i2c-eeprom";
++	eeprom_hmm_board: eeprom@54 {
+ 		compatible = "i2c-eeprom";
 -		reg = <0x57>;
 -		pagesize = <16>;
--	};
++		reg = <0x54>;
+ 	};
  };
  
- &main_pktdma {
 -- 
 2.34.1
 

@@ -200,10 +200,10 @@ index a2cbcce33d..bf590c659a 100644
 +			"else " \
 +				"echo ERROR: Failed to initialize or start M4 firmware; " \
 +				"env set script_warning 'M4 firmware ${m4_firmware} initialization/start failed'; " \
-+			"fi;" \
++			"fi; " \
 +		"else " \
 +			"echo WARNING: File ${m4_firmware} not found on mmc ${root_devnum}:${root_part}, continue booting; " \
-+			"env set script_warning 'File ${m4_firmware} not found on mmc ${root_devnum}:${root_part}, continue booting' " \
++			"env set script_warning 'File ${m4_firmware} not found on mmc ${root_devnum}:${root_part}, continue booting'; " \
 +		"fi;\0" \
  	"setup=setenv setupargs console=tty1 console=${console},${baudrate} " \
 -		"consoleblank=0 earlycon=ns16550a,mmio32,0x02800000\0" \

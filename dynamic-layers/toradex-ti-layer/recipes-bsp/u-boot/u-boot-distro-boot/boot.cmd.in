@@ -39,7 +39,7 @@ if test ${devtype} = "ubi"; then
     exit
 fi
 
-test -n ${m4boot} || env set m4boot ';'
+test -n ${m4boot} || echo "no m4boot" && env set m4boot ';'
 test -n ${fdtfile} || env set fdtfile ${fdt_file}
 test -n ${boot_part} || env set boot_part ${distro_bootpart}
 test -n ${root_part} || env set root_part 2
@@ -49,7 +49,10 @@ test -n ${kernel_image} || env set kernel_image @@KERNEL_IMAGETYPE@@
 test -n ${boot_devtype} || env set boot_devtype ${devtype}
 test -n ${overlays_file} || env set overlays_file "overlays.txt"
 test -n ${overlays_prefix} || env set overlays_prefix "overlays/"
-test -n ${wic_file} || env set wic_file hmm-image.wic.gz
+test -n ${wic_file} || env set wic_file 'hmm-image.wic.gz'
+
+echo "wic_file:${wic_file}"
+
 env set loadimage "load mmc ${root_devnum}:${root_part} ${ramdisk_addr_r} ${prefix}${wic_file}"
 env set writeimage "gzwrite mmc ${root_devnum} ${ramdisk_addr_r} 0x${filesize} 100000 0"
 

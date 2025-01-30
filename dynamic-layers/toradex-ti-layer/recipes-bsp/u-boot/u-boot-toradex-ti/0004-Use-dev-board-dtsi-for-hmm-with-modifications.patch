@@ -238,8 +238,8 @@ index 487485c8959..4549704b02a 100644
  	memory@80000000 {
  		bootph-pre-ram;
  	};
-+	/*	The leds is read from the highest to lowest position on the module when the pcb is in horizontal position.
-+		Default: leds lit on the two lowest green/red LED (3 and 4) and the rest is off.
++	/*	The leds are read from the highest to lowest position on the module when the PCB is in horizontal position.
++		Default: leds lit on the two lowest green/red LED (3 and 4) and the rest are off.
 +	*/
 +	leds {
 +		compatible = "gpio-leds";

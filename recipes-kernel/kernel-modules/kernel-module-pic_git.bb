@@ -3,9 +3,9 @@ SUMMARY = "Multicore communication kernel module"
 LICENSE = "GPL-2.0-or-later"
 LIC_FILES_CHKSUM = "file://COPYING;md5=12f884d2ae1ff87c09e5b7ccc2c4ca7e"
 
-PROVIDES = "virtual/kernel-module-pic"
-RPROVIDES:${PN} = "virtual/kernel-module-pic"
-RPROVIDES:${PN}-dev = "virtual/kernel-module-mcc-pic"
+PROVIDES = "kernel-module-pic"
+RPROVIDES:${PN} = "kernel-module-pic"
+RPROVIDES:${PN}-dev = "kernel-module-mcc-pic"
 
 inherit module
 

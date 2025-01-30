@@ -1,5 +1,5 @@
-SUMMARY = "mx5-platform-version"
-DESCRIPTION = "save build versions as a part of MX-5 Board Support Package"
+SUMMARY = "hmm-platform-version"
+DESCRIPTION = "save build versions as a part of Hostmobility/Setek Board Support Package"
 LICENSE = "CLOSED"
 
 S = "${WORKDIR}"

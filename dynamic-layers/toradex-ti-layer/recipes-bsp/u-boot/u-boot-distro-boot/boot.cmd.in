@@ -28,18 +28,13 @@
 # - Static IP-address of the module: ipaddr := {legal IPv4 address}
 # - Root-path on NFS-server: rootpath := {legal path, exported by an NFS-server}
 #
-# Common flags:
-# - Skip loading overlays: skip_fdt_overlays := {1, 0}
-#   1 - skip, any other value (or undefined variable) - don't skip.
-#   This variable is adopted from the TorizonCore and shouldn't be
-#   renamed separately.
 
 if test ${devtype} = "ubi"; then
     echo "This script is not meant to distro boot from raw NAND flash."
     exit
 fi
 
-test -n ${m4boot} || env set m4boot ';'
+test -n ${m4boot} || echo "no m4boot, set default for testing..." && env set m4boot 'if ext4size mmc ${root_devnum}:${root_part} ${m4_firmware}; then load mmc ${root_devnum}:${root_part} ${m4addr} ${m4_firmware}; if rproc init && rproc load 0 ${m4addr} ${filesize} && rproc start 0; then echo INFO: M4 firmware ${m4_firmware} successfully started; else echo ERROR: Failed to initialize or start M4 firmware; env set script_warning 'M4 firmware ${m4_firmware} initialization/start failed'; fi; else echo WARNING: File ${m4_firmware} not found on mmc ${root_devnum}:${root_part}, continue booting; env set script_warning 'File ${m4_firmware} not found on mmc ${root_devnum}:${root_part}, continue booting'; fi;'
 test -n ${fdtfile} || env set fdtfile ${fdt_file}
 test -n ${boot_part} || env set boot_part ${distro_bootpart}
 test -n ${root_part} || env set root_part 2
@@ -47,9 +42,10 @@ test -n ${boot_devnum} || env set boot_devnum ${devnum}
 test -n ${root_devnum} || env set root_devnum ${devnum}
 test -n ${kernel_image} || env set kernel_image @@KERNEL_IMAGETYPE@@
 test -n ${boot_devtype} || env set boot_devtype ${devtype}
-test -n ${overlays_file} || env set overlays_file "overlays.txt"
-test -n ${overlays_prefix} || env set overlays_prefix "overlays/"
-test -n ${wic_file} || env set wic_file hmm-image.wic.gz
+test -n ${wic_file} || env set wic_file 'hmm-image.wic.gz'
+
+echo "wic_file:${wic_file}"
+
 env set loadimage "load mmc ${root_devnum}:${root_part} ${ramdisk_addr_r} ${prefix}${wic_file}"
 env set writeimage "gzwrite mmc ${root_devnum} ${ramdisk_addr_r} 0x${filesize} 100000 0"
 
@@ -100,18 +96,16 @@ fi
 
 # Set dynamic commands
 env set set_bootcmd_kernel 'env set bootcmd_kernel "${load_cmd} \\${kernel_addr_load} \\${kernel_image}"'
-env set set_load_overlays_file 'env set load_overlays_file "${load_cmd} \\${loadaddr} \\${overlays_file} && env import -t \\${loadaddr} \\${filesize}"'
+
 if test ${kernel_image} = "fitImage"
 then
     env set fdt_high
     env set fdt_resize true
     env set set_bootcmd_dtb 'env set bootcmd_dtb "true"'
-    env set set_apply_overlays 'env set apply_overlays "for overlay_file in \"\\${fdt_overlays}\"; do env set fitconf_fdt_overlays \"\\"\\${fitconf_fdt_overlays}#conf-\\${overlay_file}\\"\"; env set overlay_file; done; true"'
-    env set bootcmd_boot 'echo "Bootargs: \${bootargs}" && bootm ${kernel_addr_load}#conf-@@KERNEL_DTB_PREFIX@@\${fdtfile}\${fitconf_fdt_overlays}'
+    env set bootcmd_boot 'echo "Bootargs: \${bootargs}" && bootm ${kernel_addr_load}#conf-@@KERNEL_DTB_PREFIX@@\${fdtfile}'
 else
     env set fdt_resize 'fdt addr ${fdt_addr_r} && fdt resize 0x20000'
     env set set_bootcmd_dtb 'env set bootcmd_dtb "echo Loading DeviceTree: \\${fdtfile}; ${load_cmd} \\${fdt_addr_r} \\${fdtfile}"'
-    env set set_apply_overlays 'env set apply_overlays "for overlay_file in \\${fdt_overlays}; do echo Applying Overlay: \\${overlay_file} && ${load_cmd} \\${loadaddr} \\${overlays_prefix}\\${overlay_file} && fdt apply \\${loadaddr}; env set overlay_file; done; true"'
     env set bootcmd_boot 'echo "Bootargs: \${bootargs}" && @@KERNEL_BOOTCMD@@ ${kernel_addr_r} - ${fdt_addr_r}'
 fi
 
@@ -128,14 +122,9 @@ else
 fi
 
 env set bootcmd_args 'run rootfsargs_set && env set bootargs ${defargs} ${rootfsargs} ${setupargs} ${vidargs} ${tdxargs}'
-if test ${skip_fdt_overlays} != 1; then
-    env set bootcmd_overlays 'run load_overlays_file && run fdt_resize && run apply_overlays'
-else
-    env set bootcmd_overlays true
-fi
 
-env set bootcmd_prepare 'run set_bootcmd_kernel; run set_bootcmd_dtb; run set_load_overlays_file; run set_apply_overlays'
-env set bootcmd_run 'run m4boot; run bootcmd_dtb && run bootcmd_overlays && run bootcmd_args && run bootcmd_kernel && run bootcmd_unzip && run bootcmd_boot; echo "Booting from ${devtype} failed!" && false'
+env set bootcmd_prepare 'run set_bootcmd_kernel; run set_bootcmd_dtb'
+env set bootcmd_run 'run m4boot; run bootcmd_dtb && run bootcmd_args && run bootcmd_kernel && run bootcmd_unzip && run bootcmd_boot; echo "Booting from ${devtype} failed!" && false'
 
 #Try Flash target mmc
     for prefix in ${boot_prefixes}; do

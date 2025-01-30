@@ -1,16 +1,17 @@
-From 25a0430a1e092cc8a098121733815af1b26e11e9 Mon Sep 17 00:00:00 2001
+From 7b73ca7d48466953c6ce79c2e9392f518c21ae49 Mon Sep 17 00:00:00 2001
 From: rikardo <rikard.olander@hostmobility.com>
-Date: Tue, 19 Nov 2024 15:48:52 +0000
-Subject: [PATCH 3/3] HMM customization
+Date: Fri, 24 Jan 2025 08:28:53 +0000
+Subject: [PATCH 3/4] HMM customization
+
+v2. Fix m4boot and move eeprom code block to better location
 
 ---
- board/toradex/common/tdx-common.c       | 62 +++++++++++++++++++++++++
- board/toradex/verdin-am62/verdin-am62.c | 18 ++++++-
- include/configs/verdin-am62.h           | 41 +++++++++-------
- 3 files changed, 102 insertions(+), 19 deletions(-)
+ board/toradex/common/tdx-common.c | 99 ++++++++++++++++++++++++-------
+ include/configs/verdin-am62.h     | 41 +++++++------
+ 2 files changed, 99 insertions(+), 41 deletions(-)
 
 diff --git a/board/toradex/common/tdx-common.c b/board/toradex/common/tdx-common.c
-index d144914397..d0bcae7012 100644
+index d144914397..44ef87d70a 100644
 --- a/board/toradex/common/tdx-common.c
 +++ b/board/toradex/common/tdx-common.c
 @@ -1,6 +1,7 @@
@@ -21,7 +22,66 @@ index d144914397..d0bcae7012 100644
   */
  
  #include <common.h>
-@@ -181,6 +182,17 @@ int g_dnl_bind_fixup(struct usb_device_descriptor *dev, const char *name)
+@@ -29,9 +30,7 @@ static char tdx_serial_str[SERIAL_STR_LEN + 1];
+ static char tdx_board_rev_str[MODULE_VER_STR_LEN + MODULE_REV_STR_LEN + 1];
+ 
+ #ifdef CONFIG_TDX_CFG_BLOCK_EXTRA
+-static char tdx_car_serial_str[SERIAL_STR_LEN + 1];
+-static char tdx_car_rev_str[MODULE_VER_STR_LEN + MODULE_REV_STR_LEN + 1];
+-static const char *tdx_carrier_board_name;
++#include "../common/hmm_eeprom.h"
+ #endif
+ 
+ #if defined(CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG)
+@@ -99,6 +98,8 @@ static const char *get_board_assembly(u16 ver_assembly)
+ int show_board_info(void)
+ {
+ 	unsigned char ethaddr[6];
++	uchar eeprom_data [0xffff];
++	int err = 1;
+ 
+ 	if (read_tdx_cfg_block()) {
+ 		printf("MISSING TORADEX CONFIG BLOCK\n");
+@@ -121,27 +122,18 @@ int show_board_info(void)
+ 		       tdx_board_rev_str);
+ 		printf("Serial#: %s\n", tdx_serial_str);
+ #ifdef CONFIG_TDX_CFG_BLOCK_EXTRA
+-		if (read_tdx_cfg_block_carrier()) {
+-			printf("MISSING TORADEX CARRIER CONFIG BLOCKS\n");
+-			try_migrate_tdx_cfg_block_carrier();
+-		} else {
+-			tdx_carrier_board_name =
+-				get_toradex_carrier_boards(tdx_car_hw_tag.prodid);
+-
+-			snprintf(tdx_car_serial_str, sizeof(tdx_car_serial_str),
+-				 "%08u", tdx_car_serial);
+-			snprintf(tdx_car_rev_str, sizeof(tdx_car_rev_str),
+-				 "V%1d.%1d%s",
+-				 tdx_car_hw_tag.ver_major,
+-				 tdx_car_hw_tag.ver_minor,
+-				 get_board_assembly(tdx_car_hw_tag.ver_assembly));
+-
+-			env_set("carrier_serial#", tdx_car_serial_str);
+-			printf("Carrier: Toradex %s %s, Serial# %s\n",
+-			       tdx_carrier_board_name,
+-			       tdx_car_rev_str,
+-			       tdx_car_serial_str);
++	printf("Running Host Monitor Mini board from SETEK Systems AB\n");
++	/* HMM get env from eeprom serial number, partnumber and mac address(eth2addr, eth3addr) and more */
++	err = get_environment_data_from_eeprom(eeprom_data);
++	if (err != 0) {
++		printf("Failed to get environment data from eeprom, error: %x\n", err);
++	} else {
++		err = set_environment_data_from_eeprom((char *)eeprom_data);
++		if (err != 0) {
++			printf("Failed to set environment data to environment area, error: %x\n", err);
+ 		}
++	}
++
+ #endif
+ 	}
+ 
+@@ -181,6 +173,17 @@ int g_dnl_bind_fixup(struct usb_device_descriptor *dev, const char *name)
  #if defined(CONFIG_OF_LIBFDT)
  int ft_common_board_setup(void *blob, struct bd_info *bd)
  {
@@ -39,7 +99,7 @@ index d144914397..d0bcae7012 100644
  	if (tdx_serial) {
  		fdt_setprop(blob, 0, "serial-number", tdx_serial_str,
  			    strlen(tdx_serial_str) + 1);
-@@ -196,6 +208,56 @@ int ft_common_board_setup(void *blob, struct bd_info *bd)
+@@ -196,6 +199,56 @@ int ft_common_board_setup(void *blob, struct bd_info *bd)
  			    strlen(tdx_board_rev_str) + 1);
  	}
  
@@ -96,53 +156,8 @@ index d144914397..d0bcae7012 100644
  	return 0;
  }
  #endif
-diff --git a/board/toradex/verdin-am62/verdin-am62.c b/board/toradex/verdin-am62/verdin-am62.c
-index 3d699f3205..b819ab5293 100644
---- a/board/toradex/verdin-am62/verdin-am62.c
-+++ b/board/toradex/verdin-am62/verdin-am62.c
-@@ -3,7 +3,7 @@
-  * Board specific initialization for Verdin AM62 SoM
-  *
-  * Copyright 2023 Toradex - https://www.toradex.com/
-- *
-+ * Copyright 2024 SETEK Systems AB
-  */
- 
- #include <asm/arch/hardware.h>
-@@ -15,6 +15,8 @@
- #include <k3-ddrss.h>
- #include <spl.h>
- 
-+#include "../common/hmm_eeprom.h"
-+
- #include "../common/tdx-cfg-block.h"
- 
- DECLARE_GLOBAL_DATA_PTR;
-@@ -84,8 +86,22 @@ static void select_dt_from_module_version(void)
- 
- int board_late_init(void)
- {
-+	uchar eeprom_data [0xffff];
-+	int err = 1;
-+
- 	select_dt_from_module_version();
- 
-+	/* HMM get env from eeprom serial number, partnumber and mac adress(eth2addr, eth3addr) and more */
-+	err = get_environment_data_from_eeprom(eeprom_data);
-+	if (err != 0) {
-+		printf("Failed to get environment data from eeprom, error: %x\n", err);
-+	} else {
-+		err = set_environment_data_from_eeprom((char *)eeprom_data);
-+		if (err != 0) {
-+			printf("Failed to set environment data to environment area failed, error: %x\n", err);
-+		}
-+	}
-+
- 	return 0;
- }
- 
 diff --git a/include/configs/verdin-am62.h b/include/configs/verdin-am62.h
-index a2cbcce33d..9cb9f0c59e 100644
+index a2cbcce33d..bf590c659a 100644
 --- a/include/configs/verdin-am62.h
 +++ b/include/configs/verdin-am62.h
 @@ -3,6 +3,7 @@
@@ -181,16 +196,16 @@ index a2cbcce33d..9cb9f0c59e 100644
 +	"m4addr=0x82000000\0" \
 +	"m4_firmware=lib/firmware/am62-mcu-m4f0_0-fw\0" \
 +	"m4boot=if ext4size mmc ${root_devnum}:${root_part} ${m4_firmware}; then " \
-+		"load mmc ${root_devnum}:${root_part} ${m4addr} ${m4_firmware};" \
-+			"if rproc init && rproc load 0 ${m4addr} ${filesize} && rproc start 0; then" \
-+				"echo INFO: M4 firmware ${m4_firmware} successfully started;" \
-+			"else" \
-+				"echo ERROR: Failed to initialize or start M4 firmware;" \
-+				"env set script_warning 'M4 firmware ${m4_firmware} initialization/start failed';" \
-+			"fi;" \
-+		"else" \
-+			"echo WARNING: File ${m4_firmware} not found on mmc ${root_devnum}:${root_part}, continue booting;" \
-+			"env set script_warning 'File ${m4_firmware} not found on mmc ${root_devnum}:${root_part}, continue booting'" \
++		"load mmc ${root_devnum}:${root_part} ${m4addr} ${m4_firmware}; " \
++			"if rproc init && rproc load 0 ${m4addr} ${filesize} && rproc start 0; then " \
++				"echo INFO: M4 firmware ${m4_firmware} successfully started; " \
++			"else " \
++				"echo ERROR: Failed to initialize or start M4 firmware; " \
++				"env set script_warning 'M4 firmware ${m4_firmware} initialization/start failed'; " \
++			"fi; " \
++		"else " \
++			"echo WARNING: File ${m4_firmware} not found on mmc ${root_devnum}:${root_part}, continue booting; " \
++			"env set script_warning 'File ${m4_firmware} not found on mmc ${root_devnum}:${root_part}, continue booting'; " \
 +		"fi;\0" \
  	"setup=setenv setupargs console=tty1 console=${console},${baudrate} " \
 -		"consoleblank=0 earlycon=ns16550a,mmio32,0x02800000\0" \

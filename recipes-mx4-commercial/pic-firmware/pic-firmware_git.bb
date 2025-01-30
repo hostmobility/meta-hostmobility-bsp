@@ -3,7 +3,7 @@ DESCRIPTION = "Firmware files for CO-CPU on MX-4"
 
 SUBPATH = "pic-firmware"
 
-require recipes-commercial/common/revision.inc
+require recipes-mx4-commercial/common/revision.inc
 
 S = "${WORKDIR}/pic-firmware"
 

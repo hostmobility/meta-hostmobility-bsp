@@ -3,7 +3,7 @@ DESCRIPTION = "Memory test application that will use the memmory until it is kil
 
 SUBPATH = "apps/munch"
 
-require recipes-commercial/common/revision.inc
+require recipes-mx4-commercial/common/revision.inc
 
 S = "${WORKDIR}/munch"
 

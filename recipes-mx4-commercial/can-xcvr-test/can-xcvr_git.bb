@@ -3,7 +3,7 @@ DESCRIPTION = "Configuration tool for our "smart" CAN trancivers. It utilitize L
 
 SUBPATH = "apps/can-xcvr"
 
-require recipes-commercial/common/revision.inc
+require recipes-mx4-commercial/common/revision.inc
 
 S = "${WORKDIR}/can-xcvr"
 

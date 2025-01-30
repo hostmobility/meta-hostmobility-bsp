@@ -3,7 +3,7 @@ DESCRIPTION = "Library to communicate with automotive LIN network bus on MX-4"
 
 SUBPATH = "apps/lin-config"
 
-require recipes-commercial/common/revision.inc
+require recipes-mx4-commercial/common/revision.inc
 
 S = "${WORKDIR}/lin-config"
 

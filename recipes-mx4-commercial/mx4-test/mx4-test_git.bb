@@ -5,7 +5,7 @@ SUBPATH = "test/"
 
 INSANE_SKIP:${PN} += "ldflags"
 
-require recipes-commercial/common/revision.inc
+require recipes-mx4-commercial/common/revision.inc
 
 RDEPENDS:${PN} = "bash"
 

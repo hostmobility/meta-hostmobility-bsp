@@ -3,7 +3,7 @@ DESCRIPTION = "Program to update firmware of CO-CPU on MX-4"
 
 SUBPATH = "apps/pic-programmer"
 
-require recipes-commercial/common/revision.inc
+require recipes-mx4-commercial/common/revision.inc
 
 S = "${WORKDIR}/pic-programmer"
 

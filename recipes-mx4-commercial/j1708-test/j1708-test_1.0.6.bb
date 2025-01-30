@@ -6,7 +6,7 @@ DEPENDS = "j1708-lib"
 
 SUBPATH = "apps/j1708-test"
 
-require recipes-commercial/common/revision.inc
+require recipes-mx4-commercial/common/revision.inc
 
 S = "${WORKDIR}/j1708-test"
 

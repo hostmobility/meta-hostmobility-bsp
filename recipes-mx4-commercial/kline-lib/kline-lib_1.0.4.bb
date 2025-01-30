@@ -3,7 +3,7 @@ DESCRIPTION = "Library to communicate with automotive K-LINE network bus on MX-4
 
 SUBPATH = "lib/kline"
 
-require recipes-commercial/common/revision.inc
+require recipes-mx4-commercial/common/revision.inc
 
 S = "${WORKDIR}/kline"
 

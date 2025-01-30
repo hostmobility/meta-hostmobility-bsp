@@ -227,10 +227,10 @@ index 000000000000..832c030a5acf
 +        };
 +    };
 diff --git a/drivers/leds/rgb/Kconfig b/drivers/leds/rgb/Kconfig
-index 204cf470beae..7ca126c16a22 100644
+index 183bccc06cf3..929b99cec80f 100644
 --- a/drivers/leds/rgb/Kconfig
 +++ b/drivers/leds/rgb/Kconfig
-@@ -25,5 +25,18 @@ config LEDS_QCOM_LPG
+@@ -37,6 +37,19 @@ config LEDS_QCOM_LPG
  	  a LED, grouped to represent a RGB LED or exposed as PWM channels.
  
  	  If compiled as a module, the module will be named leds-qcom-lpg.
@@ -248,19 +248,20 @@ index 204cf470beae..7ca126c16a22 100644
 +	  To compile this driver as a module, choose M here: the module
 +	  will be called leds-ktd202x.
  
- endif # LEDS_CLASS_MULTICOLOR
+ config LEDS_MT6370_RGB
+ 	tristate "LED Support for MediaTek MT6370 PMIC"
 diff --git a/drivers/leds/rgb/Makefile b/drivers/leds/rgb/Makefile
-index 0675bc0f6e18..2e894fe5f73f 100644
+index c11cc56384e7..819ca84220da 100644
 --- a/drivers/leds/rgb/Makefile
 +++ b/drivers/leds/rgb/Makefile
-@@ -2,3 +2,4 @@
- 
+@@ -4,3 +4,4 @@ obj-$(CONFIG_LEDS_GROUP_MULTICOLOR)	+= leds-group-multicolor.o
  obj-$(CONFIG_LEDS_PWM_MULTICOLOR)	+= leds-pwm-multicolor.o
  obj-$(CONFIG_LEDS_QCOM_LPG)		+= leds-qcom-lpg.o
+ obj-$(CONFIG_LEDS_MT6370_RGB)		+= leds-mt6370-rgb.o
 +obj-$(CONFIG_LEDS_KTD202X)		+= leds-ktd202x.o
 diff --git a/drivers/leds/rgb/leds-ktd202x.c b/drivers/leds/rgb/leds-ktd202x.c
 new file mode 100644
-index 000000000000..133da7db6899
+index 000000000000..c34a0239f6fa
 --- /dev/null
 +++ b/drivers/leds/rgb/leds-ktd202x.c
 @@ -0,0 +1,703 @@

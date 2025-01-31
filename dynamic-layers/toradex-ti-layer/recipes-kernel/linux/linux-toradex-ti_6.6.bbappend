@@ -6,7 +6,8 @@ SRC_URI += "\
     file://defconfig \
     file://0001-add-hmm-device-tree.patch \
 "
-SRCREV_meta-toradex-bsp = "c6957acbaaf98de436802c52cc9ca059959f08c1"
-SRCREV_meta-toradex-bsp:use-head-next = "${AUTOREV}"
+SRCBRANCH = "toradex_ti-linux-6.6.y"
+SRCREV_machine = "f874412b7190aee21a4ca21c1ad21be4f9ffdd48"
+SRCREV_machine:use-head-next = "${AUTOREV}"
 
 PV = "${LINUX_VERSION}+git${SRCPV}"

@@ -14,15 +14,16 @@ V.3 add command for hash files
  1 file changed, 4 insertions(+), 1 deletion(-)
 
 diff --git a/configs/verdin-am62_a53_defconfig b/configs/verdin-am62_a53_defconfig
-index 77d61595d33..625b91d6408 100644
+index 9a9b233f013..d7337b95b31 100644
 --- a/configs/verdin-am62_a53_defconfig
 +++ b/configs/verdin-am62_a53_defconfig
-@@ -39,7 +39,7 @@ CONFIG_SPL_LOAD_FIT_ADDRESS=0x81000000
+@@ -36,7 +36,7 @@ CONFIG_SPL_LOAD_FIT_ADDRESS=0x81000000
  CONFIG_LEGACY_IMAGE_FORMAT=y
- CONFIG_OF_SYSTEM_SETUP=y
+ CONFIG_SYS_BOOTM_LEN=0x40000000
  CONFIG_DISTRO_DEFAULTS=y
 -CONFIG_BOOTDELAY=1
 +CONFIG_BOOTDELAY=0
+ CONFIG_BOOTCOMMAND="run distro_bootcmd"
  CONFIG_USE_PREBOOT=y
  CONFIG_PREBOOT="test -n ${fdtfile} || setenv fdtfile k3-am625-verdin-${variant}-${fdt_board}.dtb"
  CONFIG_LOG=y

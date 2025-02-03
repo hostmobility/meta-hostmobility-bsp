@@ -1,6 +1,6 @@
-From 2ff6c5cb8ceb53dc4778f6234a6f4d3a78056025 Mon Sep 17 00:00:00 2001
-From: Rikardo-hm <rikard.olander@hostmobility.com>
-Date: Mon, 3 Feb 2025 13:56:06 +0000
+From f005c8eac676948d9b49c7003ba69927630d037e Mon Sep 17 00:00:00 2001
+From: OpenEmbedded <oe.patch@oe>
+Date: Fri, 7 Feb 2025 09:04:48 +0000
 Subject: [PATCH 1/1] tcan114x driver with normal/standby/sleep mode
 
 v1. First version
@@ -10,8 +10,8 @@ v.4 Adapt to Linux 6.6
 ---
  drivers/misc/Kconfig    |   7 +
  drivers/misc/Makefile   |   1 +
- drivers/misc/tcan114x.c | 606 ++++++++++++++++++++++++++++++++++++++++
- 3 files changed, 614 insertions(+)
+ drivers/misc/tcan114x.c | 320 ++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 328 insertions(+)
  create mode 100644 drivers/misc/tcan114x.c
 
 diff --git a/drivers/misc/Kconfig b/drivers/misc/Kconfig
@@ -46,10 +46,10 @@ index f2a4d1ff65d4..84be21aa3b48 100644
  obj-$(CONFIG_VMWARE_BALLOON)	+= vmw_balloon.o
 diff --git a/drivers/misc/tcan114x.c b/drivers/misc/tcan114x.c
 new file mode 100644
-index 000000000000..af620cc6f8a8
+index 000000000000..88f683e80f20
 --- /dev/null
 +++ b/drivers/misc/tcan114x.c
-@@ -0,0 +1,606 @@
+@@ -0,0 +1,320 @@
 +/*
 + * Copyright (C) 2022 Host Mobility AB
 + *
@@ -130,68 +130,12 @@ index 000000000000..af620cc6f8a8
 +	return 0;
 +}
 +
-+static int tcan114x_update_reg(struct device *dev, unsigned int reg,
-+			      unsigned int mask, unsigned int val)
-+{
-+	unsigned int cur_val;
-+	unsigned int new_val;
-+	int ret;
-+
-+	dev_info(dev, "Writing new val 0x%02x to reg 0x%02x", val, reg);
-+
-+	ret = tcan114x_read_reg(dev, reg, &cur_val);
-+	if (ret < 0) {
-+		return ret;
-+	}
-+
-+	cur_val = cur_val & (~mask);
-+	new_val = cur_val | val;
-+	dev_info(dev, "Writing new value 0x%02x\n", new_val);
-+	ret = tcan114x_write_reg(dev, reg, new_val);
-+	if (reg < 0) {
-+		return ret;
-+	}
-+
-+	return 0;
-+}
-+
-+static int tcan114x_is_bit_set(unsigned int val, unsigned int mask)
-+{
-+	return (val & mask) == mask;
-+}
-+
-+static int tcan114x_reset_event_status(struct device *dev)
-+{
-+	int ret;
-+
-+	// The event status registers will be cleard by writing a 1 to the
-+	// corresponding bit.
-+	ret = tcan114x_write_reg(dev, REG_GLOBAL_EVENT_STATUS, 0xff);
-+	if (ret < 0) {
-+		return ret;
-+	}
-+
-+	ret = tcan114x_write_reg(dev, REG_SYS_EVENT_STATUS, 0xff);
-+	if (ret < 0) {
-+		return ret;
-+	}
-+
-+	ret = tcan114x_write_reg(dev, REG_TRANSCEIVER_EVENT_STATUS, 0xff);
-+	if (ret < 0) {
-+		return ret;
-+	}
-+
-+	ret = tcan114x_write_reg(dev, REG_WAKE_EVENT_STATUS, 0xff);
-+
-+	return ret;
-+}
-+
 +static ssize_t tcan114x_version_show(struct device *dev, 
 +					struct device_attribute *attr, char *buf)
 +{
 +	return sprintf(buf, "Version: 1.0.0\n");
 +}
-+static DEVICE_ATTR(version, S_IRUGO, tcan114x_version_show, NULL);
++static DEVICE_ATTR(tcan114x_version, S_IRUGO, tcan114x_version_show, NULL);
 +
 +ssize_t tcan114x_mode_store(struct device *dev,
 +						   struct device_attribute *attr,
@@ -260,241 +204,11 @@ index 000000000000..af620cc6f8a8
 +
 +static DEVICE_ATTR(tcan114x_mode, S_IWUSR | S_IRUGO, tcan114x_mode_show, tcan114x_mode_store);
 +
-+ssize_t tcan114x_canctrl_store(struct device *dev, struct device_attribute *attr,
-+			      const char *buf, size_t count)
-+{
-+	int ret;
-+	unsigned int new_val;
-+
-+	if (!strncmp(buf, "active_det", strlen("active_det"))) {
-+		new_val = CAN_ACTIVE_DET;
-+	} else if (!strncmp(buf, "active", strlen("active"))) {
-+		new_val = CAN_ACTIVE;
-+	} else if (!strncmp(buf, "offline", strlen("active"))) {
-+		new_val = CAN_OFFLINE;
-+	} else if (!strncmp(buf, "listen_only", strlen("listen_only"))) {
-+		new_val = CAN_LISTEN_ONLY;
-+	} else {
-+		dev_err(dev, "Unsupported CAN control\n");
-+		return -EINVAL;
-+	}
-+
-+	ret = tcan114x_update_reg(dev, REG_CAN_CTRL, CMC, new_val);
-+	if (ret < 0) {
-+		return ret;
-+	}
-+
-+	return count;
-+}
-+
-+ssize_t tcan114x_canctrl_show(struct device *dev, struct device_attribute *attr,
-+			     char *buf)
-+{
-+	int ret;
-+	unsigned int rval;
-+	ssize_t count;
-+
-+	ret = tcan114x_read_reg(dev, REG_CAN_CTRL, &rval);
-+	if (ret < 0) {
-+		return ret;
-+	}
-+
-+	rval = rval & CMC;
-+	switch (rval) {
-+	case CAN_OFFLINE:
-+		count =
-+		    sprintf(buf, "active active_det listen_only [offline]\n");
-+		break;
-+	case CAN_LISTEN_ONLY:
-+		count =
-+		    sprintf(buf, "active active_det [listen_only] offline\n");
-+		break;
-+	case CAN_ACTIVE_DET:
-+		count =
-+		    sprintf(buf, "active [active_det] listen_only offline\n");
-+		break;
-+	case CAN_ACTIVE:
-+		count =
-+		    sprintf(buf, "[active] active_det listen_only offline\n");
-+		break;
-+	default:
-+		dev_err(dev, "Invalid value\n");
-+		return -EINVAL;
-+	}
-+
-+	return count;
-+}
-+
-+static DEVICE_ATTR(canctrl, S_IWUSR | S_IRUGO, tcan114x_canctrl_show,
-+		   tcan114x_canctrl_store);
-+
-+ssize_t tcan114x_main_status_show(struct device *dev,
-+				 struct device_attribute *attr, char *buf)
-+{
-+	int ret;
-+	unsigned int rval;
-+
-+	ret = tcan114x_read_reg(dev, REG_MAIN_STATUS, &rval);
-+	if (ret < 0) {
-+		return ret;
-+	}
-+
-+	if (tcan114x_is_bit_set(rval, FSMS)) {
-+		strcat(buf, "FSMS");
-+	} else {
-+		strcat(buf, "~FSMS");
-+	}
-+
-+	if (tcan114x_is_bit_set(rval, OTWS)) {
-+		strcat(buf, " OTWS");
-+	} else {
-+		strcat(buf, " ~OTWS");
-+	}
-+
-+	if (tcan114x_is_bit_set(rval, NMS)) {
-+		strcat(buf, " NMS\n");
-+	} else {
-+		strcat(buf, " ~NMS\n");
-+	}
-+
-+	return strlen(buf);
-+}
-+
-+static DEVICE_ATTR(main_status, S_IRUGO, tcan114x_main_status_show, NULL);
-+
-+ssize_t tcan114x_transcevier_status_show(struct device *dev,
-+					struct device_attribute *attr,
-+					char *buf)
-+{
-+	int ret;
-+	unsigned int rval;
-+
-+	ret = tcan114x_read_reg(dev, REG_TRANSCEIVER_STATUS, &rval);
-+	if (ret < 0) {
-+		return ret;
-+	}
-+
-+	if (tcan114x_is_bit_set(rval, CTS)) {
-+		strcat(buf, "CTS");
-+	} else {
-+		strcat(buf, "~CTS");
-+	}
-+
-+	if (tcan114x_is_bit_set(rval, CPNERR)) {
-+		strcat(buf, " CPNERR");
-+	} else {
-+		strcat(buf, " ~CPNERR");
-+	}
-+
-+	if (tcan114x_is_bit_set(rval, CPNS)) {
-+		strcat(buf, " CPNS");
-+	} else {
-+		strcat(buf, " ~CPNS");
-+	}
-+
-+	if (tcan114x_is_bit_set(rval, COSCS)) {
-+		strcat(buf, " COSCS");
-+	} else {
-+		strcat(buf, " ~COSCS");
-+	}
-+
-+	if (tcan114x_is_bit_set(rval, CBSS)) {
-+		strcat(buf, " CBSS");
-+	} else {
-+		strcat(buf, " ~CBSS");
-+	}
-+
-+	if (tcan114x_is_bit_set(rval, VCS)) {
-+		strcat(buf, " VCS");
-+	} else {
-+		strcat(buf, " ~VCS");
-+	}
-+
-+	if (tcan114x_is_bit_set(rval, CFS)) {
-+		strcat(buf, " CFS\n");
-+	} else {
-+		strcat(buf, " ~CFS\n");
-+	}
-+
-+	return strlen(buf);
-+}
-+
-+static DEVICE_ATTR(transceiver_status, S_IRUGO, tcan114x_transcevier_status_show,
-+		   NULL);
-+
-+ssize_t tcan114x_event_show(struct device *dev, struct device_attribute *attr,
-+			   char *buf)
-+{
-+	int ret;
-+	unsigned int rval;
-+
-+	ret = tcan114x_read_reg(dev, REG_SYS_EVENT_STATUS, &rval);
-+	if (ret < 0) {
-+		return ret;
-+	}
-+
-+	if (tcan114x_is_bit_set(rval, OTW)) {
-+		strcat(buf, "OTW");
-+	} else {
-+		strcat(buf, "~OTW");
-+	}
-+
-+	if (tcan114x_is_bit_set(rval, SPIF)) {
-+		strcat(buf, " SPIF");
-+	} else {
-+		strcat(buf, " ~SPIF");
-+	}
-+
-+	ret = tcan114x_read_reg(dev, REG_TRANSCEIVER_EVENT_STATUS, &rval);
-+	if (ret < 0) {
-+		return ret;
-+	}
-+
-+	if (tcan114x_is_bit_set(rval, PNFDE)) {
-+		strcat(buf, " PNFDE");
-+	} else {
-+		strcat(buf, " ~PNFDE");
-+	}
-+
-+	if (tcan114x_is_bit_set(rval, CBS)) {
-+		strcat(buf, " CBS");
-+	} else {
-+		strcat(buf, " ~CBS");
-+	}
-+
-+	if (tcan114x_is_bit_set(rval, CF)) {
-+		strcat(buf, " CF");
-+	} else {
-+		strcat(buf, " ~CF");
-+	}
-+
-+	if (tcan114x_is_bit_set(rval, CW)) {
-+		strcat(buf, " CW\n");
-+	} else {
-+		strcat(buf, " ~CW\n");
-+	}
-+
-+	ret = tcan114x_reset_event_status(dev);
-+	if (ret < 0) {
-+		return ret;
-+	}
-+
-+	return strlen(buf);
-+}
-+
-+static DEVICE_ATTR(event, S_IRUGO, tcan114x_event_show, NULL);
-+
 +static struct attribute *tcan114x_attributes[] = {
-+    &dev_attr_version.attr,
-+    &dev_attr_tcan114x_mode.attr,
-+    &dev_attr_main_status.attr,
-+    &dev_attr_modectrl.attr,
-+    &dev_attr_canctrl.attr,
-+    &dev_attr_transceiver_status.attr,
-+    &dev_attr_event.attr,
-+    NULL
++	&dev_attr_tcan114x_version.attr,
++	&dev_attr_tcan114x_mode.attr,
++	NULL
 +};
-+
 +
 +static const struct attribute_group tcan114x_attr_group = {
 +	.attrs = tcan114x_attributes,

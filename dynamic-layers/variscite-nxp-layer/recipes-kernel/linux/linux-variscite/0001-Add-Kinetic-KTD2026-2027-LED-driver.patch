@@ -959,7 +959,7 @@ index 000000000000..c34a0239f6fa
 +		.of_match_table = ktd202x_match_table,
 +		.pm = &ktd202x_pm_ops,
 +	},
-+	.probe_new = ktd202x_probe,
++	.probe = ktd202x_probe,
 +	.remove = ktd202x_remove,
 +	.shutdown = ktd202x_shutdown,
 +};

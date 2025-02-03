@@ -1,17 +1,17 @@
-From 7b73ca7d48466953c6ce79c2e9392f518c21ae49 Mon Sep 17 00:00:00 2001
+From fa0491ea9548673764031a05aa601540b96412b4 Mon Sep 17 00:00:00 2001
 From: rikardo <rikard.olander@hostmobility.com>
-Date: Fri, 24 Jan 2025 08:28:53 +0000
-Subject: [PATCH 3/4] HMM customization
+Date: Wed, 29 Jan 2025 13:43:48 +0000
+Subject: [PATCH 3/4] HMM-customization
 
 v2. Fix m4boot and move eeprom code block to better location
 
 ---
- board/toradex/common/tdx-common.c | 99 ++++++++++++++++++++++++-------
+ board/toradex/common/tdx-common.c | 99 +++++++++++++++++++++++--------
  include/configs/verdin-am62.h     | 41 +++++++------
- 2 files changed, 99 insertions(+), 41 deletions(-)
+ 2 files changed, 98 insertions(+), 42 deletions(-)
 
 diff --git a/board/toradex/common/tdx-common.c b/board/toradex/common/tdx-common.c
-index d144914397..44ef87d70a 100644
+index 9f09788137d..a9846ade4a5 100644
 --- a/board/toradex/common/tdx-common.c
 +++ b/board/toradex/common/tdx-common.c
 @@ -1,6 +1,7 @@
@@ -21,8 +21,8 @@ index d144914397..44ef87d70a 100644
 + * Copyright 2024 SETEK Systems AB
   */
  
- #include <common.h>
-@@ -29,9 +30,7 @@ static char tdx_serial_str[SERIAL_STR_LEN + 1];
+ #include <dm.h>
+@@ -30,9 +31,7 @@ static char tdx_serial_str[SERIAL_STR_LEN + 1];
  static char tdx_board_rev_str[MODULE_VER_STR_LEN + MODULE_REV_STR_LEN + 1];
  
  #ifdef CONFIG_TDX_CFG_BLOCK_EXTRA
@@ -33,8 +33,22 @@ index d144914397..44ef87d70a 100644
  #endif
  
  #if defined(CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG)
-@@ -99,6 +98,8 @@ static const char *get_board_assembly(u16 ver_assembly)
- int show_board_info(void)
+@@ -107,13 +106,6 @@ int checkboard(void)
+ 	if (valid_cfgblock)
+ 		printf("Serial#: %s\n", tdx_serial_str);
+ 
+-#ifdef CONFIG_TDX_CFG_BLOCK_EXTRA
+-	if (tdx_carrier_board_name)
+-		printf("Carrier: Toradex %s %s, Serial# %s\n",
+-		       tdx_carrier_board_name,
+-		       tdx_car_rev_str,
+-		       tdx_car_serial_str);
+-#endif
+ 
+ 	print_bootinfo();
+ 
+@@ -123,6 +115,8 @@ int checkboard(void)
+ static int settings_r(void)
  {
  	unsigned char ethaddr[6];
 +	uchar eeprom_data [0xffff];
@@ -42,46 +56,39 @@ index d144914397..44ef87d70a 100644
  
  	if (read_tdx_cfg_block()) {
  		printf("MISSING TORADEX CONFIG BLOCK\n");
-@@ -121,27 +122,18 @@ int show_board_info(void)
- 		       tdx_board_rev_str);
- 		printf("Serial#: %s\n", tdx_serial_str);
+@@ -142,22 +136,16 @@ static int settings_r(void)
+ 	env_set("serial#", tdx_serial_str);
+ 
  #ifdef CONFIG_TDX_CFG_BLOCK_EXTRA
--		if (read_tdx_cfg_block_carrier()) {
--			printf("MISSING TORADEX CARRIER CONFIG BLOCKS\n");
--			try_migrate_tdx_cfg_block_carrier();
--		} else {
--			tdx_carrier_board_name =
--				get_toradex_carrier_boards(tdx_car_hw_tag.prodid);
--
--			snprintf(tdx_car_serial_str, sizeof(tdx_car_serial_str),
--				 "%08u", tdx_car_serial);
--			snprintf(tdx_car_rev_str, sizeof(tdx_car_rev_str),
--				 "V%1d.%1d%s",
--				 tdx_car_hw_tag.ver_major,
--				 tdx_car_hw_tag.ver_minor,
--				 get_board_assembly(tdx_car_hw_tag.ver_assembly));
--
--			env_set("carrier_serial#", tdx_car_serial_str);
--			printf("Carrier: Toradex %s %s, Serial# %s\n",
--			       tdx_carrier_board_name,
--			       tdx_car_rev_str,
--			       tdx_car_serial_str);
+-	if (read_tdx_cfg_block_carrier()) {
+-		printf("MISSING TORADEX CARRIER CONFIG BLOCKS\n");
+-		try_migrate_tdx_cfg_block_carrier();
 +	printf("Running Host Monitor Mini board from SETEK Systems AB\n");
 +	/* HMM get env from eeprom serial number, partnumber and mac address(eth2addr, eth3addr) and more */
 +	err = get_environment_data_from_eeprom(eeprom_data);
 +	if (err != 0) {
 +		printf("Failed to get environment data from eeprom, error: %x\n", err);
-+	} else {
+ 	} else {
+-		tdx_carrier_board_name =
+-			get_toradex_carrier_boards(tdx_car_hw_tag.prodid);
+-
+-		snprintf(tdx_car_serial_str, sizeof(tdx_car_serial_str),
+-			 "%08u", tdx_car_serial);
+-		snprintf(tdx_car_rev_str, sizeof(tdx_car_rev_str),
+-			 "V%1d.%1d%s",
+-			 tdx_car_hw_tag.ver_major,
+-			 tdx_car_hw_tag.ver_minor,
+-			 get_board_assembly(tdx_car_hw_tag.ver_assembly));
+-
+-		env_set("carrier_serial#", tdx_car_serial_str);
 +		err = set_environment_data_from_eeprom((char *)eeprom_data);
 +		if (err != 0) {
 +			printf("Failed to set environment data to environment area, error: %x\n", err);
- 		}
-+	}
-+
- #endif
++		}
  	}
+ #endif
  
-@@ -181,6 +173,17 @@ int g_dnl_bind_fixup(struct usb_device_descriptor *dev, const char *name)
+@@ -238,6 +226,17 @@ int g_dnl_bind_fixup(struct usb_device_descriptor *dev, const char *name)
  #if defined(CONFIG_OF_LIBFDT)
  int ft_common_board_setup(void *blob, struct bd_info *bd)
  {
@@ -99,7 +106,7 @@ index d144914397..44ef87d70a 100644
  	if (tdx_serial) {
  		fdt_setprop(blob, 0, "serial-number", tdx_serial_str,
  			    strlen(tdx_serial_str) + 1);
-@@ -196,6 +199,56 @@ int ft_common_board_setup(void *blob, struct bd_info *bd)
+@@ -253,6 +252,56 @@ int ft_common_board_setup(void *blob, struct bd_info *bd)
  			    strlen(tdx_board_rev_str) + 1);
  	}
  
@@ -157,7 +164,7 @@ index d144914397..44ef87d70a 100644
  }
  #endif
 diff --git a/include/configs/verdin-am62.h b/include/configs/verdin-am62.h
-index a2cbcce33d..bf590c659a 100644
+index e8bc22d4c35..b24e8f6c8f7 100644
 --- a/include/configs/verdin-am62.h
 +++ b/include/configs/verdin-am62.h
 @@ -3,6 +3,7 @@
@@ -168,7 +175,7 @@ index a2cbcce33d..bf590c659a 100644
   */
  
  #ifndef __VERDIN_AM62_H
-@@ -27,6 +28,7 @@
+@@ -26,6 +27,7 @@
  #if CONFIG_TARGET_VERDIN_AM62_A53
  /* Enable Distro Boot */
  #define BOOT_TARGET_DEVICES(func) \
@@ -176,7 +183,7 @@ index a2cbcce33d..bf590c659a 100644
  	func(MMC, mmc, 1) \
  	func(MMC, mmc, 0) \
  	func(DHCP, dhcp, na)
-@@ -45,30 +47,33 @@
+@@ -44,27 +46,32 @@
  	"ramdisk_addr_r ram " __stringify(RAMDISK_ADDR_R) " 0x8000000\0"
  
  /* Incorporate settings into the U-Boot environment */
@@ -185,11 +192,25 @@ index a2cbcce33d..bf590c659a 100644
  	BOOTENV \
  	EXTRA_ENV_DFUARGS \
  	MEM_LAYOUT_ENV_SETTINGS \
- 	"boot_scripts=boot.scr\0" \
 +	"bsp_script=hmm_boot.scr\0" \
  	"boot_script_dhcp=boot.scr\0" \
  	"console=ttyS2\0" \
 -	"fdt_board=dev\0" \
+-	"update_tiboot3=askenv confirm Did you load tiboot3.bin (y/N)?; " \
+-		"if test \"$confirm\" = \"y\"; then " \
+-		"setexpr blkcnt ${filesize} + 0x1ff && setexpr blkcnt " \
+-		"${blkcnt} / 0x200; mmc dev 0 1; mmc write ${loadaddr} 0x0 " \
+-		"${blkcnt}; fi\0" \
+-	"update_tispl=askenv confirm Did you load tispl.bin (y/N)?; " \
+-		"if test \"$confirm\" = \"y\"; then " \
+-		"setexpr blkcnt ${filesize} + 0x1ff && setexpr blkcnt " \
+-		"${blkcnt} / 0x200; mmc dev 0 1; mmc write ${loadaddr} 0x400 " \
+-		"${blkcnt}; fi\0" \
+-	"update_uboot=askenv confirm Did you load u-boot.img (y/N)?; " \
+-		"if test \"$confirm\" = \"y\"; then " \
+-		"setexpr blkcnt ${filesize} + 0x1ff && setexpr blkcnt " \
+-		"${blkcnt} / 0x200; mmc dev 0 1; mmc write ${loadaddr} 0x1400 " \
+-		"${blkcnt}; fi\0"
 +	"fdt_board=hmm\0" \
 +	"bootcmd_usb0=devnum=0; run try_usb_flash || run usb_boot;\0" \
 +	"try_usb_flash=sleep 0.1; usb reset; if load usb ${devnum} ${scriptaddr} ${bsp_script} ; then source ${scriptaddr}; else echo UPDATE ERROR: no ${bsp_script} on first USB device. ;fi\0" \
@@ -207,23 +228,7 @@ index a2cbcce33d..bf590c659a 100644
 +			"echo WARNING: File ${m4_firmware} not found on mmc ${root_devnum}:${root_part}, continue booting; " \
 +			"env set script_warning 'File ${m4_firmware} not found on mmc ${root_devnum}:${root_part}, continue booting'; " \
 +		"fi;\0" \
- 	"setup=setenv setupargs console=tty1 console=${console},${baudrate} " \
--		"consoleblank=0 earlycon=ns16550a,mmio32,0x02800000\0" \
--	"update_tiboot3=askenv confirm Did you load tiboot3.bin (y/N)?; " \
--		"if test \"$confirm\" = \"y\"; then " \
--		"setexpr blkcnt ${filesize} + 0x1ff && setexpr blkcnt " \
--		"${blkcnt} / 0x200; mmc dev 0 1; mmc write ${loadaddr} 0x0 " \
--		"${blkcnt}; fi\0" \
--	"update_tispl=askenv confirm Did you load tispl.bin (y/N)?; " \
--		"if test \"$confirm\" = \"y\"; then " \
--		"setexpr blkcnt ${filesize} + 0x1ff && setexpr blkcnt " \
--		"${blkcnt} / 0x200; mmc dev 0 1; mmc write ${loadaddr} 0x400 " \
--		"${blkcnt}; fi\0" \
--	"update_uboot=askenv confirm Did you load u-boot.img (y/N)?; " \
--		"if test \"$confirm\" = \"y\"; then " \
--		"setexpr blkcnt ${filesize} + 0x1ff && setexpr blkcnt " \
--		"${blkcnt} / 0x200; mmc dev 0 1; mmc write ${loadaddr} 0x1400 " \
--		"${blkcnt}; fi\0"
++	"setup=setenv setupargs console=tty1 console=${console},${baudrate} " \
 +		"consoleblank=0 earlycon=ns16550a,mmio32,0x02800000\0"
  
 -#endif /* __VERDIN_AM62_H */

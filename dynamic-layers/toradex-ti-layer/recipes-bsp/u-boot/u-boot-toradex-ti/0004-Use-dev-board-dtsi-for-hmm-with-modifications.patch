@@ -1,7 +1,7 @@
-From 439fba408d9c40a0d63b5fb50c17708abc9c002d Mon Sep 17 00:00:00 2001
-From: rikardo <rikard.olander@hostmobility.com>
-Date: Tue, 4 Feb 2025 08:53:12 +0000
-Subject: [PATCH 1/1] Use dev board dtsi for hmm with modifications
+From 229afa6b7c0522796cccf32b0972853b42761326 Mon Sep 17 00:00:00 2001
+From: Rikardo-hm <rikard.olander@hostmobility.com>
+Date: Thu, 6 Feb 2025 09:07:12 +0000
+Subject: [PATCH 1/1]  Use dev board dtsi for hmm with modifications
 V.1. Remove unused parts and add i2c buss handling which is the most important part. Disable eth2 that is not supported by hmm board.
 Enable otg usb.
 
@@ -11,17 +11,19 @@ V.2 Fixup eeprom, usb cc and led controller i2c address.
 
 V.3 led 1 is initialized to yellow and turns green when exiting boot.scr (see distro-boot).
 
+v.4 adapt to 2024.04 uboot.
+
 ---
- arch/arm/dts/k3-am62-verdin-dev.dtsi          | 128 ++++++------------
+ arch/arm/dts/k3-am62-verdin-dev.dtsi          | 113 ++++++------------
  arch/arm/dts/k3-am62-verdin.dtsi              |   5 +
- .../dts/k3-am625-verdin-wifi-dev-u-boot.dtsi  |  86 ++++++++++--
- 3 files changed, 119 insertions(+), 100 deletions(-)
+ .../dts/k3-am625-verdin-wifi-dev-u-boot.dtsi  |  84 +++++++++++--
+ 3 files changed, 113 insertions(+), 89 deletions(-)
 
 diff --git a/arch/arm/dts/k3-am62-verdin-dev.dtsi b/arch/arm/dts/k3-am62-verdin-dev.dtsi
-index 54dabe14371..738942fa942 100644
+index 6701cb8974b..ff44d0e2a4d 100644
 --- a/arch/arm/dts/k3-am62-verdin-dev.dtsi
 +++ b/arch/arm/dts/k3-am62-verdin-dev.dtsi
-@@ -11,23 +11,13 @@
+@@ -47,23 +47,13 @@
  /* Verdin ETHs */
  &cpsw3g {
  	pinctrl-names = "default";
@@ -46,7 +48,7 @@ index 54dabe14371..738942fa942 100644
  };
  
  /* Verdin ETH_1 (On-module PHY) */
-@@ -35,73 +25,56 @@
+@@ -71,32 +61,6 @@
  	status = "okay";
  };
  
@@ -79,15 +81,17 @@ index 54dabe14371..738942fa942 100644
  /* Verdin I2C_1 */
  &main_i2c1 {
  	status = "okay";
+@@ -111,44 +75,45 @@
+ 	};
  
--	/* IO Expander */
+ 	/* IO Expander */
 -	gpio_expander_21: gpio@21 {
 -		compatible = "nxp,pcal6416";
 -		reg = <0x21>;
 -		#gpio-cells = <2>;
 +	max7321: gpio-expander@68 {
 +		compatible = "maxim,max7320";
-+		reg = <0x68>; 
++		reg = <0x68>;
  		gpio-controller;
 +		#gpio-cells = <2>;
 +		gpio-line-names =
@@ -104,6 +108,19 @@ index 54dabe14371..738942fa942 100644
 -		compatible = "ti,ina219";
 -		reg = <0x40>;
 -		shunt-resistor = <10000>;
+-	};
+-
+-	/* Temperature sensor */
+-	sensor@4f {
+-		compatible = "ti,tmp75c";
+-		reg = <0x4f>;
+-	};
+-
+-	/* EEPROM */
+-	eeprom@57 {
+-		compatible = "st,24c02", "atmel,24c02";
+-		reg = <0x57>;
+-		pagesize = <16>;
 +	/*USB-C controller*/
 +	typec@1d {
 +		compatible = "nxp,ptn5150";
@@ -113,32 +130,22 @@ index 54dabe14371..738942fa942 100644
 +		interrupts = <38 IRQ_TYPE_LEVEL_HIGH>;
 +		reg = <0x1d>;
 +		status ="okay";
- 	};
- 
--	/* Temperature sensor */
--	sensor@4f {
--		compatible = "ti,tmp75c";
--		reg = <0x4f>;
++ 	};
++
 +	eeprom@54 {
 +		compatible = "st,24c02", "atmel,24c04";
 +		reg = <0x54>;
 +		status = "okay";
 +		//vcc-supply = <&reg_base_3v3>;
++ 	};
++	/* Add HSM module */
++	hsm@48 {
++		compatible = "There is no driver";
++		reg = <0x48>;
++		status = "okay";
  	};
+ };
  
--	/* EEPROM */
--	eeprom@57 {
--		compatible = "st,24c02", "atmel,24c02";
--		reg = <0x57>;
--		pagesize = <16>;
-+	/* HW confirmed, TMP103D has address 0x73 */
-+	temperature-sensor@73 {
-+		compatible = "ti,tmp103";
-+		reg = <0x73>;
-+		status = "disable";
- 	};
--};
--
 -/* Verdin I2C_2_DSI */
 -&main_i2c2 {
 -	status = "okay";
@@ -147,36 +154,12 @@ index 54dabe14371..738942fa942 100644
 -/* Verdin I2C_4_CSI */
 -&main_i2c3 {
 -	status = "okay";
-+	/*
-+	Add HSM module
-+	hsm@48 {
-+		compatible = "There is no driver";
-+		reg = <0x48>;
-+		status = "okay";
-+	};
-+	*/
- };
- 
+-};
+-
  /* Verdin CAN_1 */
-@@ -133,29 +106,11 @@
- };
- #endif
- 
--&mcu_gpio0 {
--	pinctrl-names = "default";
--	pinctrl-0 = <&pinctrl_gpio_1>,
--		    <&pinctrl_gpio_2>,
--		    <&pinctrl_gpio_3>,
--		    <&pinctrl_gpio_4>;
--};
--
--/* Verdin I2C_3_HDMI */
--&mcu_i2c0 {
--	status = "okay";
--};
--
- /* Verdin UART_4 */
- &mcu_uart0 {
+ &main_mcan0 {
+ 	status = "okay";
+@@ -199,11 +164,6 @@
  	status = "okay";
  };
  
@@ -188,7 +171,7 @@ index 54dabe14371..738942fa942 100644
  /* Verdin SD_1 */
  &sdhci1 {
  	ti,driver-strength-ohm = <33>;
-@@ -169,15 +124,16 @@
+@@ -217,15 +177,16 @@
  
  &usb0 {
  	status = "okay";
@@ -208,7 +191,7 @@ index 54dabe14371..738942fa942 100644
  
  /* Verdin CTRL_WAKE1_MICO# */
 diff --git a/arch/arm/dts/k3-am62-verdin.dtsi b/arch/arm/dts/k3-am62-verdin.dtsi
-index 912297d01f4..ef4b159e4d9 100644
+index d4f8776c927..bc79501927e 100644
 --- a/arch/arm/dts/k3-am62-verdin.dtsi
 +++ b/arch/arm/dts/k3-am62-verdin.dtsi
 @@ -688,6 +688,11 @@
@@ -224,7 +207,7 @@ index 912297d01f4..ef4b159e4d9 100644
  
  &mcu_pmx0 {
 diff --git a/arch/arm/dts/k3-am625-verdin-wifi-dev-u-boot.dtsi b/arch/arm/dts/k3-am625-verdin-wifi-dev-u-boot.dtsi
-index 487485c8959..4549704b02a 100644
+index 206df610461..965c6d571b6 100644
 --- a/arch/arm/dts/k3-am625-verdin-wifi-dev-u-boot.dtsi
 +++ b/arch/arm/dts/k3-am625-verdin-wifi-dev-u-boot.dtsi
 @@ -8,7 +8,7 @@
@@ -238,7 +221,7 @@ index 487485c8959..4549704b02a 100644
  
 @@ -19,6 +19,71 @@
  	memory@80000000 {
- 		bootph-pre-ram;
+ 		bootph-all;
  	};
 +	/*	The LEDs are read from the highest to lowest position on the module when the PCB is in horizontal position.
 +		Default: LED 1 is yellow (green+red) and the rest are off.
@@ -264,7 +247,7 @@ index 487485c8959..4549704b02a 100644
 +			label = "green:led_2";
 +			function = "led_2";
 +			gpios = <&max7321 0 GPIO_ACTIVE_LOW>;
-+			default-state = "off";
++			default-state = "on";
 +		};
 +
 +		red_led_2 {
@@ -305,25 +288,24 @@ index 487485c8959..4549704b02a 100644
 +
 +	};
 +
- };
  
- &cbass_main {
-@@ -69,9 +134,6 @@
- 	bootph-pre-ram;
+ 	sysinfo {
+ 		compatible = "toradex,sysinfo";
+@@ -82,10 +147,6 @@
+ 	bootph-all;
  };
  
 -&cpsw3g_phy1 {
--	bootph-pre-ram;
+-	bootph-all;
 -};
- 
- &cpsw_port1 {
- 	bootph-pre-ram;
-@@ -162,12 +224,9 @@
- 		reg = <0x50>;
- 		pagesize = <16>;
- 	};
 -
--	/* EEPROM on carrier board */
+ &cpsw_port1 {
+ 	bootph-all;
+ };
+@@ -129,10 +190,9 @@
+ 	};
+ 
+ 	/* EEPROM on carrier board */
 -	eeprom_carrier_board: eeprom@57 {
 +	eeprom_hmm_board: eeprom@54 {
  		compatible = "i2c-eeprom";
@@ -333,12 +315,7 @@ index 487485c8959..4549704b02a 100644
  	};
  };
  
-@@ -244,14 +303,13 @@
- };
- 
- &usbss0 {
--	bootph-pre-ram;
-+	status = "okay";
+@@ -183,14 +243,12 @@
  };
  
  &usb0 {
@@ -347,11 +324,15 @@ index 487485c8959..4549704b02a 100644
 -	/delete-property/ extcon;
 -	bootph-pre-ram;
 +	dr_mode = "host";
-+	dr_mode = "host";
++	status = "okay";
+ };
+ 
+ &usbss0 {
+-	bootph-pre-ram;
 +	status = "okay";
  };
  
  &verdin_ctrl_sleep_moci {
 -- 
-2.34.1
+2.25.1
 

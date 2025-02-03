@@ -1,18 +1,18 @@
-From e3ddd0365f88f8c098e7308cab0e8f91a74e4213 Mon Sep 17 00:00:00 2001
+From 935acab55b6cfc59aa3d225d161bcf4a14c4ec12 Mon Sep 17 00:00:00 2001
 From: rikardo <rikard.olander@hostmobility.com>
-Date: Thu, 13 Jun 2024 14:14:00 +0000
-Subject: [PATCH 2/3] Add HMM custom eeprom read
+Date: Wed, 29 Jan 2025 13:43:23 +0000
+Subject: [PATCH 2/4] Add HMM custom eeprom read
 
 ---
- board/toradex/common/Makefile     |   2 +
+ board/toradex/common/Makefile     |   1 +
  board/toradex/common/hmm_eeprom.c | 114 ++++++++++++++++++++++++++++++
  board/toradex/common/hmm_eeprom.h |  13 ++++
- 3 files changed, 129 insertions(+)
+ 3 files changed, 128 insertions(+)
  create mode 100644 board/toradex/common/hmm_eeprom.c
  create mode 100644 board/toradex/common/hmm_eeprom.h
 
 diff --git a/board/toradex/common/Makefile b/board/toradex/common/Makefile
-index 7b19b6e4c8..6d66a05e86 100644
+index 7b19b6e4c87..a4f62545206 100644
 --- a/board/toradex/common/Makefile
 +++ b/board/toradex/common/Makefile
 @@ -9,4 +9,5 @@ else
@@ -23,7 +23,7 @@ index 7b19b6e4c8..6d66a05e86 100644
  endif
 diff --git a/board/toradex/common/hmm_eeprom.c b/board/toradex/common/hmm_eeprom.c
 new file mode 100644
-index 0000000000..744a4e5424
+index 00000000000..929474eeae4
 --- /dev/null
 +++ b/board/toradex/common/hmm_eeprom.c
 @@ -0,0 +1,114 @@
@@ -143,7 +143,7 @@ index 0000000000..744a4e5424
 +}
 diff --git a/board/toradex/common/hmm_eeprom.h b/board/toradex/common/hmm_eeprom.h
 new file mode 100644
-index 0000000000..4050be78a5
+index 00000000000..c4e59f29f66
 --- /dev/null
 +++ b/board/toradex/common/hmm_eeprom.h
 @@ -0,0 +1,13 @@

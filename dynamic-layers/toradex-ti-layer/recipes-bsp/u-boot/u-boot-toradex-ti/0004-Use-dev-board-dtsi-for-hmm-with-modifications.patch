@@ -1,16 +1,24 @@
-From 34dcb1f87d95fa6e3f1367d9ff37f481e8cd349d Mon Sep 17 00:00:00 2001
-From: rikardo <rikard.olander@hostmobility.com>
-Date: Wed, 29 Jan 2025 13:44:12 +0000
-Subject: [PATCH 4/4] Use-dev-board-dtsi-for-hmm-with-modifications
+From 41b739907be6d2a23c7c3a2a9cba223e34897043 Mon Sep 17 00:00:00 2001
+From: Rikardo-hm <rikard.olander@hostmobility.com>
+Date: Mon, 3 Feb 2025 14:20:21 +0000
+Subject: [PATCH 1/1] Use dev board dtsi for hmm with modifications
+
+V.1. Remove unused parts and add i2c buss handling which is the most important part. Disable eth2 that is not supported by hmm board.
+Enable otg usb.
+
+V.2 Fixup eeprom, usb cc and led controller i2c address.
+    Add gpio leds so led 3 and 4 are lit.
+    fix usb-c to operate as host for usb memory flash.
+V.3 Adapt to uboot_2024.04
 
 ---
- arch/arm/dts/k3-am62-verdin-dev.dtsi          | 114 +++++++-----------
- arch/arm/dts/k3-am62-verdin.dtsi              |  56 +++++++--
- .../dts/k3-am625-verdin-wifi-dev-u-boot.dtsi  |  77 ++++++++++--
- 3 files changed, 157 insertions(+), 90 deletions(-)
+ arch/arm/dts/k3-am62-verdin-dev.dtsi          | 114 ++++++---------
+ arch/arm/dts/k3-am62-verdin.dtsi              | 132 ++++++++++++++----
+ .../dts/k3-am625-verdin-wifi-dev-u-boot.dtsi  |  85 +++++++++--
+ 3 files changed, 221 insertions(+), 110 deletions(-)
 
 diff --git a/arch/arm/dts/k3-am62-verdin-dev.dtsi b/arch/arm/dts/k3-am62-verdin-dev.dtsi
-index 6701cb8974b..dee8287c1b9 100644
+index 6701cb8974b..19cffb805d2 100644
 --- a/arch/arm/dts/k3-am62-verdin-dev.dtsi
 +++ b/arch/arm/dts/k3-am62-verdin-dev.dtsi
 @@ -47,23 +47,13 @@
@@ -168,30 +176,29 @@ index 6701cb8974b..dee8287c1b9 100644
  
  &usb0 {
  	status = "okay";
-+	dr_mode = "otg";
++	dr_mode = "host";
  };
  
  /* Verdin USB_2 */
  &usbss1 {
 -	status = "okay";
-+	status = "okay"; // "disabled";
++	status = "disabled"; // "disabled";
  };
  
  &usb1 {
 -	status = "okay";
-+	status = "okay"; // "disabled";
++	status = "disabled"; // "disabled";
  };
  
  /* Verdin CTRL_WAKE1_MICO# */
 diff --git a/arch/arm/dts/k3-am62-verdin.dtsi b/arch/arm/dts/k3-am62-verdin.dtsi
-index d4f8776c927..8e20b1ce4be 100644
+index d4f8776c927..5561b0de4df 100644
 --- a/arch/arm/dts/k3-am62-verdin.dtsi
 +++ b/arch/arm/dts/k3-am62-verdin.dtsi
-@@ -41,7 +41,21 @@
- 		usb0 = &usb0;
+@@ -42,6 +42,22 @@
  		usb1 = &usb1;
  	};
--
+ 
 +	connector {
 +		compatible = "gpio-usb-b-connector", "usb-b-connector";
 +		pinctrl-names = "default";
@@ -207,10 +214,37 @@ index d4f8776c927..8e20b1ce4be 100644
 +			};
 +		};
 +	};
++
  	verdin_gpio_keys: gpio-keys {
  		compatible = "gpio-keys";
  		pinctrl-names = "default";
-@@ -151,6 +165,18 @@
+@@ -52,6 +68,8 @@
+ 			debounce-interval = <10>;
+ 			/* Verdin CTRL_WAKE1_MICO# (SODIMM 252) */
+ 			gpios = <&main_gpio0 32 GPIO_ACTIVE_LOW>;
++			interrupt-names = "wakeup";
++			interrupts-extended = <&main_pmx0 0x0084>;
+ 			label = "Wake-Up";
+ 			linux,code = <KEY_WAKEUP>;
+ 			wakeup-source;
+@@ -122,6 +140,16 @@
+ 		vin-supply = <&reg_1v8>;
+ 	};
+ 
++	reg_force_sleep_moci: regulator-force-sleep-moci {
++		compatible = "regulator-fixed";
++		enable-active-high;
++		/* Verdin CTRL_SLEEP_MOCI# (SODIMM 256) */
++		gpio = <&main_gpio0 31 GPIO_ACTIVE_HIGH>;
++		regulator-always-on;
++		regulator-boot-on;
++		regulator-name = "CTRL_SLEEP_MOCI#";
++	};
++
+ 	/* Verdin SD_1 Power Supply */
+ 	reg_sdhc1_vmmc: regulator-sdhci1 {
+ 		compatible = "regulator-fixed";
+@@ -151,6 +179,18 @@
  		vin-supply = <&reg_sd_3v3_1v8>;
  	};
  
@@ -229,21 +263,91 @@ index d4f8776c927..8e20b1ce4be 100644
  	reserved-memory {
  		#address-cells = <2>;
  		#size-cells = <2>;
-@@ -647,10 +673,10 @@
+@@ -233,6 +273,13 @@
+ 		>;
+ 	};
+ 
++	/* Verdin SPI_1 CS as GPIO */
++	pinctrl_qspi1_io4_gpio: main-gpio0-7-default-pins {
++		pinctrl-single,pins = <
++			AM62X_IOPAD(0x001c, PIN_INPUT, 7) /* (J23) OSPI0_D4.GPIO0_7 */ /* SODIMM 202 */
++		>;
++	};
++
+ 	/* Verdin QSPI_1_CS# as GPIO (conflict with Verdin QSPI_1 interface) */
+ 	pinctrl_qspi1_cs_gpio: main-gpio0-11-default-pins {
+ 		pinctrl-single,pins = <
+@@ -422,6 +469,13 @@
+ 		>;
+ 	};
+ 
++	/* Verdin SD_1_CD# as GPIO */
++	pinctrl_sd1_cd_gpio: main-gpio1-48-default-pins {
++		pinctrl-single,pins = <
++			AM62X_IOPAD(0x240, PIN_INPUT_PULLUP, 7) /* (D17) MMC1_SDCD.GPIO1_48 */ /* SODIMM 84 */
++		>;
++	};
++
+ 	/* Verdin DSI_1_INT# (pulled-up as active-low) */
+ 	pinctrl_dsi1_int: main-gpio1-49-default-pins {
+ 		pinctrl-single,pins = <
+@@ -429,6 +483,13 @@
+ 		>;
+ 	};
+ 
++	/* Verdin USB_1_EN */
++	pinctrl_usb0_en: main-gpio1-50-default-pins {
++		pinctrl-single,pins = <
++			AM62X_IOPAD(0x0254, PIN_INPUT, 7) /* (C20) USB0_DRVVBUS.GPIO1_50 */ /* SODIMM 155 */
++		>;
++	};
++
+ 	/* On-module I2C - PMIC_I2C */
+ 	pinctrl_i2c0: main-i2c0-default-pins {
+ 		pinctrl-single,pins = <
+@@ -529,7 +590,6 @@
+ 			AM62X_IOPAD(0x22c, PIN_INPUT,        0) /* (B21) MMC1_DAT1 */ /* SODIMM 82 */
+ 			AM62X_IOPAD(0x228, PIN_INPUT,        0) /* (C21) MMC1_DAT2 */ /* SODIMM 70 */
+ 			AM62X_IOPAD(0x224, PIN_INPUT,        0) /* (D22) MMC1_DAT3 */ /* SODIMM 72 */
+-			AM62X_IOPAD(0x240, PIN_INPUT_PULLUP, 0) /* (D17) MMC1_SDCD */ /* SODIMM 84 */
+ 		>;
+ 	};
+ 
+@@ -599,12 +659,18 @@
+ 	pinctrl_spi1: main-spi1-default-pins {
+ 		pinctrl-single,pins = <
+ 			AM62X_IOPAD(0x0020, PIN_INPUT, 1) /* (J25) OSPI0_D5.SPI1_CLK */ /* SODIMM 196 */
+-			AM62X_IOPAD(0x001c, PIN_INPUT, 1) /* (J23) OSPI0_D4.SPI1_CS0 */ /* SODIMM 202 */
+ 			AM62X_IOPAD(0x0024, PIN_INPUT, 1) /* (H25) OSPI0_D6.SPI1_D0  */ /* SODIMM 200 */
+ 			AM62X_IOPAD(0x0028, PIN_INPUT, 1) /* (J22) OSPI0_D7.SPI1_D1  */ /* SODIMM 198 */
+ 		>;
+ 	};
+ 
++	/* Verdin SPI_1 CS */
++	pinctrl_spi1_cs0: main-spi1-cs0-default-pins {
++		pinctrl-single,pins = <
++			AM62X_IOPAD(0x001c, PIN_INPUT, 1) /* (J23) OSPI0_D4.SPI1_CS0 */ /* SODIMM 202 */
++		>;
++	};
++
+ 	/* ETH_25MHz_CLK */
+ 	pinctrl_eth_clock: main-system-clkout0-default-pins {
+ 		pinctrl-single,pins = <
+@@ -647,13 +713,6 @@
  		>;
  	};
  
 -	/* Verdin USB_1 */
 -	pinctrl_usb0: main-usb0-default-pins {
-+	/* Verdin USB_1_EN */
-+	pinctrl_usb0_en: main-gpio1-50-default-pins {
- 		pinctrl-single,pins = <
+-		pinctrl-single,pins = <
 -			AM62X_IOPAD(0x0254, PIN_OUTPUT, 0) /* (C20) USB0_DRVVBUS */ /* SODIMM 155 */
-+			AM62X_IOPAD(0x0254, PIN_INPUT, 7) /* (C20) USB0_DRVVBUS.GPIO1_50 */ /* SODIMM 155 */
- 		>;
- 	};
- 
-@@ -688,6 +714,11 @@
+-		>;
+-	};
+-
+ 	/* Verdin USB_2 */
+ 	pinctrl_usb1: main-usb1-default-pins {
+ 		pinctrl-single,pins = <
+@@ -688,6 +747,11 @@
  			AM62X_IOPAD(0x0060, PIN_OUTPUT, 1) /*  (R25) GPMC0_AD9.VOUT0_DATA17 */
  		>;
  	};
@@ -255,32 +359,131 @@ index d4f8776c927..8e20b1ce4be 100644
  };
  
  &mcu_pmx0 {
-@@ -901,7 +932,7 @@
+@@ -1000,7 +1064,7 @@
  		"",
  		"",
- 		"",
+ 		"SODIMM_17",
 -		"", /* 50 */
-+		"SODIMM 155", /* 50 */
++		"SODIMM_155", /* 50 */
  		"",
  		"",
  		"",
-@@ -1412,14 +1443,21 @@
- /* Verdin USB_1 */
- &usbss0 {
- 	ti,vbus-divider;
--	status = "disabled";
-+	status = "okay";
+@@ -1082,6 +1146,11 @@
+ 		};
+ 	};
+ 
++	tpm@2e {
++		compatible = "st,st33ktpm2xi2c", "tcg,tpm-tis-i2c";
++		reg = <0x2e>;
++	};
++
+ 	pmic@30 {
+ 		compatible = "ti,tps65219";
+ 		reg = <0x30>;
+@@ -1105,7 +1174,7 @@
+ 				regulator-always-on;
+ 				regulator-boot-on;
+ 				regulator-max-microvolt = <850000>;
+-				regulator-min-microvolt = <850000>;
++				regulator-min-microvolt = <750000>;
+ 				regulator-name = "+VDD_CORE (PMIC BUCK1)";
+ 			};
+ 
+@@ -1170,11 +1239,12 @@
+ 		reg = <0x48>;
+ 	};
+ 
+-	adc@49 {
+-		compatible = "ti,ads1015";
++	verdin_som_adc: adc@49 {
++		compatible = "ti,tla2024";
+ 		reg = <0x49>;
+ 		#address-cells = <1>;
+ 		#size-cells = <0>;
++		#io-channel-cells = <1>;
+ 
+ 		/* Verdin PMIC_I2C (ADC_4 - ADC_3) */
+ 		channel@0 {
+@@ -1278,7 +1348,7 @@
+ /* Verdin SPI_1 */
+ &main_spi1 {
+ 	pinctrl-names = "default";
+-	pinctrl-0 = <&pinctrl_spi1>;
++	pinctrl-0 = <&pinctrl_spi1>, <&pinctrl_spi1_cs0>;
+ 	ti,pindir-d0-out-d1-in;
+ 	status = "disabled";
+ };
+@@ -1309,8 +1379,8 @@
+ 	       0 0 0 0
+ 	>;
+ 	tdm-slots = <2>;
+-	rx-num-evt = <32>;
+-	tx-num-evt = <32>;
++	rx-num-evt = <0>;
++	tx-num-evt = <0>;
+ 	#sound-dai-cells = <0>;
+ 	status = "disabled";
+ };
+@@ -1327,8 +1397,8 @@
+ 	       0 0 0 0
+ 	>;
+ 	tdm-slots = <2>;
+-	rx-num-evt = <32>;
+-	tx-num-evt = <32>;
++	rx-num-evt = <0>;
++	tx-num-evt = <0>;
+ 	#sound-dai-cells = <0>;
+ 	status = "disabled";
+ };
+@@ -1366,6 +1436,15 @@
+ 		"",
+ 		"",
+ 		"";
++
++	verdin_pcie_1_reset_hog: pcie-1-reset-hog {
++		gpio-hog;
++		/* Verdin PCIE_1_RESET# (SODIMM 244) */
++		gpios = <0 GPIO_ACTIVE_LOW>;
++		line-name = "PCIE_1_RESET#";
++		output-low;
++		status = "disabled";
++	};
  };
  
- /* TODO: role swich using ID pin */
+ /* Verdin CAN_2 */
+@@ -1394,18 +1473,18 @@
+ 	pinctrl-names = "default";
+ 	pinctrl-0 = <&pinctrl_sdhci0>;
+ 	non-removable;
+-	ti,driver-strength-ohm = <50>;
+ 	status = "okay";
+ };
+ 
+ /* Verdin SD_1 */
+ &sdhci1 {
+ 	pinctrl-names = "default";
+-	pinctrl-0 = <&pinctrl_sdhci1>;
++	pinctrl-0 = <&pinctrl_sdhci1>, <&pinctrl_sd1_cd_gpio>;
++	cd-gpios = <&main_gpio1 48 GPIO_ACTIVE_LOW>;
+ 	disable-wp;
+-	ti,driver-strength-ohm = <50>;
+ 	vmmc-supply = <&reg_sdhc1_vmmc>;
+ 	vqmmc-supply = <&reg_sdhc1_vqmmc>;
++	ti,fails-without-test-cd;
+ 	status = "disabled";
+ };
+ 
+@@ -1415,11 +1494,16 @@
+ 	status = "disabled";
+ };
+ 
+-/* TODO: role swich using ID pin */
  &usb0 {
 -	pinctrl-names = "default";
 -	pinctrl-0 = <&pinctrl_usb0>, <&pinctrl_usb0_id>;
--	status = "disabled";
 +	adp-disable;
-+   usb-role-switch;
-+
-+	status = "okay";
++	usb-role-switch;
+ 	status = "disabled";
 +
 +	port {
 +		usb0_ep: endpoint {
@@ -291,7 +494,7 @@ index d4f8776c927..8e20b1ce4be 100644
  
  /* Verdin USB_2 */
 diff --git a/arch/arm/dts/k3-am625-verdin-wifi-dev-u-boot.dtsi b/arch/arm/dts/k3-am625-verdin-wifi-dev-u-boot.dtsi
-index 206df610461..23ae8142337 100644
+index 206df610461..6fec7d5c8d9 100644
 --- a/arch/arm/dts/k3-am625-verdin-wifi-dev-u-boot.dtsi
 +++ b/arch/arm/dts/k3-am625-verdin-wifi-dev-u-boot.dtsi
 @@ -8,7 +8,7 @@
@@ -400,6 +603,24 @@ index 206df610461..23ae8142337 100644
  	};
  };
  
+@@ -183,14 +242,12 @@
+ };
+ 
+ &usb0 {
+-	dr_mode = "peripheral";
+-	/* Since role switching is not supported in U-Boot */
+-	/delete-property/ extcon;
+-	bootph-pre-ram;
++	dr_mode = "host";
++	status = "okay";
+ };
+ 
+ &usbss0 {
+-	bootph-pre-ram;
++	status = "okay";
+ };
+ 
+ &verdin_ctrl_sleep_moci {
 -- 
-2.34.1
+2.25.1
 

@@ -1,29 +1,23 @@
-From 014c6ed13114cb735c7464441187b94da019221e Mon Sep 17 00:00:00 2001
+From 569d99de2bd98cdba21b30825568053db1c43c64 Mon Sep 17 00:00:00 2001
 From: rikardo <rikard.olander@hostmobility.com>
-Date: Wed, 29 Jan 2025 07:58:00 +0000
+Date: Tue, 4 Feb 2025 15:28:49 +0000
 Subject: [PATCH 1/1] adjust verdin-am62_a53_defconfig
 
 V.1. add CONFIG_BOOTDELAY =0
 
-v.2 add gpio expander driver for leds
+V.2 add gpio expander driver for leds
+
+V.3 add command for hash files
 
 ---
- configs/verdin-am62_a53_defconfig | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ configs/verdin-am62_a53_defconfig | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
 
 diff --git a/configs/verdin-am62_a53_defconfig b/configs/verdin-am62_a53_defconfig
-index 77d61595d33..06e67c39979 100644
+index 77d61595d33..625b91d6408 100644
 --- a/configs/verdin-am62_a53_defconfig
 +++ b/configs/verdin-am62_a53_defconfig
-@@ -2,7 +2,6 @@ CONFIG_ARM=y
- CONFIG_SKIP_LOWLEVEL_INIT=y
- CONFIG_ARCH_K3=y
- CONFIG_TI_SECURE_DEVICE=y
--CONFIG_SYS_MALLOC_LEN=0x2000000
- CONFIG_SYS_MALLOC_F_LEN=0x8000
- CONFIG_SPL_GPIO=y
- CONFIG_SPL_LIBCOMMON_SUPPORT=y
-@@ -39,7 +38,7 @@ CONFIG_SPL_LOAD_FIT_ADDRESS=0x81000000
+@@ -39,7 +39,7 @@ CONFIG_SPL_LOAD_FIT_ADDRESS=0x81000000
  CONFIG_LEGACY_IMAGE_FORMAT=y
  CONFIG_OF_SYSTEM_SETUP=y
  CONFIG_DISTRO_DEFAULTS=y
@@ -32,7 +26,16 @@ index 77d61595d33..06e67c39979 100644
  CONFIG_USE_PREBOOT=y
  CONFIG_PREBOOT="test -n ${fdtfile} || setenv fdtfile k3-am625-verdin-${variant}-${fdt_board}.dtb"
  CONFIG_LOG=y
-@@ -139,6 +138,7 @@ CONFIG_GPIO_HOG=y
+@@ -94,6 +94,8 @@ CONFIG_CMD_TIME=y
+ CONFIG_CMD_UUID=y
+ CONFIG_CMD_PMIC=y
+ CONFIG_CMD_REGULATOR=y
++CONFIG_CMD_HASH=y
++CONFIG_HASH_VERIFY=y
+ CONFIG_CMD_EXT4_WRITE=y
+ # CONFIG_ISO_PARTITION is not set
+ # CONFIG_SPL_EFI_PARTITION is not set
+@@ -139,6 +141,7 @@ CONFIG_GPIO_HOG=y
  CONFIG_SPL_GPIO_HOG=y
  CONFIG_SPL_DM_GPIO_LOOKUP_LABEL=y
  CONFIG_DA8XX_GPIO=y

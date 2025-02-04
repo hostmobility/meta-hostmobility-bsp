@@ -191,8 +191,8 @@ index a2cbcce33d..bf590c659a 100644
  	"console=ttyS2\0" \
 -	"fdt_board=dev\0" \
 +	"fdt_board=hmm\0" \
-+	"bootcmd_usb=run try_usb_flash;\0" \
-+	"try_usb_flash=sleep 0.1; usb reset; if load usb 0 ${scriptaddr} ${bsp_script} ; then source ${scriptaddr}; else echo UPDATE ERROR: no ${bsp_script} on first USB device. ;fi\0" \
++	"bootcmd_usb0=devnum=0; run try_usb_flash || run usb_boot;\0" \
++	"try_usb_flash=sleep 0.1; usb reset; if load usb ${devnum} ${scriptaddr} ${bsp_script} ; then source ${scriptaddr}; else echo UPDATE ERROR: no ${bsp_script} on first USB device. ;fi\0" \
 +	"m4addr=0x82000000\0" \
 +	"m4_firmware=lib/firmware/am62-mcu-m4f0_0-fw\0" \
 +	"m4boot=if ext4size mmc ${root_devnum}:${root_part} ${m4_firmware}; then " \

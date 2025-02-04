@@ -46,8 +46,6 @@ test -n ${wic_file} || env set wic_file 'hmm-image.wic.gz'
 
 echo "wic_file:${wic_file}"
 
-env set loadimage "load mmc ${root_devnum}:${root_part} ${ramdisk_addr_r} ${prefix}${wic_file}"
-env set writeimage "gzwrite mmc ${root_devnum} ${ramdisk_addr_r} 0x${filesize} 100000 0"
 
 test ${boot_devtype} = "mmc" && env set load_cmd 'load ${boot_devtype} ${boot_devnum}:${boot_part}'
 test ${boot_devtype} = "usb" && env set load_cmd 'load ${boot_devtype} ${boot_devnum}:${boot_part}'
@@ -130,13 +128,26 @@ env set bootcmd_run 'run m4boot; run bootcmd_dtb && run bootcmd_args && run boot
     for prefix in ${boot_prefixes}; do
         #Check if wic image exist on multiple places if not continue normal run.
         if ext4size mmc ${root_devnum}:${root_part} ${prefix}${wic_file}; then \
+            #Set LEDs 1 to 4 off.
+            led green:led_1 off
+            led green:led_2 off
+            led green:led_3 off
+            led green:led_4 off
+
+            led red:led_1 off
+            led red:led_2 off
+            led red:led_3 off
+            led red:led_4 off
             echo Loading ${wic_file} from ${prefix} on mmc ${root_devnum}:${root_part};
-            if run loadimage; then
+            if load mmc ${root_devnum}:${root_part} ${loadaddr} ${prefix}${wic_file}; then
+                led green:led_3 on
                 echo Extracting ${wic_file} to mmc ${root_devnum}:${root_part};
-                if run writeimage; then
+                if gzwrite mmc ${root_devnum} ${loadaddr} 0x${filesize} 100000 0; then
+                    led green:led_4 on
                     reset;
                 else
                     echo write failed, aborting;
+                    led red:led_4 on
                     sleep 10;
                     #reset; TODO what to do if writeimage file failes here....
                 fi
@@ -145,6 +156,9 @@ env set bootcmd_run 'run m4boot; run bootcmd_dtb && run bootcmd_args && run boot
                 echo "Did not found any ${prefix}${wic_file} file."
         fi
     done
+
+#indicate booting linux
+led green:led_1 on
 
 run bootcmd_prepare
 run bootcmd_run

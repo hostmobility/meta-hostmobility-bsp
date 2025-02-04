@@ -64,7 +64,7 @@ index 000000000000..b8cd6c7666a7
 +#include <dt-bindings/leds/common.h>
 +
 +/ {
-+	/*	The leds is read from the highest to lowest position on the module when the pcb is in horizontal position.
++	/*	The leds are read from the highest to lowest position on the module when the PCB is in horizontal position.
 +		Default: Heart beat on the lowest green LED (4) and wifi phy0rx on red LED (1). Can be turn of by system user.
 +	*/
 +	leds {

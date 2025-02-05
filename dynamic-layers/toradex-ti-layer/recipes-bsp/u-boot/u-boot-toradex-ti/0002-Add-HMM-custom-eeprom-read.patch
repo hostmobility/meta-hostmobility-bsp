@@ -15,11 +15,10 @@ diff --git a/board/toradex/common/Makefile b/board/toradex/common/Makefile
 index 7b19b6e4c8..6d66a05e86 100644
 --- a/board/toradex/common/Makefile
 +++ b/board/toradex/common/Makefile
-@@ -9,4 +9,6 @@ else
+@@ -9,4 +9,5 @@ else
  obj-$(CONFIG_TDX_CFG_BLOCK) += tdx-cfg-block.o
  obj-y += tdx-common.o
  obj-y += tdx-eeprom.o
-+
 +obj-y += hmm_eeprom.o
  endif
 diff --git a/board/toradex/common/hmm_eeprom.c b/board/toradex/common/hmm_eeprom.c

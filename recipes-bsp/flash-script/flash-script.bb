@@ -34,3 +34,7 @@ do_deploy() {
 }
 
 addtask do_deploy after do_compile before do_build
+
+
+ALLOW_EMPTY:${PN} = "1"
+RDEPENDS:${PN} = ""

@@ -27,6 +27,7 @@ if [[ "$MACHINE" == "imx8mp-var-dart-hmx1" || "$MACHINE" == "verdin-am62-hmm" ]]
 	echo "$hostname" > /etc/hostname
 	hostname "$hostname"
 fi
+ca48fc16c49388400eddd6c6614593ebf7c7726a
 
 # Remove /boot/*.scr from boot so next reboot will not start a new upgrade.
 rm /boot/*.scr

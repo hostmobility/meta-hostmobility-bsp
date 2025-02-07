@@ -1,0 +1,11 @@
+[Unit]
+Description=Run autostart scripts for host monitor mini
+After=network.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart = /opt/hm/autostart.sh
+
+[Install]
+WantedBy=multi-user.target

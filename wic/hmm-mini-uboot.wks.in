@@ -1,0 +1,31 @@
+# short-description: Create SD card image with 2 partitions
+# long-description: Creates a partitioned SD card image for TI platforms.
+# Boot files are located in the first vfat partition with extra reserved space.
+
+# The disk layout used is:
+#  - ----- --------- -------------- --------------
+# | | SPL | u-boot  |    boot      |    rootfs    |
+#  - ----- --------- -------------- --------------
+# ^ ^     ^         ^              ^
+# | |     |         |              |
+# 0 1MiB  3MiB      8MiB          133MiB + rootfs + IMAGE_EXTRA_SPACE (default 10MiB)
+#
+# Partition details:
+# - SPL (tiboot3.bin) at 0 KiB (1 MiB allocated)
+# - SPL (tispl.bin) at 1024 KiB (2 MiB allocated)
+# - U-Boot (u-boot.img) at 5120 KiB (4 MiB allocated)
+# - Boot partition (VFAT) starts at 8 MiB (128 MiB allocated)
+# - RootFS partition (ext4) starts at 136 MiB (remaining space)
+
+# SPL and bootloader files (tiboot3.bin, tispl.bin, u-boot.img)
+part SPL --source rawcopy --sourceparams="file=tiboot3.bin" --ondisk mmcblk --no-table --align 0 --size 1M
+part SPL --source rawcopy --sourceparams="file=tispl.bin" --ondisk mmcblk --no-table --align 1024 --size 2M
+part u-boot --source rawcopy --sourceparams="file=u-boot.img" --ondisk mmcblk --no-table --align 5120 --size 4M
+
+# Bootfs partition (VFAT)
+part --source bootimg-partition --fstype=vfat --label boot --active --align 8192 --use-uuid --size 128
+
+# Rootfs partition (ext4)
+part / --source rootfs --fstype=ext4 --label root --align 8192 --use-uuid
+
+bootloader --ptable msdos

@@ -255,14 +255,14 @@ index 487485c8959..4549704b02a 100644
 +			label = "red:led_1";
 +			function = "led_1";
 +			gpios = <&max7321 3 GPIO_ACTIVE_LOW>;
-+			default-state = "off";
++			default-state = "on";
 +		};
 +
 +		green_led_2 {
 +			label = "green:led_2";
 +			function = "led_2";
 +			gpios = <&max7321 0 GPIO_ACTIVE_LOW>;
-+			default-state = "off";
++			default-state = "on";
 +		};
 +
 +		red_led_2 {

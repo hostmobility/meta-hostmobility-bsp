@@ -1,0 +1,124 @@
+From 370be45dd67e6a4c6f20007e3c39750659f8b6b6 Mon Sep 17 00:00:00 2001
+From: rikardo <rikard.olander@hostmobility.com>
+Date: Tue, 11 Feb 2025 14:12:40 +0000
+Subject: [PATCH 2/2] temp hack gpio driver for mx4-t30 suspend
+
+---
+ drivers/gpio/Makefile           |  2 +-
+ drivers/gpio/gpio-mx4-suspend.c | 91 +++++++++++++++++++++++++++++++++
+ 2 files changed, 92 insertions(+), 1 deletion(-)
+ create mode 100644 drivers/gpio/gpio-mx4-suspend.c
+
+diff --git a/drivers/gpio/Makefile b/drivers/gpio/Makefile
+index 29e3beb6548c..677c3da19555 100644
+--- a/drivers/gpio/Makefile
++++ b/drivers/gpio/Makefile
+@@ -154,7 +154,7 @@ obj-$(CONFIG_GPIO_TN48M_CPLD)		+= gpio-tn48m.o
+ obj-$(CONFIG_GPIO_TPIC2810)		+= gpio-tpic2810.o
+ obj-$(CONFIG_GPIO_TPS65086)		+= gpio-tps65086.o
+ obj-$(CONFIG_GPIO_TPS65218)		+= gpio-tps65218.o
+-obj-$(CONFIG_GPIO_TPS6586X)		+= gpio-tps6586x.o
++obj-$(CONFIG_GPIO_TPS6586X)		+= gpio-tps6586x.o gpio-mx4-suspend.o
+ obj-$(CONFIG_GPIO_TPS65910)		+= gpio-tps65910.o
+ obj-$(CONFIG_GPIO_TPS65912)		+= gpio-tps65912.o
+ obj-$(CONFIG_GPIO_TPS68470)		+= gpio-tps68470.o
+diff --git a/drivers/gpio/gpio-mx4-suspend.c b/drivers/gpio/gpio-mx4-suspend.c
+new file mode 100644
+index 000000000000..d9360cbaf8dc
+--- /dev/null
++++ b/drivers/gpio/gpio-mx4-suspend.c
+@@ -0,0 +1,91 @@
++// SPDX-License-Identifier: GPL-2.0
++#include <linux/module.h>
++#include <linux/platform_device.h>
++#include <linux/gpio/consumer.h>
++#include <linux/pm.h>
++#include <linux/of.h>
++
++struct mx4_suspend_data {
++    struct gpio_descs *gpios;
++};
++
++static int mx4_suspend(struct device *dev)
++{
++    struct mx4_suspend_data *data = dev_get_drvdata(dev);
++    int i;
++
++    dev_info(dev, "Entering custom MX4 suspend routine\n");
++
++    for (i = 0; i < data->gpios->ndescs; i++) {
++        gpiod_direction_output(data->gpios->desc[i], 0);
++    }
++
++    return 0;
++}
++
++static int mx4_resume(struct device *dev)
++{
++    struct mx4_suspend_data *data = dev_get_drvdata(dev);
++    int i;
++
++    dev_info(dev, "Resuming from custom MX4 suspend routine\n");
++
++    for (i = 0; i < data->gpios->ndescs; i++) {
++        gpiod_direction_output(data->gpios->desc[i], 1);
++    }
++
++    return 0;
++}
++
++static const struct dev_pm_ops mx4_pm_ops = {
++    .suspend = mx4_suspend,
++    .resume = mx4_resume,
++};
++
++static int mx4_probe(struct platform_device *pdev)
++{
++    struct mx4_suspend_data *data;
++
++    data = devm_kzalloc(&pdev->dev, sizeof(*data), GFP_KERNEL);
++    if (!data)
++        return -ENOMEM;
++
++    data->gpios = devm_gpiod_get_array(&pdev->dev, NULL, GPIOD_OUT_LOW);
++    if (IS_ERR(data->gpios)) {
++        dev_err(&pdev->dev, "Failed to get GPIOs\n");
++        return PTR_ERR(data->gpios);
++    }
++
++    platform_set_drvdata(pdev, data);
++    dev_info(&pdev->dev, "MX4 suspend driver initialized\n");
++
++    return 0;
++}
++
++static int mx4_remove(struct platform_device *pdev)
++{
++    dev_info(&pdev->dev, "MX4 suspend driver removed\n");
++    return 0;
++}
++
++static const struct of_device_id mx4_of_match[] = {
++    { .compatible = "host-mobility,mx4-suspend" },
++    { }
++};
++MODULE_DEVICE_TABLE(of, mx4_of_match);
++
++static struct platform_driver mx4_driver = {
++    .driver = {
++        .name = "mx4_suspend",
++        .pm = &mx4_pm_ops,
++        .of_match_table = mx4_of_match,
++    },
++    .probe = mx4_probe,
++    .remove = mx4_remove,
++};
++
++module_platform_driver(mx4_driver);
++
++MODULE_AUTHOR("Host Mobility AB");
++MODULE_DESCRIPTION("MX4 Suspend/Resume Driver for Colibri T30");
++MODULE_LICENSE("GPL");
+-- 
+2.34.1
+

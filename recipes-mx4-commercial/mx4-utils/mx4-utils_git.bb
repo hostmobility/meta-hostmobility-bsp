@@ -3,7 +3,7 @@ DESCRIPTION = "Collection of utility scripts which is part of MX-4 Board Support
 
 SUBPATH = "scripts/"
 
-require recipes-commercial/common/revision.inc
+require recipes-mx4-commercial/common/revision.inc
 
 SRC_URI += "\
     file://autostart.service \

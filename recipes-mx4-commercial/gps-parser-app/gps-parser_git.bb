@@ -3,7 +3,7 @@ DESCRIPTION = "GPS parser for gps data."
 
 SUBPATH = "apps/gps-parser"
 
-require recipes-commercial/common/revision.inc
+require recipes-mx4-commercial/common/revision.inc
 
 S = "${WORKDIR}/gps-parser"
 

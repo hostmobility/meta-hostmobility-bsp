@@ -1,5 +1,5 @@
-SUMMARY = "mx5-platform-version"
-DESCRIPTION = "save build versions as a part of MX-5 Board Support Package"
+SUMMARY = "Platform version information"
+DESCRIPTION = "Save build versions as a part of Host Mobility/SETEK Board Support Package"
 LICENSE = "CLOSED"
 
 S = "${WORKDIR}"
@@ -10,7 +10,7 @@ do_install() {
     echo ${MACHINE} > ${D}/${sysconfdir}/platform-system-type
 
     echo ${BUILD_TAG} > ${D}/${sysconfdir}/platform-build-tag 
-    echo 2.2.x > ${D}/${sysconfdir}/platform-bsp-version
+    echo ${DISTRO_VERSION} > ${D}/${sysconfdir}/platform-bsp-version
     echo ${PLATFORM_VERSION} > ${D}/${sysconfdir}/platform-version
     echo "${PLATFORM_VERSION_DETAILS}" > ${D}/${sysconfdir}/platform-version-details
     echo "${DISTRO_CODENAME}" > ${D}/${sysconfdir}/platform-branch-name

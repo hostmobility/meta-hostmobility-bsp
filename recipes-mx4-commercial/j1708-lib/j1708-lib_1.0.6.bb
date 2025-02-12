@@ -3,7 +3,7 @@ DESCRIPTION = "Library to communicate with automotive J1708 network bus on MX-4"
 
 SUBPATH = "lib/j1708"
 
-require recipes-commercial/common/revision.inc
+require recipes-mx4-commercial/common/revision.inc
 
 S = "${WORKDIR}/j1708/src"
 

@@ -1,6 +1,6 @@
-From 5a2698f605c5d7ff21ea3bac2fa757a6f4f42887 Mon Sep 17 00:00:00 2001
-From: Rikardo-hm <rikard.olander@hostmobility.com>
-Date: Thu, 30 Jan 2025 14:10:57 +0000
+From 505bf80936104cd54835d45e8b994bb59d65ab0c Mon Sep 17 00:00:00 2001
+From: OpenEmbedded <oe.patch@oe>
+Date: Fri, 7 Feb 2025 08:10:09 +0000
 Subject: [PATCH 1/1] Device tree for V7
 v1. Add our customization based on k3-am62-verdin-dev.
 We have removed or disabled interfaces that we will not use( like sound, gpio-keys and eth2)
@@ -26,28 +26,62 @@ v6. Enable CTRL_WAKE1_MICO for wake on CAN.
     Fix RS-485 RXEN signal so that it's held low until suspend.
     Add name for USB_OC in gpioinfo list.
 
-V7. Adapt this patch to linux 6.6.
+V7. Adapt this patch to linux kernel 6.12 upstream
 
 ---
  arch/arm64/boot/dts/ti/Makefile               |   1 +
+ arch/arm64/boot/dts/ti/k3-am62-mcu.dtsi       |  15 +
  .../arm64/boot/dts/ti/k3-am62-verdin-hmm.dtsi | 612 ++++++++++++++++++
  .../boot/dts/ti/k3-am625-verdin-wifi-hmm.dts  |  73 +++
- 3 files changed, 686 insertions(+)
+ 4 files changed, 701 insertions(+)
  create mode 100644 arch/arm64/boot/dts/ti/k3-am62-verdin-hmm.dtsi
  create mode 100644 arch/arm64/boot/dts/ti/k3-am625-verdin-wifi-hmm.dts
 
 diff --git a/arch/arm64/boot/dts/ti/Makefile b/arch/arm64/boot/dts/ti/Makefile
-index 10cba46afd19..43a00f6548c5 100644
+index bcd392c3206e..071d1090d3ff 100644
 --- a/arch/arm64/boot/dts/ti/Makefile
 +++ b/arch/arm64/boot/dts/ti/Makefile
-@@ -27,6 +27,7 @@ dtb-$(CONFIG_ARCH_K3) += k3-am625-verdin-nonwifi-mallow.dtb
+@@ -19,6 +19,7 @@ dtb-$(CONFIG_ARCH_K3) += k3-am625-verdin-nonwifi-dev.dtb
+ dtb-$(CONFIG_ARCH_K3) += k3-am625-verdin-nonwifi-mallow.dtb
  dtb-$(CONFIG_ARCH_K3) += k3-am625-verdin-nonwifi-yavia.dtb
  dtb-$(CONFIG_ARCH_K3) += k3-am625-verdin-wifi-dahlia.dtb
- dtb-$(CONFIG_ARCH_K3) += k3-am625-verdin-wifi-dev.dtb
 +dtb-$(CONFIG_ARCH_K3) += k3-am625-verdin-wifi-hmm.dtb
- dtb-$(CONFIG_ARCH_K3) += k3-am625-verdin-wifi-ivy.dtb
+ dtb-$(CONFIG_ARCH_K3) += k3-am625-verdin-wifi-dev.dtb
  dtb-$(CONFIG_ARCH_K3) += k3-am625-verdin-wifi-mallow.dtb
  dtb-$(CONFIG_ARCH_K3) += k3-am625-verdin-wifi-yavia.dtb
+diff --git a/arch/arm64/boot/dts/ti/k3-am62-mcu.dtsi b/arch/arm64/boot/dts/ti/k3-am62-mcu.dtsi
+index bb43a411f59b..511f0c197fec 100644
+--- a/arch/arm64/boot/dts/ti/k3-am62-mcu.dtsi
++++ b/arch/arm64/boot/dts/ti/k3-am62-mcu.dtsi
+@@ -160,6 +160,7 @@ mcu_mcan0: can@4e08000 {
+ 		clocks = <&k3_clks 188 6>, <&k3_clks 188 1>;
+ 		clock-names = "hclk", "cclk";
+ 		bosch,mram-cfg = <0x0 128 64 64 64 64 32 32>;
++		wakeup-source;
+ 		status = "disabled";
+ 	};
+ 
+@@ -172,6 +173,20 @@ mcu_mcan1: can@4e18000 {
+ 		clocks = <&k3_clks 189 6>, <&k3_clks 189 1>;
+ 		clock-names = "hclk", "cclk";
+ 		bosch,mram-cfg = <0x0 128 64 64 64 64 32 32>;
++		wakeup-source;
++		status = "disabled";
++	};
++
++	mcu_m4fss: m4fss@5000000 {
++		compatible = "ti,am64-m4fss";
++		reg = <0x00 0x5000000 0x00 0x30000>,
++		      <0x00 0x5040000 0x00 0x10000>;
++		reg-names = "iram", "dram";
++		resets = <&k3_reset 9 1>;
++		firmware-name = "am62-mcu-m4f0_0-fw";
++		ti,sci = <&dmsc>;
++		ti,sci-dev-id = <9>;
++		ti,sci-proc-ids = <0x18 0xff>;
+ 		status = "disabled";
+ 	};
+ };
 diff --git a/arch/arm64/boot/dts/ti/k3-am62-verdin-hmm.dtsi b/arch/arm64/boot/dts/ti/k3-am62-verdin-hmm.dtsi
 new file mode 100644
 index 000000000000..9a467637b8af
@@ -65,7 +99,7 @@ index 000000000000..9a467637b8af
 +#include <dt-bindings/leds/common.h>
 +
 +/ {
-+	/*	The leds are read from the highest to lowest position on the module when the PCB is in horizontal position.
++	/*	The leds is read from the highest to lowest position on the module when the pcb is in horizontal position.
 +		Default: Heart beat on the lowest green LED (4) and wifi phy0rx on red LED (1). Can be turn of by system user.
 +	*/
 +	leds {

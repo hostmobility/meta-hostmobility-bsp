@@ -9,6 +9,8 @@ V.2 Fixup eeprom, usb cc and led controller i2c address.
     Add gpio leds so led 3 and 4 are lit.
     fix usb-c to operate as host for usb memory flash.
 
+V.3 led 1 is initialized to yellow and turns green when exiting boot.scr (see distro-boot).
+
 ---
  arch/arm/dts/k3-am62-verdin-dev.dtsi          | 128 ++++++------------
  arch/arm/dts/k3-am62-verdin.dtsi              |   5 +
@@ -238,8 +240,8 @@ index 487485c8959..4549704b02a 100644
  	memory@80000000 {
  		bootph-pre-ram;
  	};
-+	/*	The leds are read from the highest to lowest position on the module when the PCB is in horizontal position.
-+		Default: leds lit on the two lowest green/red LED (3 and 4) and the rest are off.
++	/*	The LEDs are read from the highest to lowest position on the module when the PCB is in horizontal position.
++		Default: LED 1 is yellow (green+red) and the rest are off.
 +	*/
 +	leds {
 +		compatible = "gpio-leds";
@@ -248,14 +250,14 @@ index 487485c8959..4549704b02a 100644
 +			label = "green:led_1";
 +			function = "led_1";
 +			gpios = <&max7321 2 GPIO_ACTIVE_LOW>;
-+			default-state = "off";
++			default-state = "on";
 +		};
 +
 +		red_led_1 {
 +			label = "red:led_1";
 +			function = "led_1";
 +			gpios = <&max7321 3 GPIO_ACTIVE_LOW>;
-+			default-state = "off";
++			default-state = "on";
 +		};
 +
 +		green_led_2 {
@@ -276,28 +278,28 @@ index 487485c8959..4549704b02a 100644
 +			label = "green:led_3";
 +			function = "led_3";
 +			gpios = <&max7321 6 GPIO_ACTIVE_LOW>;
-+			default-state = "on";
++			default-state = "off";
 +		};
 +
 +		red_led_3 {
 +			label = "red:led_3";
 +			function = "led_3";
 +			gpios = <&max7321 7 GPIO_ACTIVE_LOW>;
-+			default-state = "on";
++			default-state = "off";
 +		};
 +
 +		green_led_4 {
 +			label = "green:led_4";
 +			function = "led_4";
 +			gpios = <&max7321 4 GPIO_ACTIVE_LOW>;
-+			default-state = "on";
++			default-state = "off";
 +		};
 +
 +		red_led_4 {
 +			label = "red:led_4";
 +			function = "led_4";
 +			gpios = <&max7321 5 GPIO_ACTIVE_LOW>;
-+			default-state = "on";
++			default-state = "off";
 +		};
 +
 +

@@ -7,7 +7,7 @@ FIRST_TIME_BOOT_FILE=/etc/first_boot_after_update.txt
 
 # We can now change the state of the host watchdog from boot to start. This will enable heartbeats resetting the watchdog timer, preventing a reset of the system.
 start_watchdog() {
-	TIMEOUT=45
+    TIMEOUT=45
     START_TIME=$(date +%s)
 
     if [[ "$MACHINE" == "imx8mp-var-dart-hmx1" || "$MACHINE" == "verdin-am62-hmm" ]]; then

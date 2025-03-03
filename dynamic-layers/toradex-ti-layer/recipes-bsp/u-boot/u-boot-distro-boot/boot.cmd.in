@@ -40,6 +40,7 @@ test -n ${boot_part} || env set boot_part ${distro_bootpart}
 test -n ${root_part} || env set root_part 2
 test -n ${boot_devnum} || env set boot_devnum ${devnum}
 test -n ${root_devnum} || env set root_devnum ${devnum}
+test -n ${boot_disk} || env set boot_disk ${devnum}
 test -n ${kernel_image} || env set kernel_image @@KERNEL_IMAGETYPE@@
 test -n ${boot_devtype} || env set boot_devtype ${devtype}
 test -n ${wic_file} || env set wic_file 'hmm-image.wic.gz'
@@ -119,7 +120,10 @@ else
     fi
 fi
 
-env set bootcmd_args 'run rootfsargs_set && env set bootargs ${defargs} ${rootfsargs} ${setupargs} ${vidargs} ${tdxargs}'
+#Add info mmcblk{boot_devnum} for /proc/cmdline. Used for know if we boot on emmc or sdcard(fs-init script).
+test ${boot_devtype} = "mmc" && env set boot_disk /dev/mmcblk${boot_devnum}
+
+env set bootcmd_args 'run rootfsargs_set && env set bootargs ${defargs} ${rootfsargs} ${setupargs} ${vidargs} ${tdxargs} ${boot_disk}'
 
 env set bootcmd_prepare 'run set_bootcmd_kernel; run set_bootcmd_dtb'
 env set bootcmd_run 'run m4boot; run bootcmd_dtb && run bootcmd_args && run bootcmd_kernel && run bootcmd_unzip && run bootcmd_boot; echo "Booting from ${devtype} failed!" && false'

@@ -22,10 +22,12 @@ v5. Enable support for analog in 2 enable.
     Change UART1_CTSn to be controlled by userspace(could be driver or kernel controlled). Change so this pin is a output instead of a input. 
     disable use of external temperature sensor, this is so far not mounted on any variant.
 
-v6. Enable CTRL_WAKE1_MICO for wake on CAN. 
+v6. Enable CTRL_WAKE1_MICO for wake on CAN.
     Fix default behaviour for CAN standby signals (gave 2mA lower power draw in suspend at 24VDC).
     Fix RS-485 RXEN signal so that it's held low until suspend.
     Add name for USB_OC in gpioinfo list.
+
+v6.1. Change heartbeat LED to LED 1 to indicate stable release.
 
 ---
  arch/arm64/boot/dts/ti/Makefile               |   1 +
@@ -65,7 +67,7 @@ index 000000000000..b8cd6c7666a7
 +
 +/ {
 +	/*	The leds are read from the highest to lowest position on the module when the PCB is in horizontal position.
-+		Default: Heart beat on the lowest green LED (4) and wifi phy0rx on red LED (1). Can be turn of by system user.
++		Default: Heart beat on the lowest green LED (1) and wifi phy0rx on green LED (4). Can be turned off by system user or altered in a device tree patch.
 +	*/
 +	leds {
 +		compatible = "gpio-leds";
@@ -74,6 +76,7 @@ index 000000000000..b8cd6c7666a7
 +			color = <LED_COLOR_ID_GREEN>;
 +			function = "led_1";
 +			gpios = <&max7321 2 GPIO_ACTIVE_LOW>;
++			linux,default-trigger = "heartbeat";
 +			default-state = "off";
 +		};
 +
@@ -81,7 +84,6 @@ index 000000000000..b8cd6c7666a7
 +			color = <LED_COLOR_ID_RED>;
 +			function = "led_1";
 +			gpios = <&max7321 3 GPIO_ACTIVE_LOW>;
-+			linux,default-trigger = "phy0rx";
 +			default-state = "off";
 +		};
 +
@@ -117,6 +119,7 @@ index 000000000000..b8cd6c7666a7
 +			color = <LED_COLOR_ID_GREEN>;
 +			function = "led_4";
 +			gpios = <&max7321 4 GPIO_ACTIVE_LOW>;
++			linux,default-trigger = "phy0rx";
 +			default-state = "off";
 +		};
 +
@@ -124,7 +127,6 @@ index 000000000000..b8cd6c7666a7
 +			color = <LED_COLOR_ID_RED>;
 +			function = "led_4";
 +			gpios = <&max7321 5 GPIO_ACTIVE_LOW>;
-+			linux,default-trigger = "heartbeat";
 +			default-state = "off";
 +		};
 +

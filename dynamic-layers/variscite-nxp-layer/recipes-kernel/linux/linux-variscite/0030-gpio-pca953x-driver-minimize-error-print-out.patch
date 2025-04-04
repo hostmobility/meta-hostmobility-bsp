@@ -1,18 +1,19 @@
-From 8b5cbd10ae1087a09b71d20d6fdb8f4d5d98eaed Mon Sep 17 00:00:00 2001
-From: rikardo <rikard.olander@hostmobility.com>
-Date: Tue, 3 Oct 2023 14:53:35 +0000
+From 42612514d1dbf7dd68ebe2b0911e08fa03525d21 Mon Sep 17 00:00:00 2001
+From: Rikardo-hm <rikard.olander@hostmobility.com>
+Date: Mon, 3 Feb 2025 13:50:09 +0000
 Subject: [PATCH 1/1] gpio-pca953x: fix return and driver minimize error print out
   Return all failures as ret variable in resume. 
+  Adapt to kernel 6.6
 
 ---
  drivers/gpio/gpio-pca953x.c | 38 ++++++++++++++++++++++++-------------
  1 file changed, 25 insertions(+), 13 deletions(-)
 
 diff --git a/drivers/gpio/gpio-pca953x.c b/drivers/gpio/gpio-pca953x.c
-index 5d64a02ff9af..3b85bb9b3ffd 100644
+index 3cb416fb3d31..27af6da89d2d 100644
 --- a/drivers/gpio/gpio-pca953x.c
 +++ b/drivers/gpio/gpio-pca953x.c
-@@ -482,6 +482,8 @@ static u8 pcal6534_recalc_addr(struct pca953x_chip *chip, int reg, int off)
+@@ -480,6 +480,8 @@ static u8 pcal6534_recalc_addr(struct pca953x_chip *chip, int reg, int off)
  	return pinctrl + addr + (off / BANK_SZ);
  }
  
@@ -21,7 +22,7 @@ index 5d64a02ff9af..3b85bb9b3ffd 100644
  static int pca953x_write_regs(struct pca953x_chip *chip, int reg, unsigned long *val)
  {
  	u8 regaddr = chip->recalc_addr(chip, reg, 0);
-@@ -493,10 +495,14 @@ static int pca953x_write_regs(struct pca953x_chip *chip, int reg, unsigned long
+@@ -491,10 +493,14 @@ static int pca953x_write_regs(struct pca953x_chip *chip, int reg, unsigned long
  
  	ret = regmap_bulk_write(chip->regmap, regaddr, value, NBANK(chip));
  	if (ret < 0) {
@@ -39,7 +40,7 @@ index 5d64a02ff9af..3b85bb9b3ffd 100644
  	return 0;
  }
  
-@@ -507,9 +513,15 @@ static int pca953x_read_regs(struct pca953x_chip *chip, int reg, unsigned long *
+@@ -505,9 +511,15 @@ static int pca953x_read_regs(struct pca953x_chip *chip, int reg, unsigned long *
  	int i, ret;
  
  	ret = regmap_bulk_read(chip->regmap, regaddr, value, NBANK(chip));
@@ -58,7 +59,7 @@ index 5d64a02ff9af..3b85bb9b3ffd 100644
  	}
  
  	for (i = 0; i < NBANK(chip); i++)
-@@ -1306,10 +1318,12 @@ static int pca953x_resume(struct device *dev)
+@@ -1292,10 +1304,12 @@ static int pca953x_resume(struct device *dev)
  	int ret;
  
  	if (!atomic_read(&chip->wakeup_path)) {
@@ -75,7 +76,7 @@ index 5d64a02ff9af..3b85bb9b3ffd 100644
  		}
  	}
  
-@@ -1329,7 +1343,7 @@ static int pca953x_resume(struct device *dev)
+@@ -1315,7 +1329,7 @@ static int pca953x_resume(struct device *dev)
  		return ret;
  	}
  
@@ -84,7 +85,7 @@ index 5d64a02ff9af..3b85bb9b3ffd 100644
  }
  #endif
  
-@@ -1393,9 +1407,7 @@ static SIMPLE_DEV_PM_OPS(pca953x_pm_ops, pca953x_suspend, pca953x_resume);
+@@ -1380,9 +1394,7 @@ static SIMPLE_DEV_PM_OPS(pca953x_pm_ops, pca953x_suspend, pca953x_resume);
  static struct i2c_driver pca953x_driver = {
  	.driver = {
  		.name	= "pca953x",
@@ -95,5 +96,5 @@ index 5d64a02ff9af..3b85bb9b3ffd 100644
  		.acpi_match_table = pca953x_acpi_ids,
  	},
 -- 
-2.34.1
+2.25.1
 

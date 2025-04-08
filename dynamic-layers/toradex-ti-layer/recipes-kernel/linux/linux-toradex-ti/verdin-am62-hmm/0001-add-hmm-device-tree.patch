@@ -1,8 +1,7 @@
-From 087b6c039ca0bd98dabdbff3eaf9df629984c21f Mon Sep 17 00:00:00 2001
+From 1e2eeb6fd8304f3874151c2c416250c19044dada Mon Sep 17 00:00:00 2001
 From: OpenEmbedded <oe.patch@oe>
-Date: Tue, 21 Jan 2025 16:30:21 +0000
-Subject: [PATCH 1/1] hmm: device tree V.7 for kernel 6.1
-
+Date: Tue, 8 Apr 2025 14:21:49 +0000
+Subject: [PATCH 1/1] Device tree for V9 kernel 6.6
 v1. Add our customization based on k3-am62-verdin-dev.
 We have removed or disabled interfaces that we will not use( like sound, gpio-keys and eth2)
 and add i2c handling, USB otg, digital in/out and som minor configuration changes.
@@ -29,11 +28,17 @@ v6. Enable CTRL_WAKE1_MICO for wake on CAN.
 v6.1. Change heartbeat LED to LED 1 to indicate stable release.
 
 v7. Add accelerometer node, introduce i2c bus for mcu
+
+V8. Adapt this patch to kernel 6.6
+
+V9. fix mcu_m4fss node enable (6.6 disable default). This starts the dev/rpmsg_ctrl0
+    fix correct Accelerometer INT1 IO and VDDIO regulator and dummy regulator for VDD.
+
 ---
  arch/arm64/boot/dts/ti/Makefile               |   1 +
- .../arm64/boot/dts/ti/k3-am62-verdin-hmm.dtsi | 635 ++++++++++++++++++
- .../boot/dts/ti/k3-am625-verdin-wifi-hmm.dts  |  73 ++
- 3 files changed, 709 insertions(+)
+ .../arm64/boot/dts/ti/k3-am62-verdin-hmm.dtsi | 637 ++++++++++++++++++
+ .../boot/dts/ti/k3-am625-verdin-wifi-hmm.dts  |  74 ++
+ 3 files changed, 712 insertions(+)
  create mode 100644 arch/arm64/boot/dts/ti/k3-am62-verdin-hmm.dtsi
  create mode 100644 arch/arm64/boot/dts/ti/k3-am625-verdin-wifi-hmm.dts
 
@@ -51,10 +56,10 @@ index 028c924bfa2c..3541d71e9632 100644
 
 diff --git a/arch/arm64/boot/dts/ti/k3-am62-verdin-hmm.dtsi b/arch/arm64/boot/dts/ti/k3-am62-verdin-hmm.dtsi
 new file mode 100644
-index 000000000000..3639377fbae3
+index 000000000000..f060b313e2fe
 --- /dev/null
 +++ b/arch/arm64/boot/dts/ti/k3-am62-verdin-hmm.dtsi
-@@ -0,0 +1,635 @@
+@@ -0,0 +1,637 @@
 +// SPDX-License-Identifier: GPL-2.0-or-later OR MIT
 +/*
 + * Copyright 2023 Toradex
@@ -270,9 +275,11 @@ index 000000000000..3639377fbae3
 +		reg = <0x1e>;
 +		st,drdy-int-pin = <1>; /*Not working but set manually data ready 'i2cset -f -y 3 0x1e 0x22 1'*/
 +		interrupt-parent = <&mcu_gpio0>;
-+		interrupts = <2 IRQ_TYPE_EDGE_RISING>;
++		interrupts = <3 IRQ_TYPE_EDGE_RISING>;
 +		wakeup-source;
 +		interrupt-names = "INT1";
++		vdd-supply = <&reg_3v3>; /*dummy regulator sodim 3.3V input*/
++		vddio-supply = <&reg_1v8>;
 +		status = "okay";
 +	};
 +};
@@ -692,10 +699,10 @@ index 000000000000..3639377fbae3
 +};
 diff --git a/arch/arm64/boot/dts/ti/k3-am625-verdin-wifi-hmm.dts b/arch/arm64/boot/dts/ti/k3-am625-verdin-wifi-hmm.dts
 new file mode 100644
-index 000000000000..65fbb517c1a8
+index 000000000000..8d5939918760
 --- /dev/null
 +++ b/arch/arm64/boot/dts/ti/k3-am625-verdin-wifi-hmm.dts
-@@ -0,0 +1,73 @@
+@@ -0,0 +1,74 @@
 +/*
 + * SPDX-License-Identifier: GPL-2.0-or-later OR MIT
 + *
@@ -763,6 +770,7 @@ index 000000000000..65fbb517c1a8
 +       mboxes = <&mailbox0_cluster0 &mbox_m4_0>;
 +       memory-region = <&mcu_m4fss_dma_memory_region>,
 +                       <&mcu_m4fss_memory_region>;
++       status = "okay";
 +};
 +
 +/* Verdin UART_4 (m4 or TBD not connected)*/
@@ -770,6 +778,6 @@ index 000000000000..65fbb517c1a8
 +        status = "reserved";
 +};
 \ No newline at end of file
---
-2.25.1
+-- 
+2.44.1
 

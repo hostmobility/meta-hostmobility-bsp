@@ -31,8 +31,8 @@ v7. Add accelerometer node, introduce i2c bus for mcu
 
 V8. Adapt this patch to kernel 6.6
 
-V9. fix mcu_m4fss node enable (6.6 disable default). This starts the dev/rpmsg_ctrl0
-    fix correct Accelerometer INT1 IO and VDDIO regulator and dummy regulator for VDD.
+V9. Set mcu_m4fss node enable (6.6 disables by default). This starts /dev/rpmsg_ctrl0
+    Set Accelerometer INT1 IO and VDDIO regulator as well as a dummy regulator for VDD.
 
 ---
  arch/arm64/boot/dts/ti/Makefile               |   1 +

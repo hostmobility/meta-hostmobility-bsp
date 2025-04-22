@@ -44,6 +44,9 @@ MACHINE_EXTRA_RDEPENDS:append = " \
     cryptodev-module \
     cryptodev-tests \
     libubootenv \
+    gpio-modem-controller \
+    gpio_overlay \
+    mxv_cocpu_driver \
 "
 
 IMAGE_INSTALL:append = " \

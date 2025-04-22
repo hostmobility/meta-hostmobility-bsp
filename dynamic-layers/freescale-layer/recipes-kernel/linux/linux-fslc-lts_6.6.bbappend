@@ -5,9 +5,8 @@ FILESEXTRAPATHS:prepend := "${THISDIR}/linux-mobility-imx:"
 
 SRC_URI:append:mx5-pt= " \
     file://mxv_delta_imx_v7_defconfig.cfg \
-    file://0006-Add-device-tree-for-mx5-pt.patch \
-    file://0007-imx6qdl-mx-v-hdmi-display-dtsi-file-for-fsl-imx-linux.patch \
-    file://0002-Add-support-on-USB-for-EG25-modem.patch \
+    file://0006-Add-device-tree-for-mxv-pt.patch \
+    file://0007-imx6qdl-mx-v-hdmi-display-dtsi-file-for-fslc-imx-linux.patch \
 "
 
 # Note defconfig file for Mxv-pt it will use sources/meta-freescale/recipes-kernel/linux/linux-imx/imx-nxp-bsp/defconfig

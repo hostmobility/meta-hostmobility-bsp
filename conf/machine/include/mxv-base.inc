@@ -59,3 +59,6 @@ KERNEL_MODULE_AUTOLOAD += "cryptodev"
 #BBMASK += "recipes-kernel/kernel-modules/kernel-module-imx-gpu-viv"
 
 BBMASK:imx-mainline-bsp = "meta-imx/"
+
+UBOOT_CONFIG[sd-optee] = ""
+UBOOT_CONFIG[sata]     = ""

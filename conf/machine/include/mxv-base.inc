@@ -6,8 +6,8 @@ include conf/machine/include/imx-base.inc
 require conf/machine/include/arm/armv7a/tune-cortexa9.inc
 
 KERNEL_IMAGETYPE = "zImage"
-PREFERRED_PROVIDER_virtual/kernel ?= "linux-mobility-imx"
-PREFERRED_PROVIDER_virtual/kernel:mainline = "linux-mobility-imx"
+PREFERRED_PROVIDER_virtual/kernel ?= "linux-fslc-lts"
+PREFERRED_PROVIDER_virtual/kernel:mainline = "linux-fslc-lts"
 PREFERRED_PROVIDER_virtual/kernel:imx-nxp-bsp = "linux-imx"
 
 # We store kernel on seperate MTD partition so no need to deploy to rootfs.

@@ -46,7 +46,7 @@ MACHINE_EXTRA_RDEPENDS:append = " \
     libubootenv \
     gpio-modem-controller \
     gpio_overlay \
-    mxv_cocpu_driver \
+    mxv-cocpu-driver \
 "
 
 IMAGE_INSTALL:append = " \

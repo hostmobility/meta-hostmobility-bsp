@@ -2,8 +2,8 @@ SUMMARY = "Host watchdog driver"
 DESCRIPTION = "${SUMMARY} for Host Monitor Platforms"
 LICENSE = "GPL-2.0-or-later"
 LIC_FILES_CHKSUM = "file://COPYING;md5=65dd37ccb3e888dc57e47d925b80b38a"
-SRCREV = "77e23ed39b22830fd663c081980311234c07fd78"
-SRCBRANCH = "main"
+SRCREV = "285ec663e231c846c5e1177d7a22dc262a9c6f01"
+SRCBRANCH = "fix-mxv-driver-build-6.6-kernel-fslc"
 
 inherit module
 DEPENDS += "virtual/kernel"

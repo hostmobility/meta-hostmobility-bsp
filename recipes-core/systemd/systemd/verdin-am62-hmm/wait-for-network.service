@@ -1,0 +1,12 @@
+#  SPDX-License-Identifier: LGPL-2.1-or-later
+
+[Unit]
+Description=Wait for network
+Before=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sleep 6
+
+[Install]
+WantedBy=network.target

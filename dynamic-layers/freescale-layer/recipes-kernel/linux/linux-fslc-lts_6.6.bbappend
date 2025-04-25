@@ -15,3 +15,5 @@ SRC_URI:append:mx5-pt= " \
 
 unset KBUILD_DEFCONFIG
 DELTA_KERNEL_DEFCONFIG:mx5-pt = "mxv_delta_imx_v7_defconfig.cfg"
+
+KBUILD_DEFCONFIG:mx6-generic-bsp = "imx_v6_v7_defconfig"

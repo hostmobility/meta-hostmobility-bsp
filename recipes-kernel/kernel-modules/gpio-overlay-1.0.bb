@@ -2,7 +2,7 @@ SUMMARY = "gpio overlay"
 DESCRIPTION = "${SUMMARY} for Mobility MXV"
 LICENSE = "GPL-2.0-or-later"
 LIC_FILES_CHKSUM = "file://COPYING;md5=65dd37ccb3e888dc57e47d925b80b38a"
-SRCREV = "978cfb6eda18a108746b4bcce8aba800ed90fd5a"
+SRCREV = "62346c8bd3180f88962cf05a170a1d20006111fa"
 SRCBRANCH = "main"
 
 inherit module

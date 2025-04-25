@@ -12,6 +12,6 @@ S = "${WORKDIR}/git/drivers/platform/mx5pt_cocpu_driver"
 
 SRC_URI = "git://git@github.com/hostmobility/hm-commercial.git;protocol=ssh;branch=${SRCBRANCH}"
 
-RPROVIDES:${PN} += "mx5-driver"
+RPROVIDES:${PN} += "mxv-cocpu-driver"
 
 KERNEL_MODULE_AUTOLOAD += "mx5-driver"

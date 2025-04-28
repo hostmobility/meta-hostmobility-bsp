@@ -1,20 +1,19 @@
-From 54a20a629ca168ad17165de947da3ea2f9b25c8c Mon Sep 17 00:00:00 2001
-From: OpenEmbedded <oe.patch@oe>
-Date: Tue, 22 Apr 2025 13:11:06 +0000
-Subject: [PATCH 2/2] add imx6qdl mx-v hdmi display dtsi file for
- fslc-imx-linux
+From 2563472e15bfd221ed60375b218bfae489114be1 Mon Sep 17 00:00:00 2001
+From: Rikardo-hm <rikard.olander@hostmobility.com>
+Date: Mon, 28 Apr 2025 08:42:21 +0000
+Subject: [PATCH 2/2] display-fix
 
 ---
- .../nxp/imx/imx6qdl-mx-v-hdmi-display.dtsi    | 106 ++++++++++++++++++
- 1 file changed, 106 insertions(+)
+ .../nxp/imx/imx6qdl-mx-v-hdmi-display.dtsi    | 122 ++++++++++++++++++
+ 1 file changed, 122 insertions(+)
  create mode 100644 arch/arm/boot/dts/nxp/imx/imx6qdl-mx-v-hdmi-display.dtsi
 
 diff --git a/arch/arm/boot/dts/nxp/imx/imx6qdl-mx-v-hdmi-display.dtsi b/arch/arm/boot/dts/nxp/imx/imx6qdl-mx-v-hdmi-display.dtsi
 new file mode 100644
-index 000000000000..0a5c530c3bed
+index 000000000000..44ea31322c20
 --- /dev/null
 +++ b/arch/arm/boot/dts/nxp/imx/imx6qdl-mx-v-hdmi-display.dtsi
-@@ -0,0 +1,106 @@
+@@ -0,0 +1,122 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +//
 +// Copyright 2012 Freescale Semiconductor, Inc.
@@ -33,7 +32,7 @@ index 000000000000..0a5c530c3bed
 +		compatible = "fsl,imx6q-audio-hdmi",
 +				"fsl,imx-audio-hdmi";
 +		model = "imx-audio-hdmi";
-+		hdmi-controller = <&hdmi>;
++		hdmi-controller = <&hdmi_audio>;
 +	};
 +
 +	mxcfb1: fb@0 {
@@ -82,7 +81,23 @@ index 000000000000..0a5c530c3bed
 +	status = "okay";
 +};
 +
-+&hdmi {
++&hdmi_audio {
++	status = "okay";
++};
++
++&hdmi_cec {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_hdmi_cec>;
++	status = "disabled"; // dvi-connector does not have this signal
++};
++
++&hdmi_core {
++	ipu_id = <0>;
++	disp_id = <0>;
++	status = "okay";
++};
++
++&hdmi_video {
 +	fsl,phy_reg_vlev = <0x294>;
 +	fsl,phy_reg_cksymtx = <0x800d>;
 +	HDMI-supply = <&reg_hdmi>;

@@ -6,9 +6,9 @@ include conf/machine/include/imx-base.inc
 require conf/machine/include/arm/armv7a/tune-cortexa9.inc
 
 KERNEL_IMAGETYPE = "zImage"
-PREFERRED_PROVIDER_virtual/kernel ?= "linux-fslc-lts"
-PREFERRED_PROVIDER_virtual/kernel:mainline = "linux-fslc-lts"
-PREFERRED_PROVIDER_virtual/kernel:imx-nxp-bsp = "linux-imx"
+PREFERRED_PROVIDER_virtual/kernel ?= "linux-fslc-imx"
+PREFERRED_PROVIDER_virtual/kernel:mainline = "linux-fslc-imx"
+PREFERRED_PROVIDER_virtual/kernel:imx-nxp-bsp = "linux-fslc-imx"
 
 # We store kernel on seperate MTD partition so no need to deploy to rootfs.
 RDEPENDS:${KERNEL_PACKAGE_NAME}-base = ""
@@ -59,6 +59,7 @@ KERNEL_MODULE_AUTOLOAD += "cryptodev"
 #BBMASK += "recipes-kernel/kernel-modules/kernel-module-imx-gpu-viv"
 
 BBMASK:imx-mainline-bsp = "meta-imx/"
+BBMASK = "meta-imx/"
 
 UBOOT_CONFIG[sd-optee] = ""
 UBOOT_CONFIG[sata]     = ""

@@ -1627,8 +1627,8 @@ index 000000000000..16f5e0605f9a
 +/dts-v1/;
 +
 +#include "imx6qp.dtsi"
-+#include "imx6qdl-mx-v.dtsi"
-+#include "imx6qdl-mx-v-hdmi-display.dtsi"
++#include "imx6qp-mx-v.dtsi"
++#include "imx6qp-mx-v-hdmi-display.dtsi"
 +
 +/ {
 +	model = "Host Mobility MX5 i.MX6 Quad Plus Device Board";

@@ -1,5 +1,6 @@
 [Unit]
 Description=Legacy Network Names Service
+After=network-pre.target
 
 [Service]
 ExecStart=/opt/hm/hm-stable-names.sh

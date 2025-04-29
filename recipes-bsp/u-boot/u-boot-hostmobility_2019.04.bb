@@ -8,7 +8,14 @@ DEFAULT_PREFERENCE_mx6 = "1"
 DESCRIPTION = "i.MX U-Boot supporting Host Mobility MX-5 boards"
 require recipes-bsp/u-boot/u-boot.inc
 
-DEPENDS += "flex-native bison-native bc-native dtc-native"
+DEPENDS += " \
+    bc-native \
+    bison-native \
+    dtc-native \
+    flex-native \
+    gnutls-native \
+    xxd-native \
+"
 
 PROVIDES += "u-boot"
 
@@ -30,6 +37,7 @@ SRC_URI:append:mxv-base = " \
     file://0003-Add-mx5-uboot-and-spl-implementation.patch \
     file://0004-Modify-Makfile-and-kconfig-to-include-mx5-dtb-and-board-target.patch \
     file://0005-Let-U-Boot-know-that-MMC2-is-SD-card.patch \
+    file://0001-Remove-redundant-YYLOC-global-declaration.patch \
 " 
 
 S = "${WORKDIR}/git"

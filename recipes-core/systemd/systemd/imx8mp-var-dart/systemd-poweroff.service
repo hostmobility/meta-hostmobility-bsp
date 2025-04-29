@@ -13,8 +13,5 @@ Documentation=man:systemd-poweroff.service(8)
 DefaultDependencies=no
 Requires=shutdown.target umount.target final.target
 After=shutdown.target umount.target final.target
-# Using `systemctl --force halt` instead of `shutdown-force` is to avoid PMIC power off on HMX. The watchdog driver will trigger shutdown from the M core instead.
-
-[Service]
-Type=oneshot
-ExecStart=systemctl --force halt
+# Using halt-force instead of `shutdown-force` is to avoid PMIC poweroff-force
+SuccessAction=halt-force

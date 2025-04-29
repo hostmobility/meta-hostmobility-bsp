@@ -31,13 +31,14 @@ prepare_rename()
     fi
 }
 
+#get info :readlink -f /sys/class/net/can0
 
-prepare_rename $SOC_BASE/30800000.bus/3084*.spi/spi_master/spi*/spi*.0/net/* can0
-prepare_rename $SOC_BASE/30800000.bus/308d0000.can/net/*                     can1
-prepare_rename $SOC_BASE/30800000.bus/308c0000.can/net/*                     can2
-prepare_rename $SOC_BASE/30800000.bus/3084*.spi/spi_master/spi*/spi*.1/net/* can3
-prepare_rename $SOC_BASE/30800000.bus/3082*.spi/spi_master/spi*/spi*.2/net/* can4
-prepare_rename $SOC_BASE/30800000.bus/3082*.spi/spi_master/spi*/spi*.3/net/* can5
+prepare_rename $SOC_BASE/30800000.bus/30800000.spba-bus/30840000.spi/spi_master/spi*/spi*.0/net/*   can0
+prepare_rename $SOC_BASE/30800000.bus/30800000.spba-bus/308d0000.can/net/*                          can1
+prepare_rename $SOC_BASE/30800000.bus/30800000.spba-bus/308c0000.can/net/*                          can2
+prepare_rename $SOC_BASE/30800000.bus/30800000.spba-bus/30840000.spi/spi_master/spi*/spi*.1/net/*   can3
+prepare_rename $SOC_BASE/30800000.bus/30800000.spba-bus/30820000.spi/spi_master/spi*/spi*.2/net/*   can4
+prepare_rename $SOC_BASE/30800000.bus/30800000.spba-bus/30820000.spi/spi_master/spi*/spi*.3/net/*   can5
 
 # First T1
 prepare_rename $SOC_BASE/30800000.bus/30be0000.ethernet/net/* eth2

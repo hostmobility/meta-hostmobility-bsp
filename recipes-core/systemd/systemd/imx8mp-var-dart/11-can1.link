@@ -1,0 +1,5 @@
+[Match]
+Property=ID_PATH=platform-308d0000.can
+
+[Link]
+Name=can1

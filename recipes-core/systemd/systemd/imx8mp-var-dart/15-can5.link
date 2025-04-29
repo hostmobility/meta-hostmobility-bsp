@@ -1,0 +1,5 @@
+[Match]
+Property=ID_PATH=platform-30820000.spi-cs-3
+
+[Link]
+Name=can5

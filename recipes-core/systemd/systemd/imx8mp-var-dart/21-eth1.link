@@ -1,0 +1,5 @@
+[Match]
+Property=ID_PATH=platform-xhci-hcd.0.auto-usb-0:1.1:1.0
+
+[Link]
+Name=eth1

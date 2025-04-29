@@ -1,0 +1,5 @@
+[Match]
+Property=ID_PATH=platform-30bf0000.ethernet
+
+[Link]
+Name=eth3

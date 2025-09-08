@@ -1,7 +1,14 @@
 From 2b3d0ff4e4dd80a232a3da15491a9f5cb57fa457 Mon Sep 17 00:00:00 2001
 From: rikardo <rikard.olander@hostmobility.com>
 Date: Mon, 20 Feb 2023 14:08:05 +0000
-Subject: [PATCH 2/4] Add hmx eeprom read
+Subject: [PATCH 2/4] board: variscite: Add HMX EEPROM read support
+
+Add support for reading custom EEPROM on HMX board.
+This provides access to board-specific information including serial
+number, part number, and product configuration stored in the HMX EEPROM.
+
+The EEPROM uses I2C interface and contains factory-programmed board
+identification and configuration data.
 
 ---
  board/variscite/common/hmx_eeprom.c      | 114 +++++++++++++++++++++++

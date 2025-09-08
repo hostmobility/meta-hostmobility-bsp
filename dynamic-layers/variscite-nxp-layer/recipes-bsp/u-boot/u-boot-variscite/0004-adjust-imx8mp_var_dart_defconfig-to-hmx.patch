@@ -1,31 +1,45 @@
-From bb060647b2d1ba70796321faf5e438cf536bca05 Mon Sep 17 00:00:00 2001
-From: rikardo <rikard.olander@hostmobility.com>
-Date: Mon, 20 Feb 2023 14:19:41 +0000
-Subject: [PATCH 4/4] adjust-imx8mp_var_dart_defconfig-to-hmx
+From eb6041f1fb518ad90f481d2659e6af8410122868 Mon Sep 17 00:00:00 2001
+From: Andreas Ternstedt <a.ternstedt@setek.se>
+Date: Thu, 14 Aug 2025 16:22:40 +0200
+Subject: [PATCH 4/4] imx8mp-var-dart: Adjust defconfig for HMX hardware
 
- V1.
-Add CMD_ PCA953X (commands for gpio expander)
-Add USB ethernet generic driver
-V2.
-Change CONFIG_BOOTDELAY to 0
+Add HMX-specific configuration options to imx8mp_var_dart_defconfig:
+- Add CMD_PCA953X for GPIO expander commands
+- Add USB ethernet generic driver support
+- Change CONFIG_BOOTDELAY to 0 for faster boot
+
+Based on Variscite U-boot version: lf_v2024.04_6.6.52-2.2.0_var01
+
+Co-developed-by: rikardo <rikard.olander@hostmobility.com>
+Signed-off-by: Andreas Ternstedt <a.ternstedt@setek.se>
+
 ---
- configs/imx8mp_var_dart_defconfig | 6 ++++-
- 1 file changed, 4 insertions(+), 1 deletion(-)
+ configs/imx8mp_var_dart_defconfig | 9 +++++++--
+ 1 file changed, 7 insertions(+), 2 deletions(-)
 
 diff --git a/configs/imx8mp_var_dart_defconfig b/configs/imx8mp_var_dart_defconfig
-index 1b6274f439..4bac0c0b44 100644
+index a3d7f568a91..cb1933b5078 100644
 --- a/configs/imx8mp_var_dart_defconfig
 +++ b/configs/imx8mp_var_dart_defconfig
-@@ -34,7 +34,7 @@ CONFIG_SPL_LOAD_FIT=y
+@@ -37,7 +37,7 @@ CONFIG_SPL_LOAD_FIT=y
  CONFIG_LEGACY_IMAGE_FORMAT=y
- CONFIG_OF_BOARD_SETUP=y
- CONFIG_OF_SYSTEM_SETUP=y
+ CONFIG_SYS_BOOTM_LEN=0x2000000
+ CONFIG_DISTRO_DEFAULTS=y
 -CONFIG_BOOTDELAY=1
 +CONFIG_BOOTDELAY=0
+ CONFIG_OF_BOARD_SETUP=y
+ CONFIG_OF_SYSTEM_SETUP=y
  CONFIG_BOOTCOMMAND="run bsp_bootcmd"
- CONFIG_DEFAULT_FDT_FILE="imx8mp-var-dart-dt8mcustomboard.dtb"
- CONFIG_BOARD_EARLY_INIT_F=y
-@@ -103,6 +103,7 @@ CONFIG_FASTBOOT_BUF_SIZE=0x40000000
+@@ -97,7 +97,7 @@ CONFIG_ENV_IS_IN_MMC=y
+ CONFIG_SYS_RELOC_GD_ENV_ADDR=y
+ CONFIG_SYS_MMC_ENV_DEV=1
+ CONFIG_USE_ETHPRIME=y
+-CONFIG_ETHPRIME="eth0"
++CONFIG_ETHPRIME="eth2"
+ CONFIG_NET_RANDOM_ETHADDR=y
+ CONFIG_SPL_DM=y
+ CONFIG_REGMAP=y
+@@ -116,6 +116,7 @@ CONFIG_FASTBOOT_BUF_SIZE=0x40000000
  CONFIG_FASTBOOT_FLASH=y
  CONFIG_GPIO_HOG=y
  CONFIG_MXC_GPIO=y
@@ -33,15 +47,15 @@ index 1b6274f439..4bac0c0b44 100644
  CONFIG_DM_PCA953X=y
  CONFIG_DM_I2C=y
  # CONFIG_SPL_DM_I2C is not set
-@@ -148,10 +149,14 @@ CONFIG_USB=y
+@@ -169,10 +170,14 @@ CONFIG_USB=y
  CONFIG_USB_XHCI_HCD=y
  CONFIG_USB_XHCI_DWC3=y
  CONFIG_USB_DWC3=y
 +CONFIG_USB_HOST_ETHER=y
  CONFIG_USB_GADGET=y
  CONFIG_USB_GADGET_MANUFACTURER="Variscite"
- CONFIG_USB_GADGET_VENDOR_NUM=0x0525
- CONFIG_USB_GADGET_PRODUCT_NUM=0xa4a5
+ CONFIG_USB_GADGET_VENDOR_NUM=0x1fc9
+ CONFIG_USB_GADGET_PRODUCT_NUM=0x0152
 +CONFIG_USB_ETHER=y
 +CONFIG_IMX_WATCHDOG=y
 +CONFIG_WDT=y

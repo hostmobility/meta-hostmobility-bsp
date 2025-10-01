@@ -1,0 +1,2 @@
+# Trigger rename script when tmp_ interfaces are created
+SUBSYSTEM=="net", KERNEL=="tmp_*", RUN+="/opt/hm/hm-rename-interface.sh %k"

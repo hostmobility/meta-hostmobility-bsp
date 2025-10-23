@@ -3,7 +3,7 @@ From: Andreas Ternstedt <a.ternstedt@setek.se>
 Date: Tue, 26 Aug 2025 14:09:04 +0200
 Subject: [PATCH 1/1] arm64: dts: freescale: Add HMX device tree for kernel 6.6
 
-Add complete device tree for HMX board based on Variscite 
+Add complete device tree for HMX board based on Variscite
 DART-MX8M-PLUS SoM. This consolidates all HMX-specific
 hardware configurations into a single device tree file.
 
@@ -40,7 +40,8 @@ Signed-off-by: Andreas Ternstedt <a.ternstedt@setek.se>
 
 Notes:
     Consolidated patches history:
-    
+
+    v21: Correct register for ethernet controllers
     v20:  - Adapted patch for Variscite U-boot lf_v2024.04_6.6.52-2.2.0_var01
           - Define memory allocation
           - Delete sound-wm8904
@@ -102,14 +103,16 @@ index ae88ecfee4c3..edf0ad985149 100644
  dtb-$(CONFIG_ARCH_MXC) += imx8mp-var-dart-1.x-dt8mcustomboard-basler-isi0-m7.dtb
  dtb-$(CONFIG_ARCH_MXC) += imx8mp-var-dart-1.x-dt8mcustomboard-basler-isi0.dtb
 
+ .../dts/freescale/imx8mp-var-dart-hmx1.dts    | 1266 +++++++++++++++++
+ 1 file changed, 1266 insertions(+)
  create mode 100644 arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts
 
 diff --git a/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts b/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts
 new file mode 100644
-index 000000000000..29c96209122b
+index 000000000000..e4369f920b7b
 --- /dev/null
 +++ b/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts
-@@ -0,0 +1,1296 @@
+@@ -0,0 +1,1266 @@
 +// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 +/*
 + * Copyright 2022, 2023, 2024 Host Mobility AB
@@ -148,13 +151,9 @@ index 000000000000..29c96209122b
 +		product-number = "hm010";
 +	};
 +
-+	memory@40000000 {
-+		device_type = "memory";
-+		reg = <0x0 0x40000000 0x0 0xc0000000>,    /* 3GB: 0x40000000-0xFFFFFFFF */
-+			<0x1 0x00000000 0x0 0x40000000>;    /* 1GB: 0x100000000-0x13FFFFFFF */
-+	};
-+
++	// Remove unused nodes
 +	/delete-node/ sound-wm8904;
++	/delete-node/ display-subsystem;
 +
 +	host_watchdog {
 +		compatible = "host_watchdog";
@@ -454,63 +453,37 @@ index 000000000000..29c96209122b
 +&fec {
 +	pinctrl-names = "default";
 +	pinctrl-0 = <&pinctrl_fec>;
-+	phy-mode = "rgmii-rxid";
-+	//phy-handle = <&ethphy_t1_1>;
++	phy-mode = "rgmii-id";
++	phy-handle = <&ethphy_fec>;
 +	status = "okay";
-+	//phy-reset-gpios = <&gpio3 1 GPIO_ACTIVE_HIGH>;
-+	fixed-link {
-+		speed = <1000>;
-+		full-duplex;
-+	};
++
 +	mdio {
 +		#address-cells = <1>;
 +		#size-cells = <0>;
-+		/* try with fixed link
-+		ethphy_t1_1: ethernet-phy@0 {
-+			// trying med clause 22 instead of clause 45
-+			// qqq: check what happens now compatible = "ethernet-phy-ieee802.3-c45";
-+			//compatible = "marvell";
++
++		// Generic PHY driver will attach to the marvell,88q2xxx
++		ethphy_fec: ethernet-phy@3 {
 +			compatible = "ethernet-phy-ieee802.3-c45";
 +			reg = <3>;
-+			//reset-gpios = <&gpio3 1 GPIO_ACTIVE_HIGH>;
-+			at803x,eee-disabled;
-+			eee-broken-1000t;
-+			reset-assert-us = <10000>;
-+			reset-deassert-us = <20000>;
-+			vddio-supply = <&vddio1>;
-+
-+			vddio1: vddio-regulator {
-+				regulator-min-microvolt = <1800000>;
-+				regulator-max-microvolt = <1800000>;
-+			};
++			max-speed = <1000>;
 +		};
-+		*/
-+		ethphy_t1_2: ethernet-phy@1 {
-+			// trying med clause 22 instead of clause 45
++
++		ethphy_eqos: ethernet-phy@7 {
 +			compatible = "ethernet-phy-ieee802.3-c45";
 +			reg = <7>;
++			max-speed = <1000>;
 +		};
 +	};
 +};
 +
 +/* Second Automotive Ethernet Marvell 88Q2110*/
 +&eqos {
-+	phy-mode = "rgmii-rxid";
-+	phy-handle = <&ethphy_t1_2>;
-+	fixed-link {
-+		speed = <1000>;
-+		full-duplex;
-+	};
-+	/* MAYBE NOT DISABLE mdio {
-+		status = "disabled";
-+	};
-+	*/
-+};
++	phy-mode = "rgmii-id";
++	phy-handle = <&ethphy_eqos>;
++	status = "okay";
 +
-+&i2c1 {
-+	wm8904: codec@1a { 
-+		status = "disabled";
-+	};
++	// Remove onboard Ethernet PHY (EC configuration)
++	/delete-node/ mdio;
 +};
 +
 +&i2c2 {
@@ -901,9 +874,9 @@ index 000000000000..29c96209122b
 +	regulator-max-microvolt = <1800000>;
 +};
 +
-+/* BT disabled not populated */
-+&uart4 {
-+       status = "disabled";
++// Remove onboard Audio Codec (AC configuration)
++&wm8904 {
++	status = "disabled";
 +};
 +
 +/* Disable sound since pins are used by accelerometer and HSM */
@@ -953,8 +926,8 @@ index 000000000000..29c96209122b
 +	/* 0x90 = Schmitt-trigger, fast slew-rate, 0x2 = Drive strength 4 (DSE_X4) */
 +	pinctrl_fec: fecgrp {
 +		fsl,pins = <
-+			MX8MP_IOMUXC_SAI1_RXD2__ENET1_MDC				0x2
-+			MX8MP_IOMUXC_SAI1_RXD3__ENET1_MDIO				0x2
++			MX8MP_IOMUXC_SAI1_RXD2__ENET1_MDC				0x3
++			MX8MP_IOMUXC_SAI1_RXD3__ENET1_MDIO				0x3
 +			MX8MP_IOMUXC_SAI1_RXD4__ENET1_RGMII_RD0				0x90
 +			MX8MP_IOMUXC_SAI1_RXD5__ENET1_RGMII_RD1				0x90
 +			MX8MP_IOMUXC_SAI1_RXD6__ENET1_RGMII_RD2				0x90
@@ -1406,6 +1379,5 @@ index 000000000000..29c96209122b
 +		pinctrl-0 = <&pinctrl_can_rst_extern>;
 +	};
 +};
--- 
+--
 2.34.1
-

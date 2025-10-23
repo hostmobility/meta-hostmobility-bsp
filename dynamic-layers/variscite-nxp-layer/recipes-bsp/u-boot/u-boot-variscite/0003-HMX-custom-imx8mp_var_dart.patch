@@ -235,8 +235,11 @@ index 17fadec5cfb..c8df98576bc 100644
  	} else if (board_id == BOARD_ID_SOM) {
  		imx_iomux_v3_setup_multiple_pads(uart_pads_som,
  			ARRAY_SIZE(uart_pads_som));
+ include/configs/imx8mp_var_dart.h | 37 ++++++++++++++++++++-----------
+ 1 file changed, 24 insertions(+), 13 deletions(-)
+
 diff --git a/include/configs/imx8mp_var_dart.h b/include/configs/imx8mp_var_dart.h
-index 40cb11d350a..853f0c545aa 100644
+index 848d74852ff..9add715caed 100644
 --- a/include/configs/imx8mp_var_dart.h
 +++ b/include/configs/imx8mp_var_dart.h
 @@ -56,11 +56,11 @@
@@ -270,7 +273,12 @@ index 40cb11d350a..853f0c545aa 100644
  				"cp.b ${loadaddr} ${m7_addr} ${filesize}; " \
  				"echo Init rsc_table region memory; " \
  				"mw.b 400ff000 0 10\0" \
-@@ -118,7 +118,7 @@
+@@ -114,11 +114,11 @@
+ 				"fi; " \
+ 			"else " \
+ 				"if test ${som_rev} -lt 2; then " \
+-					"setenv fdt_file imx8mp-var-dart-1.x-dt8mcustomboard.dtb; " \
++					"setenv fdt_file imx8mp-var-dart-1.x-hmx1.dtb; " \
  				"elif test ${som_has_wbe} = 1; then " \
  					"setenv fdt_file imx8mp-var-dart-wbe-dt8mcustomboard.dtb; " \
  				"else " \
@@ -279,7 +287,7 @@ index 40cb11d350a..853f0c545aa 100644
  				"fi; " \
  			"fi; " \
  		"fi; \0" \
-@@ -171,23 +171,34 @@
+@@ -170,23 +170,34 @@
  				"echo WARN: Cannot load the DT; " \
  			"fi; " \
  		"fi;\0" \
@@ -318,7 +326,7 @@ index 40cb11d350a..853f0c545aa 100644
  				"if run loadimage; then " \
  					"run mmcboot; " \
  				"else " \
-@@ -206,7 +217,7 @@
+@@ -205,7 +216,7 @@
  #define PHYS_SDRAM			0x40000000
  #define DEFAULT_SDRAM_SIZE		(512 * SZ_1M)
  

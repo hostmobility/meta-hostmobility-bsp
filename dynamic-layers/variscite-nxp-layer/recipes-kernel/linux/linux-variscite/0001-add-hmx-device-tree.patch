@@ -70,9 +70,38 @@ Notes:
     v2:  Add HMX EEPROM BR24G04NUX, T1 PHY wake pulldown
     v1:  Initial consolidation of separate patches
 
+ arch/arm64/boot/dts/freescale/Makefile | 3 +++
+ 1 file changed, 3 insertions(+)
 
- .../dts/freescale/imx8mp-var-dart-hmx1.dts    | 1293 +++++++++++++++++
- 1 file changed, 1293 insertions(+)
+diff --git a/arch/arm64/boot/dts/freescale/Makefile b/arch/arm64/boot/dts/freescale/Makefile
+index ae88ecfee4c3..edf0ad985149 100644
+--- a/arch/arm64/boot/dts/freescale/Makefile
++++ b/arch/arm64/boot/dts/freescale/Makefile
+@@ -164,6 +164,7 @@ dtb-$(CONFIG_ARCH_MXC) += imx8mp-evk.dtb imx8mp-evk-rm67191.dtb imx8mp-evk-it626
+ 			  imx8mp-evk-usdhc1-m2.dtb imx8mp-evk-rm67199.dtb \
+ 			  imx8mp-evk-dpdk.dtb imx8mp-evk-8mic-swpdm.dtb imx8mp-evk-rpmsg-lpv.dtb imx8mp-evk-revA3-8mic-revE.dtb
+
++dtb-$(CONFIG_ARCH_MXC) += imx8mp-var-dart-hmx1.dtb
+ dtb-$(CONFIG_ARCH_MXC) += imx8mp-var-dart-dt8mcustomboard.dtb
+ dtb-$(CONFIG_ARCH_MXC) += imx8mp-var-dart-dt8mcustomboard-basler-isi0-m7.dtb
+ dtb-$(CONFIG_ARCH_MXC) += imx8mp-var-dart-dt8mcustomboard-basler-isi0.dtb
+@@ -171,6 +172,7 @@ dtb-$(CONFIG_ARCH_MXC) += imx8mp-var-dart-dt8mcustomboard-basler-isp0-m7.dtb
+ dtb-$(CONFIG_ARCH_MXC) += imx8mp-var-dart-dt8mcustomboard-basler-isp0.dtb
+ dtb-$(CONFIG_ARCH_MXC) += imx8mp-var-dart-dt8mcustomboard-m7.dtb
+
++imx8mp-var-dart-1.x-hmx1-dtbs := imx8mp-var-dart-hmx1.dtb imx8mp-var-dart-1.x.dtbo
+ imx8mp-var-dart-1.x-dt8mcustomboard-dtbs := imx8mp-var-dart-dt8mcustomboard.dtb imx8mp-var-dart-1.x.dtbo
+ imx8mp-var-dart-1.x-dt8mcustomboard-basler-isi0-m7-dtbs := imx8mp-var-dart-dt8mcustomboard-basler-isi0-m7.dtb imx8mp-var-dart-1.x.dtbo
+ imx8mp-var-dart-1.x-dt8mcustomboard-basler-isi0-dtbs := imx8mp-var-dart-dt8mcustomboard-basler-isi0.dtb imx8mp-var-dart-1.x.dtbo
+@@ -185,6 +187,7 @@ imx8mp-var-dart-wbe-dt8mcustomboard-basler-isp0-m7-dtbs := imx8mp-var-dart-dt8mc
+ imx8mp-var-dart-wbe-dt8mcustomboard-basler-isp0-dtbs := imx8mp-var-dart-dt8mcustomboard-basler-isp0.dtb imx8mp-var-dart-wbe.dtbo
+ imx8mp-var-dart-wbe-dt8mcustomboard-m7-dtbs := imx8mp-var-dart-dt8mcustomboard-m7.dtb imx8mp-var-dart-wbe.dtbo
+
++dtb-$(CONFIG_ARCH_MXC) += imx8mp-var-dart-1.x-hmx1.dtb
+ dtb-$(CONFIG_ARCH_MXC) += imx8mp-var-dart-1.x-dt8mcustomboard.dtb
+ dtb-$(CONFIG_ARCH_MXC) += imx8mp-var-dart-1.x-dt8mcustomboard-basler-isi0-m7.dtb
+ dtb-$(CONFIG_ARCH_MXC) += imx8mp-var-dart-1.x-dt8mcustomboard-basler-isi0.dtb
+
  create mode 100644 arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts
 
 diff --git a/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts b/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts

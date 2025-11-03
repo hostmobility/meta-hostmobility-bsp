@@ -37,18 +37,19 @@ Notes:
         - Updated U-Boot environment for HMX device tree
 
 ---
- .../dts/imx8mp-var-dart-dt8mcustomboard.dts   | 102 +++++++++---------
- 1 file changed, 53 insertions(+), 49 deletions(-)
+ .../dts/imx8mp-var-dart-dt8mcustomboard.dts   | 103 +++++++++---------
+ 1 file changed, 54 insertions(+), 49 deletions(-)
 
 diff --git a/arch/arm/dts/imx8mp-var-dart-dt8mcustomboard.dts b/arch/arm/dts/imx8mp-var-dart-dt8mcustomboard.dts
-index edb25d64cbb..5883414adb9 100644
+index edb25d64cbb..06b4c46fcd3 100644
 --- a/arch/arm/dts/imx8mp-var-dart-dt8mcustomboard.dts
 +++ b/arch/arm/dts/imx8mp-var-dart-dt8mcustomboard.dts
-@@ -2,20 +2,16 @@
+@@ -2,20 +2,17 @@
  /*
   * Copyright 2019 NXP
   * Copyright 2020-2025 Variscite Ltd.
-+ * Copyright 2025 Host Mobility AB.
++ * Copyright 2022-2024 Host Mobility AB.
++ * Copyright 2025 SETEK Systems AB
   */
  
  #include "imx8mp-var-dart.dtsi"
@@ -68,7 +69,7 @@ index edb25d64cbb..5883414adb9 100644
  	};
  
  	memory@40000000 {
-@@ -38,9 +34,20 @@
+@@ -38,9 +35,20 @@
  	};
  };
  
@@ -91,7 +92,7 @@ index edb25d64cbb..5883414adb9 100644
  	status = "okay";
  };
  
-@@ -60,6 +67,12 @@
+@@ -60,6 +68,12 @@
  		i2c-bus = <0x1>;
  		status = "okay";
  	};
@@ -104,7 +105,7 @@ index edb25d64cbb..5883414adb9 100644
  };
  
  &i2c3 {
-@@ -80,20 +93,6 @@
+@@ -80,20 +94,6 @@
  	scl-gpios = <&gpio5 20 GPIO_ACTIVE_HIGH>;
  	sda-gpios = <&gpio5 21 GPIO_ACTIVE_HIGH>;
  	status = "okay";
@@ -125,7 +126,7 @@ index edb25d64cbb..5883414adb9 100644
  };
  
  &usb3_phy0 {
-@@ -137,31 +136,7 @@
+@@ -137,31 +137,7 @@
  };
  
  &eqos {
@@ -158,7 +159,7 @@ index edb25d64cbb..5883414adb9 100644
  };
  
  &usdhc2 {
-@@ -176,6 +151,21 @@
+@@ -176,6 +152,21 @@
  	status = "okay";
  };
  
@@ -180,7 +181,7 @@ index edb25d64cbb..5883414adb9 100644
  &iomuxc {
  	pinctrl_uart1: uart1grp {
  		fsl,pins = <
-@@ -184,6 +174,13 @@
+@@ -184,6 +175,13 @@
  		>;
  	};
  
@@ -194,7 +195,7 @@ index edb25d64cbb..5883414adb9 100644
  	pinctrl_i2c2: i2c2grp {
  		fsl,pins = <
  			MX8MP_IOMUXC_I2C2_SCL__I2C2_SCL					0x400001c2
-@@ -226,6 +223,13 @@
+@@ -226,6 +224,13 @@
  		>;
  	};
  
@@ -208,7 +209,7 @@ index edb25d64cbb..5883414adb9 100644
  	pinctrl_reg_usdhc2_vmmc: regusdhc2vmmc {
  		fsl,pins = <
  			MX8MP_IOMUXC_SD2_RESET_B__GPIO2_IO19				0x40
-@@ -270,7 +274,7 @@
+@@ -270,7 +275,7 @@
  
  	pinctrl_usdhc2_gpio: usdhc2gpiogrp {
  		fsl,pins = <

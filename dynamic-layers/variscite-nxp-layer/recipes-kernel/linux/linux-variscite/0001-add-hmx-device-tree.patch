@@ -71,8 +71,10 @@ Notes:
     v2:  Add HMX EEPROM BR24G04NUX, T1 PHY wake pulldown
     v1:  Initial consolidation of separate patches
 
- arch/arm64/boot/dts/freescale/Makefile | 3 +++
- 1 file changed, 3 insertions(+)
+ arch/arm64/boot/dts/freescale/Makefile        |    3 +
+ .../dts/freescale/imx8mp-var-dart-hmx1.dts    | 1267 +++++++++++++++++
+ 2 files changed, 1270 insertions(+)
+ create mode 100644 arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts
 
 diff --git a/arch/arm64/boot/dts/freescale/Makefile b/arch/arm64/boot/dts/freescale/Makefile
 index ae88ecfee4c3..edf0ad985149 100644
@@ -81,7 +83,7 @@ index ae88ecfee4c3..edf0ad985149 100644
 @@ -164,6 +164,7 @@ dtb-$(CONFIG_ARCH_MXC) += imx8mp-evk.dtb imx8mp-evk-rm67191.dtb imx8mp-evk-it626
  			  imx8mp-evk-usdhc1-m2.dtb imx8mp-evk-rm67199.dtb \
  			  imx8mp-evk-dpdk.dtb imx8mp-evk-8mic-swpdm.dtb imx8mp-evk-rpmsg-lpv.dtb imx8mp-evk-revA3-8mic-revE.dtb
-
+ 
 +dtb-$(CONFIG_ARCH_MXC) += imx8mp-var-dart-hmx1.dtb
  dtb-$(CONFIG_ARCH_MXC) += imx8mp-var-dart-dt8mcustomboard.dtb
  dtb-$(CONFIG_ARCH_MXC) += imx8mp-var-dart-dt8mcustomboard-basler-isi0-m7.dtb
@@ -89,7 +91,7 @@ index ae88ecfee4c3..edf0ad985149 100644
 @@ -171,6 +172,7 @@ dtb-$(CONFIG_ARCH_MXC) += imx8mp-var-dart-dt8mcustomboard-basler-isp0-m7.dtb
  dtb-$(CONFIG_ARCH_MXC) += imx8mp-var-dart-dt8mcustomboard-basler-isp0.dtb
  dtb-$(CONFIG_ARCH_MXC) += imx8mp-var-dart-dt8mcustomboard-m7.dtb
-
+ 
 +imx8mp-var-dart-1.x-hmx1-dtbs := imx8mp-var-dart-hmx1.dtb imx8mp-var-dart-1.x.dtbo
  imx8mp-var-dart-1.x-dt8mcustomboard-dtbs := imx8mp-var-dart-dt8mcustomboard.dtb imx8mp-var-dart-1.x.dtbo
  imx8mp-var-dart-1.x-dt8mcustomboard-basler-isi0-m7-dtbs := imx8mp-var-dart-dt8mcustomboard-basler-isi0-m7.dtb imx8mp-var-dart-1.x.dtbo
@@ -97,25 +99,21 @@ index ae88ecfee4c3..edf0ad985149 100644
 @@ -185,6 +187,7 @@ imx8mp-var-dart-wbe-dt8mcustomboard-basler-isp0-m7-dtbs := imx8mp-var-dart-dt8mc
  imx8mp-var-dart-wbe-dt8mcustomboard-basler-isp0-dtbs := imx8mp-var-dart-dt8mcustomboard-basler-isp0.dtb imx8mp-var-dart-wbe.dtbo
  imx8mp-var-dart-wbe-dt8mcustomboard-m7-dtbs := imx8mp-var-dart-dt8mcustomboard-m7.dtb imx8mp-var-dart-wbe.dtbo
-
+ 
 +dtb-$(CONFIG_ARCH_MXC) += imx8mp-var-dart-1.x-hmx1.dtb
  dtb-$(CONFIG_ARCH_MXC) += imx8mp-var-dart-1.x-dt8mcustomboard.dtb
  dtb-$(CONFIG_ARCH_MXC) += imx8mp-var-dart-1.x-dt8mcustomboard-basler-isi0-m7.dtb
  dtb-$(CONFIG_ARCH_MXC) += imx8mp-var-dart-1.x-dt8mcustomboard-basler-isi0.dtb
-
- .../dts/freescale/imx8mp-var-dart-hmx1.dts    | 1266 +++++++++++++++++
- 1 file changed, 1266 insertions(+)
- create mode 100644 arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts
-
 diff --git a/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts b/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts
 new file mode 100644
-index 000000000000..e4369f920b7b
+index 000000000000..7416b979d417
 --- /dev/null
 +++ b/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts
-@@ -0,0 +1,1266 @@
+@@ -0,0 +1,1267 @@
 +// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 +/*
-+ * Copyright 2022, 2023, 2024 Host Mobility AB
++ * Copyright 2022-2024 Host Mobility AB
++ * Copyright 2024-2025 SETEK Systems AB
 + * Inspired by arch/arm64/boot/dts/freescale/imx8mp-var-dart-dt8mcustomboard.dts
 + */
 +
@@ -1379,5 +1377,6 @@ index 000000000000..e4369f920b7b
 +		pinctrl-0 = <&pinctrl_can_rst_extern>;
 +	};
 +};
---
+-- 
 2.34.1
+

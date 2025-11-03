@@ -1,0 +1,13 @@
+# Can interfaces
+SUBSYSTEM=="net", KERNELS=="spi3.0", NAME="tmp_can0"
+SUBSYSTEM=="net", KERNELS=="spi3.1", NAME="tmp_can3"
+SUBSYSTEM=="net", KERNELS=="spi1.2", NAME="tmp_can4"
+SUBSYSTEM=="net", KERNELS=="spi1.3", NAME="tmp_can5"
+SUBSYSTEM=="net", KERNELS=="308c0000.can", NAME="tmp_can2"
+SUBSYSTEM=="net", KERNELS=="308d0000.can", NAME="tmp_can1"
+
+# Ethernet interfaces
+SUBSYSTEM=="net", KERNELS=="30be0000.ethernet", NAME="tmp_eth2"
+SUBSYSTEM=="net", KERNELS=="30bf0000.ethernet", NAME="tmp_eth3"
+SUBSYSTEM=="net", KERNELS=="1-1.2.1:1.0", NAME="tmp_eth0"
+SUBSYSTEM=="net", KERNELS=="1-1.1:1.0", NAME="tmp_eth1"

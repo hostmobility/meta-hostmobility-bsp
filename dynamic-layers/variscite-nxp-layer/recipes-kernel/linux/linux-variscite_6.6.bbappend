@@ -19,11 +19,11 @@ file://0035-tcan4x5x-remove-msg-lost-in-rxf0-netdev_err.patch \
 #0037-HMX-tcan4x5x-enable-wakeup-when-interface-is-up.patch
 #0011 patch is work in progress does not build.
 
-SRCBRANCH = "lf-6.6.y_6.6.23-2.0.0_var01"
+SRCBRANCH = "lf-6.6.y_6.6.52-2.2.0_var01"
 SRC_URI = "${KERNEL_SRC};branch=${SRCBRANCH}"
-SRCREV = "283c30ddc9b5dde855899b9e02bed76e8f511e33"
+SRCREV = "bf1b1781e47b1388faaf8689bd7296b3a82b8316"
 
-LINUX_VERSION = "6.6.23"
+LINUX_VERSION = "6.6.52"
 LINUX_VERSION_EXTENSION = "-var-lts-next"
 
 COMPATIBLE_MACHINE = "(imx8mp-var-dart-hmx1)"

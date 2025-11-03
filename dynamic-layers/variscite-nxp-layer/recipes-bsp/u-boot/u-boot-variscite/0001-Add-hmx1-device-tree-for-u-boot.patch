@@ -1,35 +1,61 @@
-From fe13b93afce8d96b37a3a4618384d054f1e354cb Mon Sep 17 00:00:00 2001
-From: rikardo <rikard.olander@hostmobility.com>
-Date: Wed, 22 Feb 2023 07:28:59 +0000
-Subject: [PATCH 1/4] Add-hmx1-device-tree-for-u-boot
+From fd4923ac3c04dfcb0252cee6baea46a777d93b13 Mon Sep 17 00:00:00 2001
+From: Andreas Ternstedt <a.ternstedt@setek.se>
+Date: Thu, 14 Aug 2025 17:23:43 +0200
+Subject: [PATCH 1/4] arm: dts: Add HMX1 device tree for U-Boot
 
-v1.
-Change serial console
- port to uart3 Disable fec
+Add device tree for HMX1 board based on imx8mp-var-dart with
+HMX-specific hardware configuration:
+- Change serial console from UART1 to UART3
+- Disable EQOS & FEC ethernet
+- Enable USB hubs on boot with proper GPIO configuration
+- Add HMX EEPROM support
+- Fix SD card detection with correct pinctrl settings
 
- v2.
- Fix so usb hubs is actived on boot. Add eeprom
- support.
- Fix so sdcard can be detected (change pinctrl)
+Based on Variscite U-boot version: lf_v2024.04_6.6.52-2.2.0_var01
+
+Co-developed-by: rikardo <rikard.olander@hostmobility.com>
+Signed-off-by: Andreas Ternstedt <a.ternstedt@setek.se>
+
 ---
- .../dts/imx8mp-var-dart-dt8mcustomboard.dts   | 103 +++++++++++-------
- 1 file changed, 62 insertions(+), 41 deletions(-)
+
+Notes:
+	v6: Remove EQOS & FEC, no support of marvell 88q2xxx in Uboot
+    v5: Adapted patch for Variscite U-boot lf_v2024.04_6.6.52-2.2.0_var01
+    v4: - Changed co-cpu binary name
+        - Added DDR memory load for co-cpu
+        - Delayed M7 firmware loading until after flashing
+    v3: - Added product-number to device tree
+        - Added RGB LED controller register to device tree
+        - Added M7 co-processor support (hmx-m7-fw.bin)
+    v2: - Added HMX EEPROM environment variables
+        - Added serial/part numbers to device tree
+        - Added USB upgrade button support
+        - Changed BSP script to hmx_boot.scr
+        - Added RGB LED handling
+        - Added watchdog initialization
+    v1: - Changed UART1 to UART3
+        - Updated U-Boot environment for HMX device tree
+
+---
+ .../dts/imx8mp-var-dart-dt8mcustomboard.dts   | 103 +++++++++---------
+ 1 file changed, 54 insertions(+), 49 deletions(-)
 
 diff --git a/arch/arm/dts/imx8mp-var-dart-dt8mcustomboard.dts b/arch/arm/dts/imx8mp-var-dart-dt8mcustomboard.dts
-index 1d683d9344..9ee25a53df 100644
+index edb25d64cbb..06b4c46fcd3 100644
 --- a/arch/arm/dts/imx8mp-var-dart-dt8mcustomboard.dts
 +++ b/arch/arm/dts/imx8mp-var-dart-dt8mcustomboard.dts
-@@ -2,20 +2,16 @@
+@@ -2,20 +2,17 @@
  /*
   * Copyright 2019 NXP
-  * Copyright 2020-2022 Variscite Ltd.
-+ * Copyright 2022 Host Mobility AB.
+  * Copyright 2020-2025 Variscite Ltd.
++ * Copyright 2022-2024 Host Mobility AB.
++ * Copyright 2025 SETEK Systems AB
   */
  
  #include "imx8mp-var-dart.dtsi"
  
  / {
--	model = "Variscite DART-MX8M-PLUS on DT8MCustomBoard 2.0 and above";
+-	model = "Variscite DART-MX8M-PLUS v1.1 and higher on DT8MCustomBoard 2.0 and higher";
 -
 -	aliases {
 -		gpio5 = &pca6408_1;
@@ -43,10 +69,11 @@ index 1d683d9344..9ee25a53df 100644
  	};
  
  	memory@40000000 {
-@@ -37,10 +33,20 @@
- 		off-on-delay-us = <12000>;
+@@ -38,9 +35,20 @@
  	};
  };
+ 
+-&uart1 {
 +&gpio1 {
 +	usbhubs_pwr_hog {
 +		gpio-hog;
@@ -57,8 +84,7 @@ index 1d683d9344..9ee25a53df 100644
 +		pinctrl-names = "default";
 +	};
 +};
- 
--&uart1 {
++
 +&uart3 {
  	pinctrl-names = "default";
 -	pinctrl-0 = <&pinctrl_uart1>;
@@ -66,10 +92,11 @@ index 1d683d9344..9ee25a53df 100644
  	status = "okay";
  };
  
-@@ -60,6 +66,11 @@
+@@ -60,6 +68,12 @@
  		i2c-bus = <0x1>;
  		status = "okay";
  	};
++
 +	BR24G04NUX: eeprom@54 {
 +		compatible = "atmel,24c04";
 +		reg = <0x54>;
@@ -78,7 +105,7 @@ index 1d683d9344..9ee25a53df 100644
  };
  
  &i2c3 {
-@@ -80,27 +91,7 @@
+@@ -80,20 +94,6 @@
  	scl-gpios = <&gpio5 20 GPIO_ACTIVE_HIGH>;
  	sda-gpios = <&gpio5 21 GPIO_ACTIVE_HIGH>;
  	status = "okay";
@@ -95,19 +122,11 @@ index 1d683d9344..9ee25a53df 100644
 -		reg = <0x21>;
 -		gpio-controller;
 -		#gpio-cells = <2>;
--
--		eth1_phy_rst_hog {
--			gpio-hog;
--			gpios = <0 0>;
--			output-high;
--			line-name = "eth1_phy_rst";
--		};
 -	};
-+	
  };
  
  &usb3_phy0 {
-@@ -144,26 +135,27 @@
+@@ -137,31 +137,7 @@
  };
  
  &eqos {
@@ -116,36 +135,31 @@ index 1d683d9344..9ee25a53df 100644
 -			compatible = "ethernet-phy-ieee802.3-c22";
 -			reg = <1>;
 -			at803x,eee-disabled;
--			at803x,vddio-1p8v;
 -			eee-broken-1000t;
+-			reset-gpios = <&pca6408_2 0 GPIO_ACTIVE_LOW>;
+-			reset-assert-us = <10000>;
+-			reset-deassert-us = <20000>;
+-			vddio-supply = <&vddio1>;
+-
+-			vddio1: vddio-regulator {
+-				regulator-min-microvolt = <1800000>;
+-				regulator-max-microvolt = <1800000>;
+-			};
 -		};
 -	};
-+	status = "okay";
- };
- 
-+
- &fec {
- 	pinctrl-names = "default";
- 	pinctrl-0 = <&pinctrl_fec>;
- 	phy-mode = "rgmii";
- 	phy-handle = <&ethphy1>;
--	phy-reset-gpios = <&pca6408_2 0 GPIO_ACTIVE_LOW>;
- 	phy-reset-duration = <10>;
- 	phy-reset-post-delay = <20>;
- 	status = "okay";
-+	mdio {
-+		ethphy1: ethernet-phy@1 {
-+			compatible = "ethernet-phy-ieee802.3-c22";
-+			reg = <1>;
-+			at803x,eee-disabled;
-+			at803x,vddio-1p8v;
-+			eee-broken-1000t;
-+		};
-+	};
+-};
+-
+-&fec {
+-	pinctrl-names = "default";
+-	pinctrl-0 = <&pinctrl_fec>;
+-	phy-mode = "rgmii";
+-	phy-handle = <&ethphy1>;
+-	status = "okay";
++	status = "disabled";
  };
  
  &usdhc2 {
-@@ -178,6 +170,21 @@
+@@ -176,6 +152,21 @@
  	status = "okay";
  };
  
@@ -167,7 +181,7 @@ index 1d683d9344..9ee25a53df 100644
  &iomuxc {
  	pinctrl_uart1: uart1grp {
  		fsl,pins = <
-@@ -186,6 +193,13 @@
+@@ -184,6 +175,13 @@
  		>;
  	};
  
@@ -181,7 +195,7 @@ index 1d683d9344..9ee25a53df 100644
  	pinctrl_i2c2: i2c2grp {
  		fsl,pins = <
  			MX8MP_IOMUXC_I2C2_SCL__I2C2_SCL					0x400001c2
-@@ -228,6 +242,13 @@
+@@ -226,6 +224,13 @@
  		>;
  	};
  
@@ -195,7 +209,7 @@ index 1d683d9344..9ee25a53df 100644
  	pinctrl_reg_usdhc2_vmmc: regusdhc2vmmc {
  		fsl,pins = <
  			MX8MP_IOMUXC_SD2_RESET_B__GPIO2_IO19				0x40
-@@ -272,7 +293,7 @@
+@@ -270,7 +275,7 @@
  
  	pinctrl_usdhc2_gpio: usdhc2gpiogrp {
  		fsl,pins = <
@@ -205,5 +219,5 @@ index 1d683d9344..9ee25a53df 100644
  	};
  
 -- 
-2.17.1
+2.34.1
 

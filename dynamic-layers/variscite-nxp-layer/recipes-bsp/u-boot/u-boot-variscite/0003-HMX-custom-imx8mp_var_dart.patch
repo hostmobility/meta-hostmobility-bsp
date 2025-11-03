@@ -1,67 +1,62 @@
-From 691a47dfedf93401aa29e82e622799d1b67190cf Mon Sep 17 00:00:00 2001
-From: rikardo <rikard.olander@hostmobility.com>
-Date: Thu, 16 May 2024 12:44:48 +0000
-Subject: [PATCH 1/1] HMX custom imx8mp_var_dart
-V1.
-change uart1 to uart3
-Update u-boot environment settings to set device tree to
-imx8mp-var-dart-hmx1.dtb if the Variscite carrier board eeprom cannot be
-read and fdt_file has not been set.
+From de841329329217b487ab8ba79af4d91c6e0ba1c6 Mon Sep 17 00:00:00 2001
+From: Andreas Ternstedt <a.ternstedt@setek.se>
+Date: Thu, 14 Aug 2025 16:13:35 +0200
+Subject: [PATCH 3/4] imx8mp-var-dart: Add HMX board-specific customizations
 
-V2.
-Add get environment HM variables from HMX eeprom
-Add set serial-number and part-number to device tree on boot
-Add check USB_UPGRADE_BUTTON (USB_BOOT) and set usb_flash_wanted
-Change bsp_script=hmx_boot.scr from boot.scr
-Add default usb_flash_wanted to false (this is set from c file)
-Add try_usb_flash try read bsp_script from USB memory.
-Add RGB LED handling. Set it to blue on boot and if
-we start to reflash set it to white with blink.
-Add watchdog_init
+Implement HMX-specific U-Boot customizations for imx8mp-var-dart:
 
-V3.
-Add set product-number to device tree on boot.
-Add set rbg led controller register to device tree on boot.
-Add load support for m7 co cpu (hmx-m7-fw.bin), the m7 will load before boot linux and flashing bsp.
+Hardware Configuration:
+- Change console from UART1 to UART3
+- Add RGB LED controller support with boot indication 
+-    (blue on boot, white blinking during flash)
+- Add USB upgrade button (USB_BOOT) detection
+- Add watchdog initialization
 
-v4.
-Change name of the cocpu binary
-Add DDR memory load for cocpu
-Delay loading the co-cpu firmware until after flashing so that it doesn't timeout and reset the system before it has finished flashing.
+Environment and Boot:
+- Set device tree to imx8mp-var-dart-hmx1.dtb
+- Read HM variables from HMX EEPROM
+- Set serial-number, part-number, and product-number in device tree
+- Set RGB LED controller register in device tree
+- Change default BSP script from boot.scr to hmx_boot.scr
+- Add USB flash support with try_usb_flash for recovery
+
+M7 Co-processor Support:
+- Load M7 firmware (hmx-m7-fw.bin) from DDR memory
+- Delay M7 loading until after flashing to prevent watchdog timeout
+
+Based on Variscite U-boot version: lf_v2024.04_6.6.52-2.2.0_var01
+
+Co-developed-by: rikardo <rikard.olander@hostmobility.com>
+Signed-off-by: Andreas Ternstedt <a.ternstedt@setek.se>
 
 ---
- .../imx8mp_var_dart/imx8mp_var_dart.c         | 138 +++++++++++++++++-
- include/configs/imx8mp_var_dart.h             |  37 +++--
- 2 files changed, 159 insertions(+), 16 deletions(-)
+
+Notes:
+    v3: Adapted patch for Variscite U-boot lf_v2024.04_6.6.52-2.2.0_var01
+    v2: - Fixed USB hub activation on boot
+        - Added EEPROM support
+        - Fixed SD card detection (changed pinctrl)
+    v1: - Changed serial console port to UART3
+        - Disabled FEC ethernet
+
+ .../imx8mp_var_dart/imx8mp_var_dart.c         | 125 ++++++++++++++++++
+ board/variscite/imx8mp_var_dart/spl.c         |   7 +-
+ include/configs/imx8mp_var_dart.h             |  35 +++--
+ 3 files changed, 152 insertions(+), 15 deletions(-)
 
 diff --git a/board/variscite/imx8mp_var_dart/imx8mp_var_dart.c b/board/variscite/imx8mp_var_dart/imx8mp_var_dart.c
-index e1a1215536..b188df6143 100644
+index 4a550e802fc..7d2f1efcc05 100644
 --- a/board/variscite/imx8mp_var_dart/imx8mp_var_dart.c
 +++ b/board/variscite/imx8mp_var_dart/imx8mp_var_dart.c
-@@ -29,17 +29,20 @@
+@@ -29,6 +29,7 @@
+ #include "../common/extcon-ptn5150.h"
  #include "../common/imx8_eeprom.h"
  #include "imx8mp_var_dart.h"
- 
-+//#include <watchdog.h>
 +#include "../common/hmx_eeprom.h"
- extern int var_setup_mac(struct var_eeprom *ep);
  
- DECLARE_GLOBAL_DATA_PTR;
+ int var_setup_mac(struct var_eeprom *eeprom);
  
-+
- #define UART_PAD_CTRL	(PAD_CTL_DSE6 | PAD_CTL_FSEL1)
- #define WDOG_PAD_CTRL	(PAD_CTL_DSE6 | PAD_CTL_ODE | PAD_CTL_PUE | PAD_CTL_PE)
- #define GPIO_PAD_CTRL	(PAD_CTL_DSE1 | PAD_CTL_PUE | PAD_CTL_PE  | PAD_CTL_HYS)
- 
- static iomux_v3_cfg_t const uart_pads_dart[] = {
--	MX8MP_PAD_UART1_RXD__UART1_DCE_RX | MUX_PAD_CTRL(UART_PAD_CTRL),
--	MX8MP_PAD_UART1_TXD__UART1_DCE_TX | MUX_PAD_CTRL(UART_PAD_CTRL),
-+	MX8MP_PAD_UART3_RXD__UART3_DCE_RX | MUX_PAD_CTRL(UART_PAD_CTRL),
-+	MX8MP_PAD_UART3_TXD__UART3_DCE_TX | MUX_PAD_CTRL(UART_PAD_CTRL),
- };
- 
- static iomux_v3_cfg_t const uart_pads_som[] = {
-@@ -62,6 +65,11 @@ static iomux_v3_cfg_t const board_detect_pads[] = {
+@@ -52,6 +53,11 @@ static iomux_v3_cfg_t const board_detect_pads[] = {
  };
  #endif
  
@@ -73,17 +68,7 @@ index e1a1215536..b188df6143 100644
  int var_detect_board_id(void)
  {
  	static int board_id = BOARD_ID_UNDEF;
-@@ -99,7 +107,8 @@ int board_early_init_f(void)
- 	if (board_id == BOARD_ID_DART) {
- 		imx_iomux_v3_setup_multiple_pads(uart_pads_dart,
- 			ARRAY_SIZE(uart_pads_dart));
--		init_uart_clk(0);
-+		/* Init clock for HMX on UART3, also in CONFIG_MXC_UART_BASE */
-+		init_uart_clk(2);
- 	}
- 	else if (board_id == BOARD_ID_SOM) {
- 		imx_iomux_v3_setup_multiple_pads(uart_pads_som,
-@@ -112,8 +121,106 @@ int board_early_init_f(void)
+@@ -171,8 +177,105 @@ int board_early_init_f(void)
  }
  
  #ifdef CONFIG_OF_BOARD_SETUP
@@ -185,32 +170,20 @@ index e1a1215536..b188df6143 100644
 +	} else {
 +		printf("WARNING: could not read RGB_I2C_ID from env list.\n");
 +	}
-+
 +#endif
  #ifdef CONFIG_IMX8M_DRAM_INLINE_ECC
  	int rc;
  	phys_addr_t ecc0_start = 0xb0000000;
-@@ -337,6 +444,9 @@ int board_init(void)
- 	init_usb_clk();
- #endif
- 
-+//does not compile. #if defined(CONFIG_HW_WATCHDOG) || defined(CONFIG_WATCHDOG)
-+//	hw_watchdog_init();
-+//#endif
- 	return 0;
- }
- 
-@@ -350,6 +460,9 @@ int board_late_init(void)
+@@ -425,6 +528,8 @@ int board_late_init(void)
  	struct var_carrier_eeprom carrier_eeprom;
  	char carrier_rev[CARRIER_REV_LEN] = {0};
- 
+ 	char som_rev[CARRIER_REV_LEN] = {0};
 +	uchar eeprom_data [0xffff];
 +	int err = 1;
-+
+ 
  #ifdef CONFIG_ENV_IS_IN_MMC
  	board_late_mmc_env_init();
- #endif
-@@ -382,6 +495,25 @@ int board_late_init(void)
+@@ -468,6 +573,26 @@ int board_late_init(void)
  	var_setup_mac(ep);
  	var_eeprom_print_prod_info(ep);
  
@@ -233,37 +206,57 @@ index e1a1215536..b188df6143 100644
 +			printf("Set environment data to environment area failed, error: %x\n", err);
 +		}
 +	}
++
  	return 0;
  }
  
+diff --git a/board/variscite/imx8mp_var_dart/spl.c b/board/variscite/imx8mp_var_dart/spl.c
+index 17fadec5cfb..c8df98576bc 100644
+--- a/board/variscite/imx8mp_var_dart/spl.c
++++ b/board/variscite/imx8mp_var_dart/spl.c
+@@ -41,8 +41,8 @@ DECLARE_GLOBAL_DATA_PTR;
+ #define UART_PAD_CTRL	(PAD_CTL_DSE6 | PAD_CTL_FSEL1)
+ 
+ static iomux_v3_cfg_t const uart_pads_dart[] = {
+-	MX8MP_PAD_UART1_RXD__UART1_DCE_RX | MUX_PAD_CTRL(UART_PAD_CTRL),
+-	MX8MP_PAD_UART1_TXD__UART1_DCE_TX | MUX_PAD_CTRL(UART_PAD_CTRL),
++	MX8MP_PAD_UART3_RXD__UART3_DCE_RX | MUX_PAD_CTRL(UART_PAD_CTRL),
++	MX8MP_PAD_UART3_TXD__UART3_DCE_TX | MUX_PAD_CTRL(UART_PAD_CTRL),
+ };
+ 
+ static iomux_v3_cfg_t const uart_pads_som[] = {
+@@ -96,7 +96,8 @@ static void spl_uart_init(void)
+ 	if (board_id == BOARD_ID_DART) {
+ 		imx_iomux_v3_setup_multiple_pads(uart_pads_dart,
+ 			ARRAY_SIZE(uart_pads_dart));
+-		init_uart_clk(0);
++		/* Init clock for HMX on UART3, also in CFG_MXC_UART_BASE */
++		init_uart_clk(2);
+ 	} else if (board_id == BOARD_ID_SOM) {
+ 		imx_iomux_v3_setup_multiple_pads(uart_pads_som,
+ 			ARRAY_SIZE(uart_pads_som));
+ include/configs/imx8mp_var_dart.h | 37 ++++++++++++++++++++-----------
+ 1 file changed, 24 insertions(+), 13 deletions(-)
+
 diff --git a/include/configs/imx8mp_var_dart.h b/include/configs/imx8mp_var_dart.h
-index cf725dde22..42cd0ab326 100644
+index 848d74852ff..9add715caed 100644
 --- a/include/configs/imx8mp_var_dart.h
 +++ b/include/configs/imx8mp_var_dart.h
-@@ -44,7 +44,7 @@
- 
- /* ENET Config */
- #if defined(CONFIG_CMD_NET)
--#define CONFIG_ETHPRIME			"eth0" /* Set eqos to primary since we use its MDIO */
-+#define CONFIG_ETHPRIME			"eth2" /* Set eqos to primary since we use its MDIO */
- #define CONFIG_FEC_XCV_TYPE		RGMII
- #define PHY_ANEG_TIMEOUT		20000
- #endif
-@@ -79,11 +79,11 @@
- 	BOOTENV \
+@@ -56,11 +56,11 @@
+ 	"prepare_mcore=setenv mcore_clk clk-imx8mp.mcore_booted;\0" \
  	"scriptaddr=0x43500000\0" \
  	"kernel_addr_r=" __stringify(CONFIG_SYS_LOAD_ADDR) "\0" \
 -	"bsp_script=boot.scr\0" \
 +	"bsp_script=hmx_boot.scr\0" \
  	"image=Image.gz\0" \
  	"img_addr=0x42000000\0" \
- 	"splashimage=0x50000000\0" \
+ 	"splashimage=0x4F600000\0" \
 -	"console=ttymxc0,115200\0" \
 +	"console=ttymxc2,115200\0" \
  	"fdt_addr_r=0x43000000\0" \
  	"fdt_addr=0x43000000\0"			\
  	"fdt_high=0xffffffffffffffff\0"		\
-@@ -96,12 +96,12 @@
+@@ -73,12 +73,12 @@
  	"mmcblk=1\0" \
  	"mmcpart=1\0" \
  	"mmcautodetect=yes\0" \
@@ -275,21 +268,26 @@ index cf725dde22..42cd0ab326 100644
 +	"use_m7=yes\0" \
  	"dfu_alt_info=mmc 2=1 raw 0x40 0x1000 mmcpart\0" \
  	"loadm7bin=" \
--	         "load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${bootdir}/${m7_bin} && " \
-+	         "load mmc ${mmcdev}:${mmcpart} ${loadaddr} /lib/firmware/${m7_bin} && " \
- 	         "cp.b ${loadaddr} ${m7_addr} ${filesize}; " \
- 	         "echo Init rsc_table region memory; " \
- 	         "mw.b 400ff000 0 10\0" \
-@@ -127,7 +127,7 @@
- 				"setenv fdt_file imx8mp-var-som-symphony.dtb; " \
- 			"else " \
- 				"if test $carrier_rev = legacy; then " \
--					"setenv fdt_file imx8mp-var-dart-dt8mcustomboard-legacy.dtb;" \
-+					"setenv fdt_file imx8mp-var-dart-hmx1.dtb;" \
- 				"else " \
- 					"setenv fdt_file imx8mp-var-dart-dt8mcustomboard.dtb;" \
+-				"load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${bootdir}/${m7_bin} && " \
++				"load mmc ${mmcdev}:${mmcpart} ${loadaddr} /lib/firmware/${m7_bin} && " \
+ 				"cp.b ${loadaddr} ${m7_addr} ${filesize}; " \
+ 				"echo Init rsc_table region memory; " \
+ 				"mw.b 400ff000 0 10\0" \
+@@ -114,11 +114,11 @@
  				"fi; " \
-@@ -181,16 +181,27 @@
+ 			"else " \
+ 				"if test ${som_rev} -lt 2; then " \
+-					"setenv fdt_file imx8mp-var-dart-1.x-dt8mcustomboard.dtb; " \
++					"setenv fdt_file imx8mp-var-dart-1.x-hmx1.dtb; " \
+ 				"elif test ${som_has_wbe} = 1; then " \
+ 					"setenv fdt_file imx8mp-var-dart-wbe-dt8mcustomboard.dtb; " \
+ 				"else " \
+-					"setenv fdt_file imx8mp-var-dart-dt8mcustomboard.dtb;" \
++					"setenv fdt_file imx8mp-var-dart-hmx1.dtb;" \
+ 				"fi; " \
+ 			"fi; " \
+ 		"fi; \0" \
+@@ -170,23 +170,34 @@
  				"echo WARN: Cannot load the DT; " \
  			"fi; " \
  		"fi;\0" \
@@ -303,6 +301,9 @@ index cf725dde22..42cd0ab326 100644
 +	"bsp_bootcmd=echo Running BSP bootcmd ...; run set_RGB_ID; run set_blue_led; " \
  		"run ramsize_check; " \
  		"mmc dev ${mmcdev}; " \
+ 		"if test ${fdt_file} =~ *'m7.dtb'*; then " \
+ 			"run prepare_mcore; " \
+ 		"fi; " \
  		"if mmc rescan; then " \
 -			"if test ${use_m7} = yes && run loadm7bin; then " \
 -				"run runm7bin; " \
@@ -315,21 +316,25 @@ index cf725dde22..42cd0ab326 100644
 +				"run set_white_flashing_led; " \
 +				"run try_usb_flash; " \
  			"else " \
+ 				"if run loadbootenv; then " \
+ 					"echo Loaded environment from ${bootenv}; " \
+ 					"run importbootenv; " \
+ 				"fi;" \
 +				"if test ${use_m7} = yes && run loadm7bin; then " \
 +					"run runm7bin; " \
 +				"fi; " \
  				"if run loadimage; then " \
  					"run mmcboot; " \
  				"else " \
-@@ -213,7 +224,7 @@
+@@ -205,7 +216,7 @@
  #define PHYS_SDRAM			0x40000000
  #define DEFAULT_SDRAM_SIZE		(512 * SZ_1M)
  
--#define CONFIG_MXC_UART_BASE		UART1_BASE_ADDR
-+#define CONFIG_MXC_UART_BASE		UART3_BASE_ADDR
+-#define CFG_MXC_UART_BASE		UART1_BASE_ADDR
++#define CFG_MXC_UART_BASE		UART3_BASE_ADDR
  
- /* Monitor Command Prompt */
- #define CONFIG_SYS_PROMPT_HUSH_PS2	"> "
+ #define CFG_SYS_FSL_USDHC_NUM	2
+ #define CFG_SYS_FSL_ESDHC_ADDR	0
 -- 
 2.34.1
 

@@ -1,107 +1,126 @@
-From 499f8d24acf012f57ed451ce50a279bb64a9bcea Mon Sep 17 00:00:00 2001
-From: Rikardo-hm <rikard.olander@hostmobility.com>
-Date: Mon, 3 Feb 2025 13:49:06 +0000
-Subject: [PATCH 1/1] add hmx device tree for kernel 6.6
-v1.  Files merged to single file.
-	0004-HMX-DT-update-for-ethernet-on-USB.patch
-	0005-HMX-DT-update-for-USB3-and-USB-regulator.patch
-	0010-HMX-DT-Set-wakeup-source-on-flexcan.patch
-	0012-HMX-DT-Setup-T1-phys.patch
-	0013-HMX-DT-USB-controllers-are-swapped-on-rev-4A.patch
-	0014-HMX-DT-fixed-T1-phy-100Mbps-workaround.patch
-		(removed, not merged)
-	0015-HMX-DT-Fixed-T1-PHYs-on-1Gbps.patch
+From f79b63f046b1a8b9971849eedfda275d1907ea48 Mon Sep 17 00:00:00 2001
+From: Andreas Ternstedt <a.ternstedt@setek.se>
+Date: Tue, 26 Aug 2025 14:09:04 +0200
+Subject: [PATCH 1/1] arm64: dts: freescale: Add HMX device tree for kernel 6.6
 
-v2. Add HMX eeprom BR24G04NUX. Pulldown on T1 phys wake.
-	Appears in sys/bus/i2c/devices/1-0054/eeprom
+Add complete device tree for HMX board based on Variscite
+DART-MX8M-PLUS SoM. This consolidates all HMX-specific
+hardware configurations into a single device tree file.
 
-v3. Set pinctrl for USB_UPGRADE_BUTTON
+Key hardware features:
+- Dual T1 Ethernet PHYs (1Gbps) with wake support
+- Multiple CAN interfaces using TCAN4x5x controllers
+- USB3 support with USB-to-Ethernet adapters
+- HMX EEPROM (BR24G04NUX) for board identification
+- RGB LED controller on I2C
+- RTC with supercap backup and dropout detection
+- Accelerometer with interrupt support
+- SE050 secure element
+- M7 co-processor support with dedicated RAM
+- PCIe support for 5G modem
+- GPIO-based power management (power-off, reboot button)
+- Customized pin configurations for HMX-specific functions
 
-v4. Disable pull-up on SD-card Card Detect
+Notable configurations:
+- I2C bus limited to 100kHz (per IMX8MP errata)
+- TCAN4x5x configured with 8-frame TX FIFO, 24-message RX FIFO
+- USB controllers swapped on rev 4A boards
+- Sound (SAI3) disabled as pins used for other functions
+- Custom MAC address aliasing for network interfaces
 
-v5. Disable sound(sai3) since pins are used for other functions
+This device tree consolidates previously separate patches for
+maintainability and provides complete HMX board support.
 
-v6. Set tcan4x5x rx-fifo to 24 messages to fit info m_can message RAM.
+Based on Variscite Linux kernel version: lf-6.6.y_6.6.52-2.2.0_var01
 
-v7. Fix rtc and acc IRQ and declared SE05.
-    Lower i2c bus to 100kHz maximum.
-    For this processor is 384kHz according to IMX8MP_1P33A rev2.0 errata but
-    we can lower it a bit more.
-    fix supercap drop out signal (n_vcc_5v_drop_out) to reboot system
-    Add a software reboot button(usb_boot_button)
-    Reset-gpios for CAN is removed in node CAN0 and set signal to high and hoged.
-    Can_wake_extern: set to individual pinctrl and change logic to GPIO_ACTIVE_LOW(inverted signal).
-    Still driver(tcan4x5x) needs to be updated to make this signal toggle at a correct minimum time.
-    Turned off leds so only one led is set to heartbeat and the rest is off from start.
-
-v8. Add gpio-poweroff handler that pulls GPIO4_IO19 (POWER_OFF) low to
-    completely turn off the board. NOTE: another pm_power_off handler is
-    already registered and gpio-poweroff.c needs to be patched to
-    overwrite it (/* If a pm_power_off function has already been added, leave it alone */)
-
-v9. Make it possible to disable in_start and the other gpiokeys with
-    linux,can-disable = <1>;
-
-v10. Add spi node aliases and priorities so CAN channels do not move.
-
-v11. Add aliases and correct CAN labels
-
-v12. Correct MAC addresses on eth0 and eth1, move USB nodes to &usb_dwc3_1
-
-v13. Alias ethernet2 as eth0_obd and ethernet3 as eth1_rj45 to only need 2
-     extra MAC addresses, i.e. keep the ones from Variscite. Add
-     optional product number.
-
-v14. Add RGB led driver (only for i2c 0x30),
-the leds will be indicator:red/green/blue
-
-v15. Use 8 frames tx fifo for tcan4x5x.
-
-v16. Add wakeup-source property to tcan4x5x nodes. This is used by new
-     driver patch to allow wake-up when interface in up when going into
-     suspend.
-v17. Rename gpio-leds identifiers for consistency and clarity.
-     Update copyright years.
-
-v18. Enable PCI Express in preparation for 5G modem support:
-     - Fix and activate reference clock
-     - Add pcie reset pin (without it the modem will be in PCI reset
-     and therefore not detected)
-
-v19. Add co-cpu m7 ram area and driver.
-
+Co-developed-by: rikardo <rikard.olander@hostmobility.com>
+Signed-off-by: Andreas Ternstedt <a.ternstedt@setek.se>
 
 ---
- arch/arm64/boot/dts/freescale/Makefile        |    2 +
- .../dts/freescale/imx8mp-var-dart-hmx1.dts    | 1278 +++++++++++++++++
- 2 files changed, 1280 insertions(+)
+
+Notes:
+    Consolidated patches history:
+
+    v21: Correct register for ethernet controllers
+    v20:  - Adapted patch for Variscite U-boot lf_v2024.04_6.6.52-2.2.0_var01
+          - Define memory allocation
+          - Delete sound-wm8904
+    v19: Add co-cpu M7 RAM area and driver support
+    v18: Enable PCIe for 5G modem with reference clock and reset pin
+    v17: Rename gpio-leds identifiers for clarity, update copyright
+    v16: Add wakeup-source to TCAN4x5x nodes for suspend/wake support
+    v15: Configure TCAN4x5x with 8-frame TX FIFO
+    v14: Add RGB LED driver for I2C address 0x30
+    v13: Alias ethernet interfaces, add optional product number
+    v12: Correct MAC addresses, move USB nodes to &usb_dwc3_1
+    v11: Add aliases and correct CAN labels
+    v10: Add SPI node aliases for consistent CAN channel ordering
+    v9:  Make gpio-keys disableable via linux,can-disable
+    v8:  Add gpio-poweroff handler (requires kernel patch)
+    v7:  - Fix RTC and accelerometer IRQ configuration
+         - Add SE050 secure element declaration
+         - Lower I2C to 100kHz per errata
+         - Add supercap dropout detection
+         - Add software reboot button
+         - Update CAN wake signal handling
+         - Configure LED states at boot
+    v6:  Set TCAN4x5x RX-FIFO to 24 messages
+    v5:  Disable sound (SAI3) - pins used for other functions
+    v4:  Disable pull-up on SD card detect
+    v3:  Set pinctrl for USB_UPGRADE_BUTTON
+    v2:  Add HMX EEPROM BR24G04NUX, T1 PHY wake pulldown
+    v1:  Initial consolidation of separate patches
+
+ arch/arm64/boot/dts/freescale/Makefile        |    3 +
+ .../dts/freescale/imx8mp-var-dart-hmx1.dts    | 1267 +++++++++++++++++
+ 2 files changed, 1270 insertions(+)
  create mode 100644 arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts
 
 diff --git a/arch/arm64/boot/dts/freescale/Makefile b/arch/arm64/boot/dts/freescale/Makefile
-index 643233ffc351..a08ec59c527c 100644
+index ae88ecfee4c3..edf0ad985149 100644
 --- a/arch/arm64/boot/dts/freescale/Makefile
 +++ b/arch/arm64/boot/dts/freescale/Makefile
-@@ -675,3 +675,5 @@ dtb-$(CONFIG_ARCH_S32) += s32v234-evb.dtb \
- 			  s32v234-sbc.dtb
- dtb-$(CONFIG_ARCH_MXC) += imx8qm-mek-sof-cs42888.dtb imx8qm-mek-sof-wm8960.dtb \
- 			  imx8qm-mek-revd-sof-wm8962.dtb imx8qm-mek-sof.dtb
-+
+@@ -164,6 +164,7 @@ dtb-$(CONFIG_ARCH_MXC) += imx8mp-evk.dtb imx8mp-evk-rm67191.dtb imx8mp-evk-it626
+ 			  imx8mp-evk-usdhc1-m2.dtb imx8mp-evk-rm67199.dtb \
+ 			  imx8mp-evk-dpdk.dtb imx8mp-evk-8mic-swpdm.dtb imx8mp-evk-rpmsg-lpv.dtb imx8mp-evk-revA3-8mic-revE.dtb
+ 
 +dtb-$(CONFIG_ARCH_MXC) += imx8mp-var-dart-hmx1.dtb
+ dtb-$(CONFIG_ARCH_MXC) += imx8mp-var-dart-dt8mcustomboard.dtb
+ dtb-$(CONFIG_ARCH_MXC) += imx8mp-var-dart-dt8mcustomboard-basler-isi0-m7.dtb
+ dtb-$(CONFIG_ARCH_MXC) += imx8mp-var-dart-dt8mcustomboard-basler-isi0.dtb
+@@ -171,6 +172,7 @@ dtb-$(CONFIG_ARCH_MXC) += imx8mp-var-dart-dt8mcustomboard-basler-isp0-m7.dtb
+ dtb-$(CONFIG_ARCH_MXC) += imx8mp-var-dart-dt8mcustomboard-basler-isp0.dtb
+ dtb-$(CONFIG_ARCH_MXC) += imx8mp-var-dart-dt8mcustomboard-m7.dtb
+ 
++imx8mp-var-dart-1.x-hmx1-dtbs := imx8mp-var-dart-hmx1.dtb imx8mp-var-dart-1.x.dtbo
+ imx8mp-var-dart-1.x-dt8mcustomboard-dtbs := imx8mp-var-dart-dt8mcustomboard.dtb imx8mp-var-dart-1.x.dtbo
+ imx8mp-var-dart-1.x-dt8mcustomboard-basler-isi0-m7-dtbs := imx8mp-var-dart-dt8mcustomboard-basler-isi0-m7.dtb imx8mp-var-dart-1.x.dtbo
+ imx8mp-var-dart-1.x-dt8mcustomboard-basler-isi0-dtbs := imx8mp-var-dart-dt8mcustomboard-basler-isi0.dtb imx8mp-var-dart-1.x.dtbo
+@@ -185,6 +187,7 @@ imx8mp-var-dart-wbe-dt8mcustomboard-basler-isp0-m7-dtbs := imx8mp-var-dart-dt8mc
+ imx8mp-var-dart-wbe-dt8mcustomboard-basler-isp0-dtbs := imx8mp-var-dart-dt8mcustomboard-basler-isp0.dtb imx8mp-var-dart-wbe.dtbo
+ imx8mp-var-dart-wbe-dt8mcustomboard-m7-dtbs := imx8mp-var-dart-dt8mcustomboard-m7.dtb imx8mp-var-dart-wbe.dtbo
+ 
++dtb-$(CONFIG_ARCH_MXC) += imx8mp-var-dart-1.x-hmx1.dtb
+ dtb-$(CONFIG_ARCH_MXC) += imx8mp-var-dart-1.x-dt8mcustomboard.dtb
+ dtb-$(CONFIG_ARCH_MXC) += imx8mp-var-dart-1.x-dt8mcustomboard-basler-isi0-m7.dtb
+ dtb-$(CONFIG_ARCH_MXC) += imx8mp-var-dart-1.x-dt8mcustomboard-basler-isi0.dtb
 diff --git a/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts b/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts
 new file mode 100644
-index 000000000000..8bc347a38256
+index 000000000000..7416b979d417
 --- /dev/null
 +++ b/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts
-@@ -0,0 +1,1278 @@
+@@ -0,0 +1,1267 @@
 +// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 +/*
-+ * Copyright 2022, 2023, 2024 Host Mobility AB
-+ * Inspired by arch/arm64/boot/dts/freescale/imx8mp-var-dart-dt8mcustomboard.dts 
++ * Copyright 2022-2024 Host Mobility AB
++ * Copyright 2024-2025 SETEK Systems AB
++ * Inspired by arch/arm64/boot/dts/freescale/imx8mp-var-dart-dt8mcustomboard.dts
 + */
 +
 +#include <dt-bindings/leds/common.h>
 +#include "imx8mp-var-dart.dtsi"
 +#include "imx8mp-var-common-m7.dtsi"
++
 +/ {
 +	model = "Host Mobility HMX1 imx8mp";
 +	comment = "";
@@ -130,19 +149,23 @@ index 000000000000..8bc347a38256
 +		product-number = "hm010";
 +	};
 +
++	// Remove unused nodes
++	/delete-node/ sound-wm8904;
++	/delete-node/ display-subsystem;
++
 +	host_watchdog {
-+	compatible = "host_watchdog";
-+	status = "okay";
-+	//gpios = <&gpio1 2 GPIO_ACTIVE_HIGH>; //nWDOG, not used by driver maybe in the future.
-+	nwdog = <2>; //FORCE_RESET, used to select correct reset pin (see /sys/kernel/debug/gpio)
-+	/*wdt_poweroff: wdt-poweroff {
-+			//gpio-line-name = "wdt_poweroff";
++		compatible = "host_watchdog";
++		status = "okay";
++		//gpios = <&gpio1 2 GPIO_ACTIVE_HIGH>; //nWDOG, not used by driver maybe in the future.
++		nwdog = <2>; //FORCE_RESET, used to select correct reset pin (see /sys/kernel/debug/gpio)
++		/*wdt_poweroff: wdt-poweroff {
++				//gpio-line-name = "wdt_poweroff";
 +
-+		};*/
-+	/*wdt_reset: wdt-reset {
-+			//gpio-line-name = "wdt_reset";
++			};*/
++		/*wdt_reset: wdt-reset {
++				//gpio-line-name = "wdt_reset";
 +
-+		};*/
++			};*/
 +	};
 +
 +	reg_usb_hubs: regulator-usbhubs {
@@ -315,7 +338,7 @@ index 000000000000..8bc347a38256
 +			linux,default-trigger = "phy0rx";
 +			default-state = "off";
 +		};
-+		
++
 +		green_wwan {
 +			color = <LED_COLOR_ID_GREEN>;
 +			function = LED_FUNCTION_WAN;
@@ -358,7 +381,7 @@ index 000000000000..8bc347a38256
 +			gpios = <&gpio1 6 GPIO_ACTIVE_HIGH>;
 +			default-state = "off";
 +		};
-+		
++
 +		/* pin = SOURCE_OUT_8, fault = SOURCE_6_FAULT */
 +		pwr_out_equipment {
 +			function = "pwr_out_equipment";
@@ -416,6 +439,7 @@ index 000000000000..8bc347a38256
 +	};
 +};
 +
++
 +&wdog1 {
 +	/delete-property/pinctrl-names;
 +	/delete-property/pinctrl-0;
@@ -427,57 +451,37 @@ index 000000000000..8bc347a38256
 +&fec {
 +	pinctrl-names = "default";
 +	pinctrl-0 = <&pinctrl_fec>;
-+	phy-mode = "rgmii-rxid";
-+	//phy-handle = <&ethphy_t1_1>;
++	phy-mode = "rgmii-id";
++	phy-handle = <&ethphy_fec>;
 +	status = "okay";
-+	//phy-reset-gpios = <&gpio3 1 GPIO_ACTIVE_HIGH>;
-+	fixed-link {
-+		speed = <1000>;
-+		full-duplex;
-+	};
++
 +	mdio {
 +		#address-cells = <1>;
 +		#size-cells = <0>;
-+		/* try with fixed link
-+		ethphy_t1_1: ethernet-phy@0 {
-+			// trying med clause 22 instead of clause 45
-+			// qqq: check what happens now compatible = "ethernet-phy-ieee802.3-c45";
-+			//compatible = "marvell";
++
++		// Generic PHY driver will attach to the marvell,88q2xxx
++		ethphy_fec: ethernet-phy@3 {
 +			compatible = "ethernet-phy-ieee802.3-c45";
 +			reg = <3>;
-+			//reset-gpios = <&gpio3 1 GPIO_ACTIVE_HIGH>;
-+			at803x,eee-disabled;
-+			eee-broken-1000t;
-+			reset-assert-us = <10000>;
-+			reset-deassert-us = <20000>;
-+			vddio-supply = <&vddio1>;
-+
-+			vddio1: vddio-regulator {
-+				regulator-min-microvolt = <1800000>;
-+				regulator-max-microvolt = <1800000>;
-+			};
++			max-speed = <1000>;
 +		};
-+		*/
-+		ethphy_t1_2: ethernet-phy@1 {
-+			// trying med clause 22 instead of clause 45
++
++		ethphy_eqos: ethernet-phy@7 {
 +			compatible = "ethernet-phy-ieee802.3-c45";
 +			reg = <7>;
++			max-speed = <1000>;
 +		};
 +	};
 +};
 +
 +/* Second Automotive Ethernet Marvell 88Q2110*/
 +&eqos {
-+	phy-mode = "rgmii-rxid";
-+	phy-handle = <&ethphy_t1_2>;
-+	fixed-link {
-+		speed = <1000>;
-+		full-duplex;
-+	};
-+	/* MAYBE NOT DISABLE mdio {
-+		status = "disabled";
-+	};
-+	*/
++	phy-mode = "rgmii-id";
++	phy-handle = <&ethphy_eqos>;
++	status = "okay";
++
++	// Remove onboard Ethernet PHY (EC configuration)
++	/delete-node/ mdio;
 +};
 +
 +&i2c2 {
@@ -494,10 +498,10 @@ index 000000000000..8bc347a38256
 +		reg = <0x20>;
 +		gpio-controller;
 +		#gpio-cells = <2>;
-+            	gpio-line-names = "SINK_FAULT",
-+				  "SOURCE_1_FAULT", "SOURCE_2_FAULT",
-+				  "SOURCE_3_FAULT", "SOURCE_4_FAULT",
-+				  "SOURCE_5_FAULT", "SOURCE_6_FAULT";
++		gpio-line-names = "SINK_FAULT",
++			"SOURCE_1_FAULT", "SOURCE_2_FAULT",
++			"SOURCE_3_FAULT", "SOURCE_4_FAULT",
++			"SOURCE_5_FAULT", "SOURCE_6_FAULT";
 +		pinctrl-names = "default";
 +		pinctrl-0 = <&pinctrl_pca9535>;
 +		interrupt-parent = <&gpio1>;
@@ -624,7 +628,6 @@ index 000000000000..8bc347a38256
 +	wakeup-source;
 +};
 +
-+
 +&pcie {
 +	reset-gpio = <&gpio5 19 GPIO_ACTIVE_HIGH>;
 +	ext_osc = <1>;
@@ -702,6 +705,9 @@ index 000000000000..8bc347a38256
 +&usb_dwc3_1 {
 +	dr_mode = "host";
 +	status = "okay";
++	#address-cells = <1>;
++	#size-cells = <0>;
++
 +	lan9513i@1 {
 +		compatible = "usb424,9514";
 +		reg =<1>;
@@ -744,7 +750,7 @@ index 000000000000..8bc347a38256
 +
 +		};
 +
-+	}; 
++	};
 +};
 +/* TODO change ports if needed and check power logic for USB host/peripheral */
 +
@@ -866,9 +872,9 @@ index 000000000000..8bc347a38256
 +	regulator-max-microvolt = <1800000>;
 +};
 +
-+/* BT disabled not populated */
-+&uart4 {
-+       status = "disabled";
++// Remove onboard Audio Codec (AC configuration)
++&wm8904 {
++	status = "disabled";
 +};
 +
 +/* Disable sound since pins are used by accelerometer and HSM */
@@ -899,27 +905,27 @@ index 000000000000..8bc347a38256
 +	pinctrl-names = "default";
 +	pinctrl-0 = <&pinctrl_hog>;
 +	/* Digital out as GPIO. 0x0 = slow slew, x1 drive, push/pull
-+	 * pins = OUT_SOURCE1, OUT_SOURCE2, OUT_SINK1, OUT_SINK2, 
++	 * pins = OUT_SOURCE1, OUT_SOURCE2, OUT_SINK1, OUT_SINK2,
 +	 * ETH2_ACT
 +	 */
-+	
++
 +	pinctrl_hog: hoggrp {
 +		fsl,pins = <
 +			MX8MP_IOMUXC_SPDIF_TX__GPIO5_IO03	0x0
 +			MX8MP_IOMUXC_I2C3_SCL__GPIO5_IO18	0x0
 +			MX8MP_IOMUXC_GPIO1_IO01__GPIO1_IO01	0x0
-+			MX8MP_IOMUXC_SPDIF_RX__GPIO5_IO04	0x0                     
++			MX8MP_IOMUXC_SPDIF_RX__GPIO5_IO04	0x0
 +			MX8MP_IOMUXC_I2C3_SDA__GPIO5_IO19       (PE_1_PULL_ENABLE | PUE_1_WEAK_PULL_UP)
 +			MX8MP_IOMUXC_GPIO1_IO14__GPIO1_IO14	0x0
-+			MX8MP_IOMUXC_NAND_DATA02__GPIO3_IO08	PE_1_PULL_ENABLE 
++			MX8MP_IOMUXC_NAND_DATA02__GPIO3_IO08	PE_1_PULL_ENABLE
 +		>;
 +	};
 +
 +	/* 0x90 = Schmitt-trigger, fast slew-rate, 0x2 = Drive strength 4 (DSE_X4) */
 +	pinctrl_fec: fecgrp {
 +		fsl,pins = <
-+			MX8MP_IOMUXC_SAI1_RXD2__ENET1_MDC				0x2
-+			MX8MP_IOMUXC_SAI1_RXD3__ENET1_MDIO				0x2
++			MX8MP_IOMUXC_SAI1_RXD2__ENET1_MDC				0x3
++			MX8MP_IOMUXC_SAI1_RXD3__ENET1_MDIO				0x3
 +			MX8MP_IOMUXC_SAI1_RXD4__ENET1_RGMII_RD0				0x90
 +			MX8MP_IOMUXC_SAI1_RXD5__ENET1_RGMII_RD1				0x90
 +			MX8MP_IOMUXC_SAI1_RXD6__ENET1_RGMII_RD2				0x90
@@ -1039,7 +1045,7 @@ index 000000000000..8bc347a38256
 +
 +			/* nWKRQ_CANFD */
 +			MX8MP_IOMUXC_NAND_DQS__GPIO3_IO14				0x10
-+			
++
 +		>;
 +	};
 +
@@ -1136,7 +1142,7 @@ index 000000000000..8bc347a38256
 +		>;
 +	};
 +	/* SOURCE_OUT_4/5/6, SOURCE_OUT_8, pwr_out_led_2, pwr_out_led_1
-+	 * OUT_BUZZER,   
++	 * OUT_BUZZER,
 +	/* 0x2 = drive strength x2, slow slew, no pull  */
 +	pinctrl_gpio_leds: ledgrp {
 +		fsl,pins = <
@@ -1144,7 +1150,7 @@ index 000000000000..8bc347a38256
 +			MX8MP_IOMUXC_SPDIF_EXT_CLK__GPIO5_IO05  0x2
 +			MX8MP_IOMUXC_GPIO1_IO06__GPIO1_IO06	0x2
 +			MX8MP_IOMUXC_GPIO1_IO07__GPIO1_IO07	0x2
-+			
++
 +			MX8MP_IOMUXC_GPIO1_IO00__GPIO1_IO00	0x2
 +		>;
 +	};
@@ -1372,5 +1378,5 @@ index 000000000000..8bc347a38256
 +	};
 +};
 -- 
-2.25.1
+2.34.1
 

@@ -1,5 +1,4 @@
 
-
 FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 
 SRC_URI += "\
@@ -8,8 +7,7 @@ SRC_URI += "\
 	file://0003-HMX-custom-imx8mp_var_dart.patch \
 	file://0004-adjust-imx8mp_var_dart_defconfig-to-hmx.patch \
 "
-#Keep this version untill we can step up u-boot hm patches.
-SRCBRANCH = "lf_v2022.04_var01"
-SRCREV = "09207fe3fd0110748280dcff64e3fd6d2e0a4b3b"
+SRCBRANCH = "lf_v2024.04_6.6.52-2.2.0_var01"
+SRCREV = "83eb3ac3f4b6140108171128c55f2bd9234f4b2a"
 
 COMPATIBLE_MACHINE = "(imx8mp-var-dart-hmx1)"

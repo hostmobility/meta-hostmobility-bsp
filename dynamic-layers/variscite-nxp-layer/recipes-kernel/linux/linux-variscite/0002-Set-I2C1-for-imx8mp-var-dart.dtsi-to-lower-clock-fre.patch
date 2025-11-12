@@ -13,10 +13,10 @@ Removed sda-gpios and scl-gpios to remove boot warning in startup
  1 file changed, 2 insertions(+), 5 deletions(-)
 
 diff --git a/arch/arm64/boot/dts/freescale/imx8mp-var-dart.dtsi b/arch/arm64/boot/dts/freescale/imx8mp-var-dart.dtsi
-index 87c0063af24f..4a8f337ee661 100644
+index c64cbe80e620..31ecea223945 100644
 --- a/arch/arm64/boot/dts/freescale/imx8mp-var-dart.dtsi
 +++ b/arch/arm64/boot/dts/freescale/imx8mp-var-dart.dtsi
-@@ -177,12 +177,9 @@
+@@ -147,12 +147,9 @@ &gpu_reserved {
  };
  
  &i2c1 {
@@ -32,5 +32,5 @@ index 87c0063af24f..4a8f337ee661 100644
  
  	pca9450@25 {
 -- 
-2.17.1
+2.34.1
 

@@ -1,22 +1,27 @@
 From 04d5964bb4caef4a9d131828ebaf6967e1e29b73 Mon Sep 17 00:00:00 2001
 From: rikardo <rikard.olander@hostmobility.com>
 Date: Thu, 2 Mar 2023 16:14:20 +0000
-Subject: [PATCH 1/1] Set I2C1 for imx8mp-var-dart.dtsi to lower
- clock-frequency
+Subject: [PATCH 1/1] imx8mp-var-dart: reduce I2C1 clock frequency per errata
 
-clock-frequency is set to maximum 384Khz
-For this processor according to IMX8MP_1P33A rev2.0 errata.
+Lower I2C1 clock-frequency from 400 kHz to 384 kHz to comply with
+i.MX8MP errata (IMX8MP_1P33A rev2.0) which specifies maximum I2C
+clock frequency of 384 kHz.
 
-Removed sda-gpios and scl-gpios to remove boot warning in startup
+Remove GPIO recovery configuration (scl-gpios, sda-gpios, and gpio
+pinctrl) as it's not needed and causes boot warnings.
+
+Signed-off-by: Rikard Olander <rikard.olander@hostmobility.com>
+Signed-off-by: Andreas Ternstedt <a.ternstedt@setek.com>
+
 ---
  arch/arm64/boot/dts/freescale/imx8mp-var-dart.dtsi | 7 ++-----
  1 file changed, 2 insertions(+), 5 deletions(-)
 
 diff --git a/arch/arm64/boot/dts/freescale/imx8mp-var-dart.dtsi b/arch/arm64/boot/dts/freescale/imx8mp-var-dart.dtsi
-index 87c0063af24f..4a8f337ee661 100644
+index c64cbe80e620..31ecea223945 100644
 --- a/arch/arm64/boot/dts/freescale/imx8mp-var-dart.dtsi
 +++ b/arch/arm64/boot/dts/freescale/imx8mp-var-dart.dtsi
-@@ -177,12 +177,9 @@
+@@ -147,12 +147,9 @@ &gpu_reserved {
  };
  
  &i2c1 {
@@ -32,5 +37,5 @@ index 87c0063af24f..4a8f337ee661 100644
  
  	pca9450@25 {
 -- 
-2.17.1
+2.34.1
 

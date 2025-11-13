@@ -1,9 +1,30 @@
 From b7ae83cb6e5f610ccd38dd59660abace0a94caeb Mon Sep 17 00:00:00 2001
 From: Mattias Busck <mattias.busck@hostmobility.com>
 Date: Tue, 1 Nov 2022 17:52:28 +0100
-Subject: [PATCH] Add control for selective wakeup
+Subject: [PATCH] tcan114x: add sysfs control for selective wakeup and status
 
-work in progress
+Add sysfs interface for TCAN114X CAN transceiver configuration and
+monitoring. This enables userspace control of CAN modes, selective
+wake events, and status monitoring.
+
+New sysfs attributes:
+- version: Driver version information
+- tcan114x_mode: Device power mode control (normal/standby/sleep)
+- canctrl: CAN controller mode (active/active_det/listen_only/offline)
+- main_status: Main status flags (FSMS, OTWS, NMS)
+- transceiver_status: Transceiver status (CTS, CPNERR, CPNS, etc.)
+- event: Event status with auto-clear on read (OTW, SPIF, PNFDE, etc.)
+
+TODO/Known issues:
+- Patch is work in progress and needs testing
+- Missing modectrl attribute referenced in attribute group
+- Some error handling could be improved
+- Consider using regmap API for register operations
+
+This provides foundation for selective wakeup control where the
+transceiver can wake the system based on specific CAN bus events.
+
+Signed-off-by: Mattias Busck <mattias.busck@hostmobility.com>
 ---
  drivers/misc/tcan114x.c | 294 +++++++++++++++++++++++++++++++++++++++-
  1 file changed, 290 insertions(+), 4 deletions(-)

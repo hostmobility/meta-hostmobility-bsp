@@ -15,9 +15,6 @@ file://0022-gpio-keys-make-disabled-keys-not-wake-system.patch  \
 file://0030-gpio-pca953x-driver-minimize-error-print-out.patch \
 "
 
-#TODO check if this patches is needed:
-#0011 patch is work in progress does not build.
-
 SRCBRANCH = "lf-6.6.y_6.6.52-2.2.0_var01"
 SRC_URI = "${KERNEL_SRC};branch=${SRCBRANCH}"
 SRCREV = "bf1b1781e47b1388faaf8689bd7296b3a82b8316"

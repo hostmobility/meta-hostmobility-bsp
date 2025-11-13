@@ -1,0 +1,47 @@
+From 8162cb6176f3de18114ddc746f26f37d41a97d75 Mon Sep 17 00:00:00 2001
+From: Andreas Ternstedt <andreas.ternstedt@gmail.com>
+Date: Thu, 13 Nov 2025 11:33:24 +0100
+Subject: [PATCH] Add napi_schedule
+
+---
+ include/linux/netdevice.h | 24 ++++++++++++++++++++++++
+ 1 file changed, 24 insertions(+)
+
+diff --git a/include/linux/netdevice.h b/include/linux/netdevice.h
+index b8e60a20416b..75408f3675a1 100644
+--- a/include/linux/netdevice.h
++++ b/include/linux/netdevice.h
+@@ -480,6 +480,30 @@ static inline bool napi_prefer_busy_poll(struct napi_struct *n)
+ 	return test_bit(NAPI_STATE_PREFER_BUSY_POLL, &n->state);
+ }
+ 
++/**
++ * napi_is_scheduled - test if NAPI is scheduled
++ * @n: NAPI context
++ *
++ * This check is "best-effort". With no locking implemented,
++ * a NAPI can be scheduled or terminate right after this check
++ * and produce not precise results.
++ *
++ * NAPI_STATE_SCHED is an internal state, napi_is_scheduled
++ * should not be used normally and napi_schedule should be
++ * used instead.
++ *
++ * Use only if the driver really needs to check if a NAPI
++ * is scheduled for example in the context of delayed timer
++ * that can be skipped if a NAPI is already scheduled.
++ *
++ * Return True if NAPI is scheduled, False otherwise.
++ */
++static inline bool napi_is_scheduled(struct napi_struct *n)
++{
++	return test_bit(NAPI_STATE_SCHED, &n->state);
++}
++
++
+ bool napi_schedule_prep(struct napi_struct *n);
+ 
+ /**
+-- 
+2.47.3
+

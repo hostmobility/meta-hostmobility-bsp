@@ -1,13 +1,24 @@
 From f005c8eac676948d9b49c7003ba69927630d037e Mon Sep 17 00:00:00 2001
 From: OpenEmbedded <oe.patch@oe>
 Date: Fri, 7 Feb 2025 09:04:48 +0000
-Subject: [PATCH 1/1] tcan114x driver with normal/standby/sleep mode
+Subject: [PATCH 1/1] misc: add tcan114x CAN transceiver driver
 
-v1. First version
-v2. Fix tcan114x_mode_store for sleep/standby
-v3. Write register SWE_DIS to disable sleep timeout
-v.4 Adapt to Linux 6.6
+Add driver for Texas Instruments TCAN114x series CAN transceivers
+with power management support.
+
+The driver disables automatic sleep timeout (SWE_DIS register) to
+allow application-controlled sleep duration rather than hardware
+timeout-based wake.
 ---
+
+Notes:
+    Consolidated patches history:
+
+	v4: Adapt driver for Linux 6.6 kernel
+	v3: Add SWE_DIS register write to disable sleep timeout
+	v2: Fix tcan114x_mode_store for sleep/standby transitions
+	v1: Initial driver implementation
+
  drivers/misc/Kconfig    |   7 +
  drivers/misc/Makefile   |   1 +
  drivers/misc/tcan114x.c | 320 ++++++++++++++++++++++++++++++++++++++++

@@ -33,9 +33,8 @@ maintainability and provides complete HMX board support.
 
 Based on Variscite Linux kernel version: lf-6.6.y_6.6.52-2.2.0_var01
 
-Co-developed-by: rikardo <rikard.olander@hostmobility.com>
+Signed-off-by: rikardo <rikard.olander@hostmobility.com>
 Signed-off-by: Andreas Ternstedt <a.ternstedt@setek.se>
-
 ---
 
 Notes:

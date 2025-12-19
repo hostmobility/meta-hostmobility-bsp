@@ -71,8 +71,8 @@ Notes:
     v1:  Initial consolidation of separate patches
 
  arch/arm64/boot/dts/freescale/Makefile        |    3 +
- .../dts/freescale/imx8mp-var-dart-hmx1.dts    | 1267 +++++++++++++++++
- 2 files changed, 1270 insertions(+)
+ .../dts/freescale/imx8mp-var-dart-hmx1.dts    | 1328 +++++++++++++++++
+ 2 files changed, 1331 insertions(+)
  create mode 100644 arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts
 
 diff --git a/arch/arm64/boot/dts/freescale/Makefile b/arch/arm64/boot/dts/freescale/Makefile
@@ -105,10 +105,10 @@ index ae88ecfee4c3..edf0ad985149 100644
  dtb-$(CONFIG_ARCH_MXC) += imx8mp-var-dart-1.x-dt8mcustomboard-basler-isi0.dtb
 diff --git a/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts b/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts
 new file mode 100644
-index 000000000000..7416b979d417
+index 000000000000..74b820aa8149
 --- /dev/null
 +++ b/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts
-@@ -0,0 +1,1267 @@
+@@ -0,0 +1,1328 @@
 +// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 +/*
 + * Copyright 2022-2024 Host Mobility AB
@@ -446,29 +446,55 @@ index 000000000000..7416b979d417
 +		#address-cells = <1>;
 +		#size-cells = <0>;
 +
-+		// Generic PHY driver will attach to the marvell,88q2xxx
++		/* Shared reset GPIO between both PHYs on GPIO3_1
++
++		The reset line is shared between both 88Q2110 PHYs, but Linux's
++		device model doesn't support claiming the same GPIO from multiple
++		drivers. Therefore, reset configuration is omitted from PHY nodes.
++
++		With proper pinctrl, PHYs perform hardware strapping during power-up
++		by reading RXD[0:1] and GPIO pins to auto-configure MDIO registers, 
++		making explicit reset unnecessary.
++
++		Also possible to configure speed + master/slave with RXD[2:3] and 
++		RGMII mode with RXC. This can also be configure by software. 
++
++		For reference, shared reset would be:
++		  reset-gpios = <&gpio3 1 GPIO_ACTIVE_HIGH>;
++		  reset-delay-us = <100000>;       // 100ms reset assertion
++		  reset-post-delay-us = <200000>;  // 200ms post-reset delay */
++
 +		ethphy_fec: ethernet-phy@3 {
-+			compatible = "ethernet-phy-ieee802.3-c45";
++			compatible = "ethernet-phy-id002b.0983";
 +			reg = <3>;
 +			max-speed = <1000>;
 +		};
 +
 +		ethphy_eqos: ethernet-phy@7 {
-+			compatible = "ethernet-phy-ieee802.3-c45";
++			compatible = "ethernet-phy-id002b.0983";
 +			reg = <7>;
 +			max-speed = <1000>;
 +		};
 +	};
 +};
 +
-+/* Second Automotive Ethernet Marvell 88Q2110*/
++/* Second Automotive Ethernet Marvell 88Q2110 */
 +&eqos {
-+	phy-mode = "rgmii-id";
++	pinctrl-0 = <&pinctrl_eqos>;
++	phy-mode = "rgmii";
 +	phy-handle = <&ethphy_eqos>;
 +	status = "okay";
 +
-+	// Remove onboard Ethernet PHY (EC configuration)
++	/* EQOS shares the MDIO bus configured under FEC node above.
++	Remove the redundant MDIO node to avoid conflicts. */
 +	/delete-node/ mdio;
++
++	/* Performance tuning options (currently disabled):
++	If EQOS have performance issues, consider enabling DMA threshold
++	mode or custom MTL TX/RX configurations. See snps,dwmac.yaml
++	binding documentation for available options.
++
++	Example: snps,force_thresh_dma_mode; */
 +};
 +
 +&i2c2 {
@@ -910,25 +936,65 @@ index 000000000000..7416b979d417
 +		>;
 +	};
 +
++	/* TODO: Automotive ethernet PHY interrupt support
++
++	Currently disabled - PHYs operate in polling mode.
++
++	To enable interrupts:
++	1. Uncomment pinctrl_enet_irq group below
++	2. Verify 0x140 pad config (may need pull-up, ect.)
++	3. Add to PHY nodes:
++		 interrupt-parent = <&gpio3>;
++		 interrupts = <6 IRQ_TYPE_LEVEL_LOW>;  // for PHY@7
++		 interrupts = <9 IRQ_TYPE_LEVEL_LOW>;  // for PHY@3
++	4. Test with link state changes
++		pinctrl_enet_irq: enetirqgrp {
++			fsl,pins =
++				MX8MP_IOMUXC_NAND_DATA00__GPIO3_IO06  0x140  // EQOS PHY IRQ
++				MX8MP_IOMUXC_NAND_DATA03__GPIO3_IO09  0x140  // FEC PHY IRQ
++			>;
++		};
++	*/
++
 +	/* 0x90 = Schmitt-trigger, fast slew-rate, 0x2 = Drive strength 4 (DSE_X4) */
 +	pinctrl_fec: fecgrp {
 +		fsl,pins = <
-+			MX8MP_IOMUXC_SAI1_RXD2__ENET1_MDC				0x3
-+			MX8MP_IOMUXC_SAI1_RXD3__ENET1_MDIO				0x3
-+			MX8MP_IOMUXC_SAI1_RXD4__ENET1_RGMII_RD0				0x90
-+			MX8MP_IOMUXC_SAI1_RXD5__ENET1_RGMII_RD1				0x90
-+			MX8MP_IOMUXC_SAI1_RXD6__ENET1_RGMII_RD2				0x90
-+			MX8MP_IOMUXC_SAI1_RXD7__ENET1_RGMII_RD3				0x90
-+			MX8MP_IOMUXC_SAI1_TXC__ENET1_RGMII_RXC				0x90
-+			MX8MP_IOMUXC_SAI1_TXFS__ENET1_RGMII_RX_CTL			0x90
-+			MX8MP_IOMUXC_SAI1_TXD0__ENET1_RGMII_TD0				0x16
-+			MX8MP_IOMUXC_SAI1_TXD1__ENET1_RGMII_TD1				0x16
-+			MX8MP_IOMUXC_SAI1_TXD2__ENET1_RGMII_TD2				0x16
-+			MX8MP_IOMUXC_SAI1_TXD3__ENET1_RGMII_TD3				0x16
++			MX8MP_IOMUXC_SAI1_RXD2__ENET1_MDC				0x2
++			MX8MP_IOMUXC_SAI1_RXD3__ENET1_MDIO				0x2
++			MX8MP_IOMUXC_SAI1_RXD4__ENET1_RGMII_RD0			(FSEL_1_FAST_SLEW_RATE | HYS_1_SCHMITT | PE_1_PULL_ENABLE | PUE_0_WEAK_PULL_DOWN)
++			MX8MP_IOMUXC_SAI1_RXD5__ENET1_RGMII_RD1			(FSEL_1_FAST_SLEW_RATE | HYS_1_SCHMITT | PE_1_PULL_ENABLE | PUE_0_WEAK_PULL_DOWN)
++			MX8MP_IOMUXC_SAI1_RXD6__ENET1_RGMII_RD2			(FSEL_1_FAST_SLEW_RATE | HYS_1_SCHMITT | PE_1_PULL_ENABLE | PUE_0_WEAK_PULL_DOWN)
++			MX8MP_IOMUXC_SAI1_RXD7__ENET1_RGMII_RD3			(FSEL_1_FAST_SLEW_RATE | HYS_1_SCHMITT | PE_1_PULL_ENABLE | PUE_0_WEAK_PULL_DOWN)
++			MX8MP_IOMUXC_SAI1_TXC__ENET1_RGMII_RXC			(FSEL_1_FAST_SLEW_RATE | HYS_1_SCHMITT | PE_1_PULL_ENABLE | PUE_0_WEAK_PULL_DOWN)
++			MX8MP_IOMUXC_SAI1_TXFS__ENET1_RGMII_RX_CTL			(FSEL_1_FAST_SLEW_RATE | HYS_1_SCHMITT | PE_1_PULL_ENABLE | PUE_1_WEAK_PULL_UP)
++			MX8MP_IOMUXC_SAI1_TXD0__ENET1_RGMII_TD0			0x16
++			MX8MP_IOMUXC_SAI1_TXD1__ENET1_RGMII_TD1			0x16
++			MX8MP_IOMUXC_SAI1_TXD2__ENET1_RGMII_TD2			0x16
++			MX8MP_IOMUXC_SAI1_TXD3__ENET1_RGMII_TD3			0x16
 +			MX8MP_IOMUXC_SAI1_TXD4__ENET1_RGMII_TX_CTL			0x16
-+			MX8MP_IOMUXC_SAI1_TXD5__ENET1_RGMII_TXC				0x16
++			MX8MP_IOMUXC_SAI1_TXD5__ENET1_RGMII_TXC			0x16
 +			MX8MP_IOMUXC_NAND_CE0_B__GPIO3_IO01		(PE_1_PULL_ENABLE  | PUE_0_WEAK_PULL_DOWN | DSE_X2)
++		>;
++	};
 +
++	pinctrl_eqos: eqosgrp {
++		fsl,pins = <
++			MX8MP_IOMUXC_ENET_MDC__ENET_QOS_MDC				0x2
++			MX8MP_IOMUXC_ENET_MDIO__ENET_QOS_MDIO				0x2
++			MX8MP_IOMUXC_ENET_RD0__ENET_QOS_RGMII_RD0			(FSEL_1_FAST_SLEW_RATE | HYS_1_SCHMITT | PE_1_PULL_ENABLE | PUE_0_WEAK_PULL_DOWN)
++			MX8MP_IOMUXC_ENET_RD1__ENET_QOS_RGMII_RD1			(FSEL_1_FAST_SLEW_RATE | HYS_1_SCHMITT | PE_1_PULL_ENABLE | PUE_0_WEAK_PULL_DOWN)
++			MX8MP_IOMUXC_ENET_RD2__ENET_QOS_RGMII_RD2			(FSEL_1_FAST_SLEW_RATE | HYS_1_SCHMITT | PE_1_PULL_ENABLE | PUE_0_WEAK_PULL_DOWN)
++			MX8MP_IOMUXC_ENET_RD3__ENET_QOS_RGMII_RD3			(FSEL_1_FAST_SLEW_RATE | HYS_1_SCHMITT | PE_1_PULL_ENABLE | PUE_0_WEAK_PULL_DOWN)
++			MX8MP_IOMUXC_ENET_RXC__CCM_ENET_QOS_CLOCK_GENERATE_RX_CLK	(FSEL_1_FAST_SLEW_RATE | HYS_1_SCHMITT | PE_1_PULL_ENABLE | PUE_0_WEAK_PULL_DOWN)
++			MX8MP_IOMUXC_ENET_RX_CTL__ENET_QOS_RGMII_RX_CTL			(FSEL_1_FAST_SLEW_RATE | HYS_1_SCHMITT | PE_1_PULL_ENABLE | PUE_1_WEAK_PULL_UP)
++			MX8MP_IOMUXC_ENET_TD0__ENET_QOS_RGMII_TD0			0x16
++			MX8MP_IOMUXC_ENET_TD1__ENET_QOS_RGMII_TD1			0x16
++			MX8MP_IOMUXC_ENET_TD2__ENET_QOS_RGMII_TD2			0x16
++			MX8MP_IOMUXC_ENET_TD3__ENET_QOS_RGMII_TD3			0x16
++			MX8MP_IOMUXC_ENET_TX_CTL__ENET_QOS_RGMII_TX_CTL			0x16
++			MX8MP_IOMUXC_ENET_TXC__CCM_ENET_QOS_CLOCK_GENERATE_TX_CLK	0x16
++			MX8MP_IOMUXC_SD2_WP__GPIO2_IO20					0x10
++			MX8MP_IOMUXC_SD1_STROBE__GPIO2_IO11				0x150
 +		>;
 +	};
 +

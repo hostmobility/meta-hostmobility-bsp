@@ -1485,7 +1485,7 @@ index cdb28d6a092c..b832566efda0 100644
  	},
  	.probe = m_can_plat_probe,
 -	.remove_new = m_can_plat_remove,
-+	.remove = m_can_plat_remove,
++	.remove_new = m_can_plat_remove, // backport changed to 'remove', could not build!
  };
  
  module_platform_driver(m_can_plat_driver);

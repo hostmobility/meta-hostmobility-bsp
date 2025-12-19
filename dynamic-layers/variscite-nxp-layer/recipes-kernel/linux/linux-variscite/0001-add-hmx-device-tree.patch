@@ -407,23 +407,7 @@ index 000000000000..7416b979d417
 +		off-on-delay-us = <12000>;
 +	};
 +
-+
-+	can0_osc: can0_osc {
-+		compatible = "fixed-clock";
-+		#clock-cells = <0>;
-+		clock-frequency = <40000000>;
-+	};
-+	can3_osc: can3_osc {
-+		compatible = "fixed-clock";
-+		#clock-cells = <0>;
-+		clock-frequency = <40000000>;
-+	};
-+	can4_osc: can4_osc {
-+		compatible = "fixed-clock";
-+		#clock-cells = <0>;
-+		clock-frequency = <40000000>;
-+	};
-+	can5_osc: can5_osc {
++	can_osc_40mhz: can_osc_40mhz {
 +		compatible = "fixed-clock";
 +		#clock-cells = <0>;
 +		clock-frequency = <40000000>;
@@ -797,10 +781,10 @@ index 000000000000..7416b979d417
 +		#address-cells = <1>;
 +		#size-cells = <1>;
 +		spi-max-frequency = <18000000>;
-+		clocks = <&can3_osc>;
 +		bosch,mram-cfg = <0x0 0 0 15 0 0 8 8>;
++		clocks = <&can_osc_40mhz>, <&can_osc_40mhz>;
++		clock-names = "hclk", "cclk";
 +		interrupt-parent = <&gpio4>;
-+		clock-names = "cclk";
 +		interrupts = <23 IRQ_TYPE_LEVEL_LOW>;
 +		wakeup-source;
 +		status = "okay";
@@ -811,13 +795,13 @@ index 000000000000..7416b979d417
 +		reg = <3>;
 +		#address-cells = <1>;
 +		#size-cells = <1>;
++		spi-max-frequency = <18000000>;
 +		bosch,mram-cfg = <0x0 0 0 15 0 0 8 8>;
++		clocks = <&can_osc_40mhz>, <&can_osc_40mhz>;
++		clock-names = "hclk", "cclk";
 +		interrupt-parent = <&gpio4>;
-+		clock-names = "cclk";
-+		clocks = <&can5_osc>;
 +		/* TODO: Should this the IRQ_TYPE_LEVEL_LOW? */
 +		interrupts = <26 IRQ_TYPE_LEVEL_LOW>;
-+		spi-max-frequency = <18000000>;
 +		wakeup-source;
 +		status = "okay";
 +	};
@@ -840,8 +824,8 @@ index 000000000000..7416b979d417
 +		#address-cells = <1>;
 +		#size-cells = <1>;
 +		spi-max-frequency = <18000000>;
-+		clock-names = "cclk";
-+		clocks = <&can0_osc>;
++		clocks = <&can_osc_40mhz>, <&can_osc_40mhz>;
++		clock-names = "hclk", "cclk";
 +		bosch,mram-cfg = <0x0 0 0 15 0 0 8 8>;
 +		interrupt-parent = <&gpio4>;
 +		interrupts = <24 IRQ_TYPE_LEVEL_LOW>;
@@ -856,8 +840,8 @@ index 000000000000..7416b979d417
 +		#address-cells = <1>;
 +		#size-cells = <1>;
 +		spi-max-frequency = <18000000>;
-+		clock-names = "cclk";
-+		clocks = <&can4_osc>;
++		clocks = <&can_osc_40mhz>, <&can_osc_40mhz>;
++		clock-names = "hclk", "cclk";
 +		bosch,mram-cfg = <0x0 0 0 15 0 0 8 8>;
 +		interrupt-parent = <&gpio4>;
 +		interrupts = <27 IRQ_TYPE_LEVEL_LOW>;

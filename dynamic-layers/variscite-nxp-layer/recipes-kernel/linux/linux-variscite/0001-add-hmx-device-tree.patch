@@ -422,6 +422,10 @@ index 000000000000..7416b979d417
 +	};
 +};
 +
++/* Re-enable SNVS RTC (disabled in imx8mp-var-dart.dtsi) */
++&snvs_rtc {
++	status = "okay";
++};
 +
 +&wdog1 {
 +	/delete-property/pinctrl-names;
@@ -577,13 +581,12 @@ index 000000000000..7416b979d417
 +	pinctrl-1 = <&pinctrl_i2c4_gpio>;
 +	status = "okay";
 +
-+
 +	accelerometer@1e {
 +		pinctrl-names = "default";
 +		pinctrl-0 = <&pinctrl_acc>;
 +		compatible = "st,lis2hh12";
 +		reg = <0x1e>;
-+		st,drdy-int-pin = <1>;/*Not working but set manually data ready 'i2cset -f -y 3 0x1e 0x22 1'*/
++		st,drdy-int-pin = <1>; /*Not working but set manually data ready 'i2cset -f -y 3 0x1e 0x22 1'*/
 +		interrupt-parent = <&gpio5>;
 +		interrupts = <2 IRQ_TYPE_EDGE_RISING>;
 +		vdd-supply = <&buck4>;
@@ -593,8 +596,12 @@ index 000000000000..7416b979d417
 +		status = "okay";
 +	};
 +
-+	/* TODO HSM */
-+
++	/* HSM at 0x48 - no Linux driver, node for documentation only */
++	hsm@48 {
++		compatible = "There is no driver";
++		reg = <0x48>;
++		status = "okay";
++	};
 +};
 +
 +&flexcan1 {
@@ -732,7 +739,6 @@ index 000000000000..7416b979d417
 +			reg =<4>;
 +
 +		};
-+
 +	};
 +};
 +/* TODO change ports if needed and check power logic for USB host/peripheral */
@@ -1152,10 +1158,10 @@ index 000000000000..7416b979d417
 +		>;
 +	};
 +
-+	/**/
++	/* Tested with NXP plug-and-trust middleware */
 +	pinctrl_se050_ena: se050enagrp {
 +		fsl,pins = <
-+			MX8MP_IOMUXC_SAI3_TXD__GPIO5_IO01	(PE_1_PULL_ENABLE | HYS_1_SCHMITT | DSE_X6)
++			MX8MP_IOMUXC_SAI3_TXD__GPIO5_IO01	(PE_0_PULL_DISABLE | HYS_1_SCHMITT | FSEL_1_FAST_SLEW_RATE | DSE_X6)
 +		>;
 +	};
 +
@@ -1339,19 +1345,24 @@ index 000000000000..7416b979d417
 +		"CAN_RST",
 +		"GPIO5_IO30",
 +		"GPIO5_IO31";
-+	/*
-+	 * The SE050 security element may be driven via I2C from user space.
-+	 * The element itself is enabled here as it has no kernel driver.
-+	TODO add se050_ena to u-boot level and set it enable in linux
-+	 */
++
++	/* SE050 Secure Element - Enable via GPIO hog
++
++	Enables SE050 for userspace access via I2C (no kernel driver).
++	Tested with NXP plug-and-trust middleware.
++
++	WARNING: Conflicts with AC (Audio Codec) SOM variant - both use GPIO5_1
++
++	TODO: Move to U-Boot for early initialization. */
 +	se050_ena {
 +		gpio-hog;
-+		gpios = <1 GPIO_ACTIVE_LOW>;
++		gpios = <1 GPIO_ACTIVE_HIGH>;
 +		line-name = "nHSM_SLEEP_SE050_ENABLE";
-+		output-low;
++		output-high;
 +		pinctrl-names = "default";
 +		pinctrl-0 = <&pinctrl_se050_ena>;
 +	};
++
 +	can_rst {
 +		gpio-hog;
 +		gpios = <29 GPIO_ACTIVE_LOW>;

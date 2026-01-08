@@ -71,8 +71,8 @@ Notes:
     v1:  Initial consolidation of separate patches
 
  arch/arm64/boot/dts/freescale/Makefile        |    3 +
- .../dts/freescale/imx8mp-var-dart-hmx1.dts    | 1267 +++++++++++++++++
- 2 files changed, 1270 insertions(+)
+ .../dts/freescale/imx8mp-var-dart-hmx1.dts    | 1328 +++++++++++++++++
+ 2 files changed, 1331 insertions(+)
  create mode 100644 arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts
 
 diff --git a/arch/arm64/boot/dts/freescale/Makefile b/arch/arm64/boot/dts/freescale/Makefile
@@ -105,10 +105,10 @@ index ae88ecfee4c3..edf0ad985149 100644
  dtb-$(CONFIG_ARCH_MXC) += imx8mp-var-dart-1.x-dt8mcustomboard-basler-isi0.dtb
 diff --git a/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts b/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts
 new file mode 100644
-index 000000000000..7416b979d417
+index 000000000000..74b820aa8149
 --- /dev/null
 +++ b/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1.dts
-@@ -0,0 +1,1267 @@
+@@ -0,0 +1,1328 @@
 +// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 +/*
 + * Copyright 2022-2024 Host Mobility AB
@@ -407,23 +407,7 @@ index 000000000000..7416b979d417
 +		off-on-delay-us = <12000>;
 +	};
 +
-+
-+	can0_osc: can0_osc {
-+		compatible = "fixed-clock";
-+		#clock-cells = <0>;
-+		clock-frequency = <40000000>;
-+	};
-+	can3_osc: can3_osc {
-+		compatible = "fixed-clock";
-+		#clock-cells = <0>;
-+		clock-frequency = <40000000>;
-+	};
-+	can4_osc: can4_osc {
-+		compatible = "fixed-clock";
-+		#clock-cells = <0>;
-+		clock-frequency = <40000000>;
-+	};
-+	can5_osc: can5_osc {
++	can_osc_40mhz: can_osc_40mhz {
 +		compatible = "fixed-clock";
 +		#clock-cells = <0>;
 +		clock-frequency = <40000000>;
@@ -438,6 +422,10 @@ index 000000000000..7416b979d417
 +	};
 +};
 +
++/* Re-enable SNVS RTC (disabled in imx8mp-var-dart.dtsi) */
++&snvs_rtc {
++	status = "okay";
++};
 +
 +&wdog1 {
 +	/delete-property/pinctrl-names;
@@ -458,29 +446,55 @@ index 000000000000..7416b979d417
 +		#address-cells = <1>;
 +		#size-cells = <0>;
 +
-+		// Generic PHY driver will attach to the marvell,88q2xxx
++		/* Shared reset GPIO between both PHYs on GPIO3_1
++
++		The reset line is shared between both 88Q2110 PHYs, but Linux's
++		device model doesn't support claiming the same GPIO from multiple
++		drivers. Therefore, reset configuration is omitted from PHY nodes.
++
++		With proper pinctrl, PHYs perform hardware strapping during power-up
++		by reading RXD[0:1] and GPIO pins to auto-configure MDIO registers, 
++		making explicit reset unnecessary.
++
++		Also possible to configure speed + master/slave with RXD[2:3] and 
++		RGMII mode with RXC. This can also be configure by software. 
++
++		For reference, shared reset would be:
++		  reset-gpios = <&gpio3 1 GPIO_ACTIVE_HIGH>;
++		  reset-delay-us = <100000>;       // 100ms reset assertion
++		  reset-post-delay-us = <200000>;  // 200ms post-reset delay */
++
 +		ethphy_fec: ethernet-phy@3 {
-+			compatible = "ethernet-phy-ieee802.3-c45";
++			compatible = "ethernet-phy-id002b.0983";
 +			reg = <3>;
 +			max-speed = <1000>;
 +		};
 +
 +		ethphy_eqos: ethernet-phy@7 {
-+			compatible = "ethernet-phy-ieee802.3-c45";
++			compatible = "ethernet-phy-id002b.0983";
 +			reg = <7>;
 +			max-speed = <1000>;
 +		};
 +	};
 +};
 +
-+/* Second Automotive Ethernet Marvell 88Q2110*/
++/* Second Automotive Ethernet Marvell 88Q2110 */
 +&eqos {
-+	phy-mode = "rgmii-id";
++	pinctrl-0 = <&pinctrl_eqos>;
++	phy-mode = "rgmii";
 +	phy-handle = <&ethphy_eqos>;
 +	status = "okay";
 +
-+	// Remove onboard Ethernet PHY (EC configuration)
++	/* EQOS shares the MDIO bus configured under FEC node above.
++	Remove the redundant MDIO node to avoid conflicts. */
 +	/delete-node/ mdio;
++
++	/* Performance tuning options (currently disabled):
++	If EQOS have performance issues, consider enabling DMA threshold
++	mode or custom MTL TX/RX configurations. See snps,dwmac.yaml
++	binding documentation for available options.
++
++	Example: snps,force_thresh_dma_mode; */
 +};
 +
 +&i2c2 {
@@ -593,13 +607,12 @@ index 000000000000..7416b979d417
 +	pinctrl-1 = <&pinctrl_i2c4_gpio>;
 +	status = "okay";
 +
-+
 +	accelerometer@1e {
 +		pinctrl-names = "default";
 +		pinctrl-0 = <&pinctrl_acc>;
 +		compatible = "st,lis2hh12";
 +		reg = <0x1e>;
-+		st,drdy-int-pin = <1>;/*Not working but set manually data ready 'i2cset -f -y 3 0x1e 0x22 1'*/
++		st,drdy-int-pin = <1>; /*Not working but set manually data ready 'i2cset -f -y 3 0x1e 0x22 1'*/
 +		interrupt-parent = <&gpio5>;
 +		interrupts = <2 IRQ_TYPE_EDGE_RISING>;
 +		vdd-supply = <&buck4>;
@@ -609,8 +622,12 @@ index 000000000000..7416b979d417
 +		status = "okay";
 +	};
 +
-+	/* TODO HSM */
-+
++	/* HSM at 0x48 - no Linux driver, node for documentation only */
++	hsm@48 {
++		compatible = "There is no driver";
++		reg = <0x48>;
++		status = "okay";
++	};
 +};
 +
 +&flexcan1 {
@@ -748,7 +765,6 @@ index 000000000000..7416b979d417
 +			reg =<4>;
 +
 +		};
-+
 +	};
 +};
 +/* TODO change ports if needed and check power logic for USB host/peripheral */
@@ -797,10 +813,10 @@ index 000000000000..7416b979d417
 +		#address-cells = <1>;
 +		#size-cells = <1>;
 +		spi-max-frequency = <18000000>;
-+		clocks = <&can3_osc>;
 +		bosch,mram-cfg = <0x0 0 0 15 0 0 8 8>;
++		clocks = <&can_osc_40mhz>, <&can_osc_40mhz>;
++		clock-names = "hclk", "cclk";
 +		interrupt-parent = <&gpio4>;
-+		clock-names = "cclk";
 +		interrupts = <23 IRQ_TYPE_LEVEL_LOW>;
 +		wakeup-source;
 +		status = "okay";
@@ -811,13 +827,13 @@ index 000000000000..7416b979d417
 +		reg = <3>;
 +		#address-cells = <1>;
 +		#size-cells = <1>;
++		spi-max-frequency = <18000000>;
 +		bosch,mram-cfg = <0x0 0 0 15 0 0 8 8>;
++		clocks = <&can_osc_40mhz>, <&can_osc_40mhz>;
++		clock-names = "hclk", "cclk";
 +		interrupt-parent = <&gpio4>;
-+		clock-names = "cclk";
-+		clocks = <&can5_osc>;
 +		/* TODO: Should this the IRQ_TYPE_LEVEL_LOW? */
 +		interrupts = <26 IRQ_TYPE_LEVEL_LOW>;
-+		spi-max-frequency = <18000000>;
 +		wakeup-source;
 +		status = "okay";
 +	};
@@ -840,8 +856,8 @@ index 000000000000..7416b979d417
 +		#address-cells = <1>;
 +		#size-cells = <1>;
 +		spi-max-frequency = <18000000>;
-+		clock-names = "cclk";
-+		clocks = <&can0_osc>;
++		clocks = <&can_osc_40mhz>, <&can_osc_40mhz>;
++		clock-names = "hclk", "cclk";
 +		bosch,mram-cfg = <0x0 0 0 15 0 0 8 8>;
 +		interrupt-parent = <&gpio4>;
 +		interrupts = <24 IRQ_TYPE_LEVEL_LOW>;
@@ -856,8 +872,8 @@ index 000000000000..7416b979d417
 +		#address-cells = <1>;
 +		#size-cells = <1>;
 +		spi-max-frequency = <18000000>;
-+		clock-names = "cclk";
-+		clocks = <&can4_osc>;
++		clocks = <&can_osc_40mhz>, <&can_osc_40mhz>;
++		clock-names = "hclk", "cclk";
 +		bosch,mram-cfg = <0x0 0 0 15 0 0 8 8>;
 +		interrupt-parent = <&gpio4>;
 +		interrupts = <27 IRQ_TYPE_LEVEL_LOW>;
@@ -920,25 +936,65 @@ index 000000000000..7416b979d417
 +		>;
 +	};
 +
++	/* TODO: Automotive ethernet PHY interrupt support
++
++	Currently disabled - PHYs operate in polling mode.
++
++	To enable interrupts:
++	1. Uncomment pinctrl_enet_irq group below
++	2. Verify 0x140 pad config (may need pull-up, ect.)
++	3. Add to PHY nodes:
++		 interrupt-parent = <&gpio3>;
++		 interrupts = <6 IRQ_TYPE_LEVEL_LOW>;  // for PHY@7
++		 interrupts = <9 IRQ_TYPE_LEVEL_LOW>;  // for PHY@3
++	4. Test with link state changes
++		pinctrl_enet_irq: enetirqgrp {
++			fsl,pins =
++				MX8MP_IOMUXC_NAND_DATA00__GPIO3_IO06  0x140  // EQOS PHY IRQ
++				MX8MP_IOMUXC_NAND_DATA03__GPIO3_IO09  0x140  // FEC PHY IRQ
++			>;
++		};
++	*/
++
 +	/* 0x90 = Schmitt-trigger, fast slew-rate, 0x2 = Drive strength 4 (DSE_X4) */
 +	pinctrl_fec: fecgrp {
 +		fsl,pins = <
-+			MX8MP_IOMUXC_SAI1_RXD2__ENET1_MDC				0x3
-+			MX8MP_IOMUXC_SAI1_RXD3__ENET1_MDIO				0x3
-+			MX8MP_IOMUXC_SAI1_RXD4__ENET1_RGMII_RD0				0x90
-+			MX8MP_IOMUXC_SAI1_RXD5__ENET1_RGMII_RD1				0x90
-+			MX8MP_IOMUXC_SAI1_RXD6__ENET1_RGMII_RD2				0x90
-+			MX8MP_IOMUXC_SAI1_RXD7__ENET1_RGMII_RD3				0x90
-+			MX8MP_IOMUXC_SAI1_TXC__ENET1_RGMII_RXC				0x90
-+			MX8MP_IOMUXC_SAI1_TXFS__ENET1_RGMII_RX_CTL			0x90
-+			MX8MP_IOMUXC_SAI1_TXD0__ENET1_RGMII_TD0				0x16
-+			MX8MP_IOMUXC_SAI1_TXD1__ENET1_RGMII_TD1				0x16
-+			MX8MP_IOMUXC_SAI1_TXD2__ENET1_RGMII_TD2				0x16
-+			MX8MP_IOMUXC_SAI1_TXD3__ENET1_RGMII_TD3				0x16
++			MX8MP_IOMUXC_SAI1_RXD2__ENET1_MDC				0x2
++			MX8MP_IOMUXC_SAI1_RXD3__ENET1_MDIO				0x2
++			MX8MP_IOMUXC_SAI1_RXD4__ENET1_RGMII_RD0			(FSEL_1_FAST_SLEW_RATE | HYS_1_SCHMITT | PE_1_PULL_ENABLE | PUE_0_WEAK_PULL_DOWN)
++			MX8MP_IOMUXC_SAI1_RXD5__ENET1_RGMII_RD1			(FSEL_1_FAST_SLEW_RATE | HYS_1_SCHMITT | PE_1_PULL_ENABLE | PUE_0_WEAK_PULL_DOWN)
++			MX8MP_IOMUXC_SAI1_RXD6__ENET1_RGMII_RD2			(FSEL_1_FAST_SLEW_RATE | HYS_1_SCHMITT | PE_1_PULL_ENABLE | PUE_0_WEAK_PULL_DOWN)
++			MX8MP_IOMUXC_SAI1_RXD7__ENET1_RGMII_RD3			(FSEL_1_FAST_SLEW_RATE | HYS_1_SCHMITT | PE_1_PULL_ENABLE | PUE_0_WEAK_PULL_DOWN)
++			MX8MP_IOMUXC_SAI1_TXC__ENET1_RGMII_RXC			(FSEL_1_FAST_SLEW_RATE | HYS_1_SCHMITT | PE_1_PULL_ENABLE | PUE_0_WEAK_PULL_DOWN)
++			MX8MP_IOMUXC_SAI1_TXFS__ENET1_RGMII_RX_CTL			(FSEL_1_FAST_SLEW_RATE | HYS_1_SCHMITT | PE_1_PULL_ENABLE | PUE_1_WEAK_PULL_UP)
++			MX8MP_IOMUXC_SAI1_TXD0__ENET1_RGMII_TD0			0x16
++			MX8MP_IOMUXC_SAI1_TXD1__ENET1_RGMII_TD1			0x16
++			MX8MP_IOMUXC_SAI1_TXD2__ENET1_RGMII_TD2			0x16
++			MX8MP_IOMUXC_SAI1_TXD3__ENET1_RGMII_TD3			0x16
 +			MX8MP_IOMUXC_SAI1_TXD4__ENET1_RGMII_TX_CTL			0x16
-+			MX8MP_IOMUXC_SAI1_TXD5__ENET1_RGMII_TXC				0x16
++			MX8MP_IOMUXC_SAI1_TXD5__ENET1_RGMII_TXC			0x16
 +			MX8MP_IOMUXC_NAND_CE0_B__GPIO3_IO01		(PE_1_PULL_ENABLE  | PUE_0_WEAK_PULL_DOWN | DSE_X2)
++		>;
++	};
 +
++	pinctrl_eqos: eqosgrp {
++		fsl,pins = <
++			MX8MP_IOMUXC_ENET_MDC__ENET_QOS_MDC				0x2
++			MX8MP_IOMUXC_ENET_MDIO__ENET_QOS_MDIO				0x2
++			MX8MP_IOMUXC_ENET_RD0__ENET_QOS_RGMII_RD0			(FSEL_1_FAST_SLEW_RATE | HYS_1_SCHMITT | PE_1_PULL_ENABLE | PUE_0_WEAK_PULL_DOWN)
++			MX8MP_IOMUXC_ENET_RD1__ENET_QOS_RGMII_RD1			(FSEL_1_FAST_SLEW_RATE | HYS_1_SCHMITT | PE_1_PULL_ENABLE | PUE_0_WEAK_PULL_DOWN)
++			MX8MP_IOMUXC_ENET_RD2__ENET_QOS_RGMII_RD2			(FSEL_1_FAST_SLEW_RATE | HYS_1_SCHMITT | PE_1_PULL_ENABLE | PUE_0_WEAK_PULL_DOWN)
++			MX8MP_IOMUXC_ENET_RD3__ENET_QOS_RGMII_RD3			(FSEL_1_FAST_SLEW_RATE | HYS_1_SCHMITT | PE_1_PULL_ENABLE | PUE_0_WEAK_PULL_DOWN)
++			MX8MP_IOMUXC_ENET_RXC__CCM_ENET_QOS_CLOCK_GENERATE_RX_CLK	(FSEL_1_FAST_SLEW_RATE | HYS_1_SCHMITT | PE_1_PULL_ENABLE | PUE_0_WEAK_PULL_DOWN)
++			MX8MP_IOMUXC_ENET_RX_CTL__ENET_QOS_RGMII_RX_CTL			(FSEL_1_FAST_SLEW_RATE | HYS_1_SCHMITT | PE_1_PULL_ENABLE | PUE_1_WEAK_PULL_UP)
++			MX8MP_IOMUXC_ENET_TD0__ENET_QOS_RGMII_TD0			0x16
++			MX8MP_IOMUXC_ENET_TD1__ENET_QOS_RGMII_TD1			0x16
++			MX8MP_IOMUXC_ENET_TD2__ENET_QOS_RGMII_TD2			0x16
++			MX8MP_IOMUXC_ENET_TD3__ENET_QOS_RGMII_TD3			0x16
++			MX8MP_IOMUXC_ENET_TX_CTL__ENET_QOS_RGMII_TX_CTL			0x16
++			MX8MP_IOMUXC_ENET_TXC__CCM_ENET_QOS_CLOCK_GENERATE_TX_CLK	0x16
++			MX8MP_IOMUXC_SD2_WP__GPIO2_IO20					0x10
++			MX8MP_IOMUXC_SD1_STROBE__GPIO2_IO11				0x150
 +		>;
 +	};
 +
@@ -1168,10 +1224,10 @@ index 000000000000..7416b979d417
 +		>;
 +	};
 +
-+	/**/
++	/* Tested with NXP plug-and-trust middleware */
 +	pinctrl_se050_ena: se050enagrp {
 +		fsl,pins = <
-+			MX8MP_IOMUXC_SAI3_TXD__GPIO5_IO01	(PE_1_PULL_ENABLE | HYS_1_SCHMITT | DSE_X6)
++			MX8MP_IOMUXC_SAI3_TXD__GPIO5_IO01	(PE_0_PULL_DISABLE | HYS_1_SCHMITT | FSEL_1_FAST_SLEW_RATE | DSE_X6)
 +		>;
 +	};
 +
@@ -1355,19 +1411,24 @@ index 000000000000..7416b979d417
 +		"CAN_RST",
 +		"GPIO5_IO30",
 +		"GPIO5_IO31";
-+	/*
-+	 * The SE050 security element may be driven via I2C from user space.
-+	 * The element itself is enabled here as it has no kernel driver.
-+	TODO add se050_ena to u-boot level and set it enable in linux
-+	 */
++
++	/* SE050 Secure Element - Enable via GPIO hog
++
++	Enables SE050 for userspace access via I2C (no kernel driver).
++	Tested with NXP plug-and-trust middleware.
++
++	WARNING: Conflicts with AC (Audio Codec) SOM variant - both use GPIO5_1
++
++	TODO: Move to U-Boot for early initialization. */
 +	se050_ena {
 +		gpio-hog;
-+		gpios = <1 GPIO_ACTIVE_LOW>;
++		gpios = <1 GPIO_ACTIVE_HIGH>;
 +		line-name = "nHSM_SLEEP_SE050_ENABLE";
-+		output-low;
++		output-high;
 +		pinctrl-names = "default";
 +		pinctrl-0 = <&pinctrl_se050_ena>;
 +	};
++
 +	can_rst {
 +		gpio-hog;
 +		gpios = <29 GPIO_ACTIVE_LOW>;

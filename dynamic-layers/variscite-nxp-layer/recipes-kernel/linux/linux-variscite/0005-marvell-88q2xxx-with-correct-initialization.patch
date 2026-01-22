@@ -1,0 +1,581 @@
+From 1ff97c8063c8f749c989ac9dbce7311a9861b8f2 Mon Sep 17 00:00:00 2001
+From: Andreas Ternstedt <a.ternstedt@setek.se>
+Date: Thu, 18 Dec 2025 15:50:22 +0100
+Subject: [PATCH] net: phy: marvell-88q2xxx: Add 88Q2110 A2 initialization support
+
+Add complete support for Marvell 88Q2110 A2 Automotive Ethernet PHYs
+with enhanced driver initialization.
+
+- Implement proper 88Q211x initialization sequences for 1000BASE-T1 and 100BASE-T1
+- Add RGMII delay configuration (rx-delay, tx-delay support)
+- Add master/slave configuration via devicetree strapping
+- Implement forced speed switching between 1000Mbps and 100Mbps
+- Add low-power suspend/resume support
+- Fix SQI (Signal Quality Indicator) register access
+- Disable auto-negotiation (not supported by hardware)
+- Add proper soft reset sequences for both GE and FE modes
+
+TODO:
+- Implement auto-negotiation initialization sequence
+- Interrupt handling (see upstream version of driver)
+
+Testing:
+The PHYs are verified with ATI AE-1000 and AE-100 dongles and work
+in every combination of 1000BASE-T1/100BASE-T1 and master/slave.
+
+Known issues:
+- After suspend, the EQOS PHY (eth3) at 1000BASE-T1 needs interface down/up cycle
+
+Implementation of initialization sequences based on Marvell proprietary
+documentation provided under limited use license agreement.
+
+WARNING: Distribution outside Setek Systems AB may require Marvell's
+explicit permission. Consult legal/compliance before sharing.
+
+Internal use only - Not for upstream submission.
+
+---
+ drivers/net/phy/marvell-88q2xxx.c | 450 +++++++++++++++++++++++++++---
+ 1 file changed, 415 insertions(+), 35 deletions(-)
+
+diff --git a/drivers/net/phy/marvell-88q2xxx.c b/drivers/net/phy/marvell-88q2xxx.c
+index 1c3ff77de56b..b1c1d0341891 100644
+--- a/drivers/net/phy/marvell-88q2xxx.c
++++ b/drivers/net/phy/marvell-88q2xxx.c
+@@ -14,7 +14,7 @@
+ #define MDIO_MMD_AN_MV_STAT_MS_CONF_FAULT	0x8000
+ 
+ #define MDIO_MMD_PCS_MV_100BT1_STAT1			33032
+-#define MDIO_MMD_PCS_MV_100BT1_STAT1_IDLE_ERROR	0x00FF
++#define MDIO_MMD_PCS_MV_100BT1_STAT1_IDLE_ERROR	0x00ff
+ #define MDIO_MMD_PCS_MV_100BT1_STAT1_JABBER		0x0100
+ #define MDIO_MMD_PCS_MV_100BT1_STAT1_LINK		0x0200
+ #define MDIO_MMD_PCS_MV_100BT1_STAT1_LOCAL_RX		0x1000
+@@ -27,20 +27,341 @@
+ #define MDIO_MMD_PCS_MV_100BT1_STAT2_LINK	0x0004
+ #define MDIO_MMD_PCS_MV_100BT1_STAT2_ANGE	0x0008
+ 
+-static int mv88q2xxx_soft_reset(struct phy_device *phydev)
++#define MDIO_MMD_PCS_MV_RX_STAT				33328
++
++#define MDIO_MMD_PCS_MV_RGMII_CTRL_REG      32769
++#define MDIO_MMD_PCS_MV_RGMII_RX_DELAY      0x4000
++#define MDIO_MMD_PCS_MV_RGMII_TX_DELAY      0x8000
++
++// Auto-Negotiation Controls
++#define MRVL_88Q2112_AN_DISABLE     0x0000
++#define MRVL_88Q2112_AN_ENABLE      0x1000
++#define MRVL_88Q2112_AN_RESTART     0x0200
++
++struct mmd_val {
++	int devad;
++	u32 regnum;
++	u16 val;
++};
++
++static const struct mmd_val mv88q211x_ge_init_seq0[] = {
++	{ MDIO_MMD_PCS, 0xffe4, 0x07b5 },
++	{ MDIO_MMD_PCS, 0xffe4, 0x06b6 },
++};
++
++static const struct mmd_val mv88q211x_ge_init_seq1[] = {
++	{ MDIO_MMD_PCS, 0xffde, 0x402f },
++	{ MDIO_MMD_PCS, 0xfe2a, 0x3c3d },
++	{ MDIO_MMD_PCS, 0xfe34, 0x4040 },
++	{ MDIO_MMD_PCS, 0xfe4b, 0x9337 },
++	{ MDIO_MMD_PCS, 0xfe2a, 0x3c1d },
++	{ MDIO_MMD_PCS, 0xfe34, 0x0040 },
++	{ MDIO_MMD_AN, 0x8032, 0x0064 },
++	{ MDIO_MMD_AN, 0x8031, 0x0a01 },
++	{ MDIO_MMD_AN, 0x8031, 0x0c01 },
++	{ MDIO_MMD_PCS, 0xfe0f, 0x0000 },
++	{ MDIO_MMD_PCS, 0x800c, 0x0000 },
++	{ MDIO_MMD_PCS, 0x801d, 0x0800 },
++	{ MDIO_MMD_PCS, 0xfc00, 0x01c0 },
++	{ MDIO_MMD_PCS, 0xfc17, 0x0425 },
++	{ MDIO_MMD_PCS, 0xfc94, 0x5470 },
++	{ MDIO_MMD_PCS, 0xfc95, 0x0055 },
++	{ MDIO_MMD_PCS, 0xfc19, 0x08d8 },
++	{ MDIO_MMD_PCS, 0xfc1a, 0x0110 },
++	{ MDIO_MMD_PCS, 0xfc1b, 0x0a10 },
++	{ MDIO_MMD_PCS, 0xfc3a, 0x2725 },
++	{ MDIO_MMD_PCS, 0xfc61, 0x2627 },
++	{ MDIO_MMD_PCS, 0xfc3b, 0x1612 },
++	{ MDIO_MMD_PCS, 0xfc62, 0x1c12 },
++	{ MDIO_MMD_PCS, 0xfc9d, 0x6367 },
++	{ MDIO_MMD_PCS, 0xfc9e, 0x8060 },
++	{ MDIO_MMD_PCS, 0xfc00, 0x01c8 },
++	{ MDIO_MMD_PCS, 0x8000, 0x0000 },
++	{ MDIO_MMD_PCS, 0x8016, 0x0011 },
++	{ MDIO_MMD_PCS, 0xfda3, 0x1800 },
++	{ MDIO_MMD_PCS, 0xfe02, 0x00c0 },
++	{ MDIO_MMD_PCS, 0xffdb, 0x0010 },
++	{ MDIO_MMD_PCS, 0xfff3, 0x0020 },
++	{ MDIO_MMD_PCS, 0xfe40, 0x00a6 },
++	{ MDIO_MMD_PCS, 0xfe60, 0x0000 },
++	{ MDIO_MMD_PCS, 0xfe04, 0x0008 },
++	{ MDIO_MMD_PCS, 0xfe2a, 0x3c3d },
++	{ MDIO_MMD_PCS, 0xfe4b, 0x9334 },
++	{ MDIO_MMD_PCS, 0xfc10, 0xf600 },
++	{ MDIO_MMD_PCS, 0xfc11, 0x073d },
++	{ MDIO_MMD_PCS, 0xfc12, 0x000d },
++	{ MDIO_MMD_PCS, 0xfc13, 0x0010 },
++	{ MDIO_MMD_PCS, 0xfdb8, 0x0000 },
++	{ MDIO_MMD_PCS, 0xfd3d, 0x0000 },
++	{ MDIO_MMD_PMAPMD, 0x0902, 0x0002 },
++};
++
++static const struct mmd_val mv88q211x_fe_init_seq0[] = {
++	{ MDIO_MMD_PCS, 0x8000, 0x0000 },
++	{ MDIO_MMD_PCS, 0x8100, 0x0200 },
++	{ MDIO_MMD_PCS, 0xfa1e, 0x0002 },
++	{ MDIO_MMD_PCS, 0xfe5c, 0x2402 },
++	{ MDIO_MMD_PCS, 0xfa12, 0x001f },
++	{ MDIO_MMD_PCS, 0xfa0c, 0x9e05 },
++	{ MDIO_MMD_PCS, 0xfbdd, 0x6862 },
++	{ MDIO_MMD_PCS, 0xfbde, 0x736e },
++	{ MDIO_MMD_PCS, 0xfbdf, 0x7f79 },
++	{ MDIO_MMD_PCS, 0xfbe0, 0x8a85 },
++	{ MDIO_MMD_PCS, 0xfbe1, 0x9790 },
++	{ MDIO_MMD_PCS, 0xfbe3, 0xa39d },
++	{ MDIO_MMD_PCS, 0xfbe4, 0xb0aa },
++	{ MDIO_MMD_PCS, 0xfbe5, 0x00b8 },
++	{ MDIO_MMD_PCS, 0xfbfd, 0x0d0a },
++	{ MDIO_MMD_PCS, 0xfbfe, 0x0906 },
++	{ MDIO_MMD_PCS, 0x801d, 0x8000 },
++	{ MDIO_MMD_PCS, 0x8016, 0x0011 },
++};
++
++static const struct mmd_val mv88q211x_ge_soft_reset_seq0[] = {
++	{ MDIO_MMD_PCS, 0xfff3, 0x0020 },
++	{ MDIO_MMD_PCS, 0xffe4, 0x000c },
++};
++
++static const struct mmd_val mv88q211x_ge_soft_reset_seq1[] = {
++	{ MDIO_MMD_PCS, 0xfc47, 0x0030 },
++	{ MDIO_MMD_PCS, 0xfc47, 0x0031 },
++	{ MDIO_MMD_PCS, 0xfc47, 0x0030 },
++	{ MDIO_MMD_PCS, 0xfc47, 0x0000 },
++	{ MDIO_MMD_PCS, 0xfc47, 0x0001 },
++	{ MDIO_MMD_PCS, 0xfc47, 0x0000 },
++	{ MDIO_MMD_PCS, 0x0900, 0x8000 },
++	{ MDIO_MMD_PMAPMD, 0x0900, 0x0000 },
++	{ MDIO_MMD_PCS, 0xffe4, 0x000c },
++};
++
++static const struct mmd_val mv88q211x_fe_soft_reset_seq0[] = {
++	{ MDIO_MMD_PCS, 0x0900, 0x8000 },
++	{ MDIO_MMD_PCS, 0xfa07, 0x0200 },
++};
++
++static int mv88q2xxx_write_mmd_vals(struct phy_device *phydev,
++					const struct mmd_val *vals, size_t len)
++{
++	int ret;
++
++	for (; len; vals++, len--) {
++		ret = phy_write_mmd(phydev, vals->devad, vals->regnum,
++					vals->val);
++		if (ret < 0)
++			return ret;
++	}
++	return 0;
++}
++
++static int mv88q211x_ge_settings(struct phy_device *phydev)
++{
++	int ret;
++	int val;
++
++	ret = phy_write_mmd(phydev, MDIO_MMD_AN, 0x0200, MRVL_88Q2112_AN_DISABLE);
++	if (ret < 0)
++		return ret;
++	ret = phy_write_mmd(phydev, MDIO_MMD_PMAPMD, 0x0900, 0x4000);
++	if (ret < 0)
++		return ret;
++
++	val = phy_read_mmd(phydev, MDIO_MMD_PMAPMD, 0x0834);
++	val = (val & 0xfff0) | 0x0001;
++	ret = phy_write_mmd(phydev, MDIO_MMD_PMAPMD, 0x0834, val);
++	if (ret < 0)
++		return ret;
++
++	ret = mv88q2xxx_write_mmd_vals(phydev, mv88q211x_ge_init_seq0,
++		ARRAY_SIZE(mv88q211x_ge_init_seq0));
++	if (ret < 0)
++		return ret;
++	usleep_range(5000, 6000);
++
++	return mv88q2xxx_write_mmd_vals(phydev, mv88q211x_ge_init_seq1,
++		ARRAY_SIZE(mv88q211x_ge_init_seq1));
++
++}
++
++static int mv88q211x_fe_settings(struct phy_device *phydev)
+ {
+ 	int ret;
+ 	int val;
+ 
+-	ret = phy_write_mmd(phydev, MDIO_MMD_PCS,
+-			    MDIO_PCS_1000BT1_CTRL, MDIO_PCS_1000BT1_CTRL_RESET);
++	ret = phy_write_mmd(phydev, MDIO_MMD_AN, 0x0200, MRVL_88Q2112_AN_DISABLE);
+ 	if (ret < 0)
+ 		return ret;
++	ret = phy_write_mmd(phydev, MDIO_MMD_PCS, 0xfa07, 0x0202);
++	if (ret < 0)
++		return ret;
++
++	val = phy_read_mmd(phydev, MDIO_MMD_PMAPMD, 0x0834);
++	val = val & 0xfff0;
++	ret = phy_write_mmd(phydev, MDIO_MMD_PMAPMD, 0x0834, val);
++	usleep_range(5000, 6000);
+ 
+-	return phy_read_mmd_poll_timeout(phydev, MDIO_MMD_PCS,
+-					 MDIO_PCS_1000BT1_CTRL, val,
+-					 !(val & MDIO_PCS_1000BT1_CTRL_RESET),
+-					 50000, 600000, true);
++	return mv88q2xxx_write_mmd_vals(phydev, mv88q211x_fe_init_seq0,
++		ARRAY_SIZE(mv88q211x_fe_init_seq0));
++}
++
++static int mv88q211x_ge_soft_reset(struct phy_device *phydev)
++{
++	int ret;
++	int val;
++
++	if (phydev->autoneg == AUTONEG_ENABLE) {
++		ret = phy_write_mmd(phydev, MDIO_MMD_PCS, 0xfff3, 0x0024);
++		if (ret < 0)
++			return ret;
++	}
++	//enable low-power mode
++	val = phy_read_mmd(phydev, MDIO_MMD_PMAPMD, 0x0000);
++	ret = phy_write_mmd(phydev, MDIO_MMD_PMAPMD, 0x0000, (val | 0x08000));
++	if (ret < 0)
++		return ret;
++
++	ret = mv88q2xxx_write_mmd_vals(phydev, mv88q211x_ge_soft_reset_seq0,
++		ARRAY_SIZE(mv88q211x_ge_soft_reset_seq0));
++	if (ret < 0)
++		return ret;
++	usleep_range(1000, 2000); // sleep(1);
++
++	ret = phy_write_mmd(phydev, MDIO_MMD_PCS, 0xffe4, 0x06b6);
++	if (ret < 0)
++		return ret;
++
++	// disable low-power mode
++	phy_write_mmd(phydev, MDIO_MMD_PMAPMD, 0x0000, (val & 0xf7ff));
++	usleep_range(1000, 2000); // sleep(1);
++
++	return mv88q2xxx_write_mmd_vals(phydev, mv88q211x_ge_soft_reset_seq1,
++		ARRAY_SIZE(mv88q211x_ge_soft_reset_seq1));
++}
++
++static int mv88q211x_fe_soft_reset(struct phy_device *phydev)
++{
++	return mv88q2xxx_write_mmd_vals(phydev, mv88q211x_fe_soft_reset_seq0,
++		ARRAY_SIZE(mv88q211x_fe_soft_reset_seq0));
++}
++
++static int mv88q211x_ge_init(struct phy_device *phydev)
++{
++	int ret;
++	ret = mv88q211x_ge_settings(phydev);
++	if (ret < 0)
++		return ret;
++	return mv88q211x_ge_soft_reset(phydev);
++}
++
++static int mv88q211x_fe_init(struct phy_device *phydev)
++{
++	int ret;
++	ret = mv88q211x_fe_settings(phydev);
++	if (ret < 0)
++		return ret;
++	return mv88q211x_fe_soft_reset(phydev);
++}
++
++static int mv88q211x_init_phy(struct phy_device *phydev)
++{
++	if (phydev->speed == SPEED_1000) {
++		return mv88q211x_ge_init(phydev);
++	}
++	if (phydev->speed == SPEED_100) {
++		return mv88q211x_fe_init(phydev);
++	}
++
++	phydev_warn(phydev, "Wrong speed (%s) during initialization \n", 
++		phy_speed_to_str(phydev->speed)
++	);
++	
++	return -EINVAL;
++}
++
++static int mv88q211x_config_master_slave(struct phy_device *phydev)
++{
++	// Read current master/slave setting and update phydev
++	int ret;
++
++	phydev->master_slave_state = MASTER_SLAVE_STATE_UNKNOWN;
++
++	ret = phy_read_mmd(phydev, MDIO_MMD_AN, 0x8001);
++	ret = ((ret >> 14) & 0x0001);
++	if (ret == 0x1)
++		phydev->master_slave_state = MASTER_SLAVE_STATE_MASTER;
++	if (ret == 0x0)
++		phydev->master_slave_state = MASTER_SLAVE_STATE_SLAVE;
++
++	return ret;
++}
++
++static int mv88q2xxx_config_rgmii_delays(struct phy_device *phydev)
++{
++	int ret;
++	int mask, set;
++
++	switch (phydev->interface) {
++	case PHY_INTERFACE_MODE_RGMII:
++			/* No internal delay in the PHY */
++			set = 0;
++			break;
++	case PHY_INTERFACE_MODE_RGMII_ID:
++			/* TX + RX internal delay */
++			set = MDIO_MMD_PCS_MV_RGMII_RX_DELAY | MDIO_MMD_PCS_MV_RGMII_TX_DELAY;
++			break;
++	case PHY_INTERFACE_MODE_RGMII_TXID:
++			/* Only TX internal delay */
++			set = MDIO_MMD_PCS_MV_RGMII_TX_DELAY;
++			break;
++	case PHY_INTERFACE_MODE_RGMII_RXID:
++			/* Only RX internal delay */
++			set = MDIO_MMD_PCS_MV_RGMII_RX_DELAY;
++			break;
++	default:
++			/* Non-RGMII interface (SGMII, etc.) – nothing to do */
++			return 0;
++	}
++
++	mask = MDIO_MMD_PCS_MV_RGMII_TX_DELAY | MDIO_MMD_PCS_MV_RGMII_RX_DELAY;
++	ret = phy_modify_mmd(phydev, MDIO_MMD_VEND2, MDIO_MMD_PCS_MV_RGMII_CTRL_REG, mask, set);
++	if (ret < 0)
++		return ret;
++
++	return phy_write_mmd(phydev, MDIO_MMD_PCS, 0x8000, 0x8000);
++}
++
++static int mv88q211x_config_init(struct phy_device *phydev)
++{
++	int ret;
++
++	/* The 88Q2XXX PHYs do have the extended ability register available, but
++	 * register MDIO_PMA_EXTABLE where they should signalize it does not
++	 * work according to specification. Therefore, we force it here.
++	 */
++	phydev->pma_extable = MDIO_PMA_EXTABLE_BT1;
++
++	/* Program RGMII internal delays according to phydev->interface
++	* (which comes from the MAC's phy-mode in devicetree).
++	*/
++	if (mv88q2xxx_config_rgmii_delays(phydev) < 0)
++		return -EINVAL;
++
++	// Init master/slave 0x1 if master, 0x0 if slave
++	if (mv88q211x_config_master_slave(phydev) < 0) {
++		return -EINVAL;
++	}
++
++	// Make sure Auto-negotiation is disabled
++	phydev->autoneg = AUTONEG_DISABLE;
++	ret = phy_read_mmd(phydev, MDIO_MMD_AN, 0x0200);
++	ret = (ret & MRVL_88Q2112_AN_ENABLE) >> 12;
++	if (AUTONEG_ENABLE == ret) {
++		phydev_warn(phydev, "Auto-negotiation enabled, will disable \n");
++		ret = phy_write_mmd(phydev, MDIO_MMD_AN, 0x0200, MRVL_88Q2112_AN_DISABLE);
++		if (ret < 0)
++			return ret;
++	}
++
++	return 0;
+ }
+ 
+ static int mv88q2xxx_read_link_gbit(struct phy_device *phydev)
+@@ -109,8 +430,8 @@ static int mv88q2xxx_read_link_100m(struct phy_device *phydev)
+ out:
+ 	/* Check if we have link and if the remote and local receiver are ok */
+ 	if ((ret & MDIO_MMD_PCS_MV_100BT1_STAT1_LINK) &&
+-	    (ret & MDIO_MMD_PCS_MV_100BT1_STAT1_LOCAL_RX) &&
+-	    (ret & MDIO_MMD_PCS_MV_100BT1_STAT1_REMOTE_RX))
++		(ret & MDIO_MMD_PCS_MV_100BT1_STAT1_LOCAL_RX) &&
++		(ret & MDIO_MMD_PCS_MV_100BT1_STAT1_REMOTE_RX))
+ 		phydev->link = true;
+ 	else
+ 		phydev->link = false;
+@@ -171,36 +492,81 @@ static int mv88q2xxx_get_features(struct phy_device *phydev)
+ 	return 0;
+ }
+ 
+-static int mv88q2xxx_config_aneg(struct phy_device *phydev)
++static int mv88q211x_set_master_slave(struct phy_device *phydev)
++{
++	int val;
++
++	val = phy_read_mmd(phydev, MDIO_MMD_PMAPMD, 0x0834);
++	if (phydev->master_slave_state == MASTER_SLAVE_STATE_MASTER) {
++		val |= 0x4000;
++	}
++	else {
++		val &= 0xBFFF;
++	}
++
++	return phy_write_mmd(phydev, MDIO_MMD_PCS, 0x0834, val);
++}
++
++static int mv88q211x_forced_speed_update(struct phy_device *phydev)
+ {
+ 	int ret;
++	int val;
+ 
+-	ret = genphy_c45_config_aneg(phydev);
+-	if (ret)
++	if (phydev->speed != SPEED_1000 && phydev->speed != SPEED_100)
++			return -EINVAL;
++
++	val = phy_read_mmd(phydev, MDIO_MMD_PMAPMD, 0x0000);
++	ret = phy_write_mmd(phydev, MDIO_MMD_PMAPMD, 0x0000, (val | 0x0800));
++	if (ret < 0)
+ 		return ret;
++	usleep_range(10000, 12000);
++	if (phydev->speed == SPEED_1000) {
++		val = phy_read_mmd(phydev, MDIO_MMD_PMAPMD, 0x0834);
++		val = ((val & 0xfff0) | 0x0001);
++		ret = phy_write_mmd(phydev, MDIO_MMD_PMAPMD, 0x0834, val);
++		if (ret < 0)
++			return ret;
++		ret = phy_write_mmd(phydev, MDIO_MMD_PCS, 0xffe4, 0x07b6);
++		if (ret < 0)
++			return ret;
++	}
++	else {
++		val = phy_read_mmd(phydev, MDIO_MMD_PMAPMD, 0x0834);
++		val = (val & 0xfff0);
++		ret = phy_write_mmd(phydev, MDIO_MMD_PMAPMD, 0x0834, val);
++		if (ret < 0)
++			return ret;
++	}
++	val = phy_read_mmd(phydev, MDIO_MMD_PMAPMD, 0x0000);
++	val = (val & 0xf7ff);
++	ret = phy_write_mmd(phydev, MDIO_MMD_PMAPMD, 0x0000, val);
++	usleep_range(1000, 2000);
+ 
+-	return mv88q2xxx_soft_reset(phydev);
++	return mv88q211x_init_phy(phydev);
+ }
+ 
+-static int mv88q2xxx_config_init(struct phy_device *phydev)
++static int mv88q2xxx_config_aneg(struct phy_device *phydev)
+ {
+ 	int ret;
+ 
+-	/* The 88Q2XXX PHYs do have the extended ability register available, but
+-	 * register MDIO_PMA_EXTABLE where they should signalize it does not
+-	 * work according to specification. Therefore, we force it here.
+-	 */
+-	phydev->pma_extable = MDIO_PMA_EXTABLE_BT1;
++	if (phydev->autoneg == AUTONEG_ENABLE) {
++		phydev_warn(phydev, "Do not set auto-negotiation, not implemented \n");
++		phydev->autoneg == AUTONEG_DISABLE;
++		return 0;
++	}
+ 
+-	/* Read the current PHY configuration */
+-	ret = genphy_c45_read_pma(phydev);
+-	if (ret)
++	ret = mv88q211x_set_master_slave(phydev);
++	if (ret < 0)
+ 		return ret;
+ 
+-	return mv88q2xxx_config_aneg(phydev);
++	ret = mv88q211x_forced_speed_update(phydev);
++	if (ret < 0)
++		return ret;
++
++	return genphy_c45_config_aneg(phydev);
+ }
+ 
+-static int mv88q2xxxx_get_sqi(struct phy_device *phydev)
++static int mv88q2xxx_get_sqi(struct phy_device *phydev)
+ {
+ 	int ret;
+ 
+@@ -208,7 +574,8 @@ static int mv88q2xxxx_get_sqi(struct phy_device *phydev)
+ 		/* Read the SQI from the vendor specific receiver status
+ 		 * register
+ 		 */
+-		ret = phy_read_mmd(phydev, MDIO_MMD_PCS, 0x8230);
++		ret = phy_read_mmd(phydev, MDIO_MMD_PCS,
++				   MDIO_MMD_PCS_MV_RX_STAT);
+ 		if (ret < 0)
+ 			return ret;
+ 
+@@ -218,7 +585,7 @@ static int mv88q2xxxx_get_sqi(struct phy_device *phydev)
+ 		 * but can be found in the Software Initialization Guide. Only
+ 		 * revisions >= A0 are supported.
+ 		 */
+-		ret = phy_modify_mmd(phydev, MDIO_MMD_PCS, 0xFC5D, 0x00FF, 0x00AC);
++		ret = phy_modify_mmd(phydev, MDIO_MMD_PCS, 0xfc5d, 0xff, 0xac);
+ 		if (ret < 0)
+ 			return ret;
+ 
+@@ -227,27 +594,40 @@ static int mv88q2xxxx_get_sqi(struct phy_device *phydev)
+ 			return ret;
+ 	}
+ 
+-	return ret & 0x0F;
++	return ret & 0x0f;
+ }
+ 
+-static int mv88q2xxxx_get_sqi_max(struct phy_device *phydev)
++static int mv88q2xxx_get_sqi_max(struct phy_device *phydev)
+ {
+ 	return 15;
+ }
+ 
++static int mv88q2xxx_suspend(struct phy_device *phydev)
++{
++	return phy_set_bits_mmd(phydev, MDIO_MMD_PMAPMD, MDIO_CTRL1,
++				MDIO_CTRL1_LPOWER);
++}
++
++static int mv88q2xxx_resume(struct phy_device *phydev)
++{
++	return phy_clear_bits_mmd(phydev, MDIO_MMD_PMAPMD, MDIO_CTRL1,
++				  MDIO_CTRL1_LPOWER);
++}
++
+ static struct phy_driver mv88q2xxx_driver[] = {
+ 	{
+-		.phy_id			= MARVELL_PHY_ID_88Q2110,
++		.phy_id				= MARVELL_PHY_ID_88Q2110,
+ 		.phy_id_mask		= MARVELL_PHY_ID_MASK,
+-		.name			= "mv88q2110",
++		.name				= "mv88q2110",
+ 		.get_features		= mv88q2xxx_get_features,
+ 		.config_aneg		= mv88q2xxx_config_aneg,
+-		.config_init		= mv88q2xxx_config_init,
++		.config_init		= mv88q211x_config_init,
+ 		.read_status		= mv88q2xxx_read_status,
+-		.soft_reset		= mv88q2xxx_soft_reset,
+ 		.set_loopback		= genphy_c45_loopback,
+-		.get_sqi		= mv88q2xxxx_get_sqi,
+-		.get_sqi_max		= mv88q2xxxx_get_sqi_max,
++		.get_sqi			= mv88q2xxx_get_sqi,
++		.get_sqi_max		= mv88q2xxx_get_sqi_max,
++		.suspend			= mv88q2xxx_suspend,
++		.resume				= mv88q2xxx_resume,
+ 	},
+ };
+ 
+-- 
+2.34.1
+

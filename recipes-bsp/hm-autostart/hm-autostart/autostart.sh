@@ -4,6 +4,57 @@ WORKING_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 MACHINE=$(cat /etc/platform-system-type)
 
 FIRST_TIME_BOOT_FILE=/etc/first_boot_after_update.txt
+HOSTNAME_PENDING_FILE=/etc/hostname_from_eeprom_pending.txt
+HOSTNAME_WAIT_SECONDS="${HOSTNAME_WAIT_SECONDS:-5}"
+
+get_serial_number() {
+    [[ -r /proc/device-tree/chosen/serial-number ]] || return 1
+    tr -d '\0' < /proc/device-tree/chosen/serial-number
+}
+
+is_valid_serial_number() {
+    local s="$1"
+    [[ -n "$s" ]] || return 1
+    [[ "$s" =~ [Xx][Xx][Xx] ]] && return 1
+    [[ "$s" =~ ^0+$ ]] && return 1
+    return 0
+}
+
+# Set hostname to MACHINE-SERIAL (or HMX-SERIAL)
+set_hostname_if_needed() {
+  local newhost current i serial=""
+  [[ "$MACHINE" == "imx8mp-var-dart-hmx1" || "$MACHINE" == "verdin-am62-hmm" ]] || return 0
+  [[ -f "$HOSTNAME_PENDING_FILE" ]] || return 0
+
+  echo "Hostname provisioning pending; waiting up to ${HOSTNAME_WAIT_SECONDS}s for a valid serial number..."
+
+  for ((i=1; i<=HOSTNAME_WAIT_SECONDS; i++)); do
+    serial="$(get_serial_number 2>/dev/null)" || serial=""
+    if is_valid_serial_number "$serial"; then
+      break
+    fi
+    sleep 1
+  done
+
+  if is_valid_serial_number "$serial"; then
+    if [[ "$MACHINE" == "imx8mp-var-dart-hmx1" ]]; then
+      newhost="HMX-${serial}"
+    else
+      newhost="${MACHINE}-${serial}"
+    fi
+
+    current="$(cat /etc/hostname 2>/dev/null || true)"
+    if [[ "$current" != "$newhost" ]]; then
+      echo "$newhost" > /etc/hostname
+      hostname "$newhost"
+    fi
+
+    echo "Hostname set to $newhost (serial '$serial'); removing $HOSTNAME_PENDING_FILE."
+    rm -f "$HOSTNAME_PENDING_FILE"
+  else
+    echo "Serial still invalid ('$serial'); keeping $HOSTNAME_PENDING_FILE for next boot."
+  fi
+}
 
 # We can now change the state of the host watchdog from boot to start. This will enable heartbeats resetting the watchdog timer, preventing a reset of the system.
 start_watchdog() {
@@ -30,31 +81,18 @@ start_watchdog() {
 start_watchdog &
 HOST_WD_PID=$!
 
-if [[ -f $FIRST_TIME_BOOT_FILE ]];
-then
+set_hostname_if_needed &
+HOSTNAME_PID=$!
 
-#Set hostname to ${MACHINE}-SERIAL. TODO this could be compatible with MXV(&& "$MACHINE" == "mx5-pt").
-if [[ "$MACHINE" == "imx8mp-var-dart-hmx1" || "$MACHINE" == "verdin-am62-hmm" ]]; then
-	# Retrieve the serial number from /proc/device-tree/chosen/serial-number
-	serial_number=0
-	serial_number=$(cat /proc/device-tree/chosen/serial-number)
-	if [[ "$MACHINE" == "imx8mp-var-dart-hmx1" ]]; then
-		hostname="HMX-${serial_number}"
-	else
-		hostname="${MACHINE}-${serial_number}"
-	fi
-	# Update the hostname
-	echo "$hostname" > /etc/hostname
-	hostname "$hostname"
-fi
+if [[ -f $FIRST_TIME_BOOT_FILE ]]; then
 
 # Remove /boot/*.scr from boot so next reboot will not start a new upgrade, not used on hmm instead it would remove the boot-up.scr file if we doth use the bootfs partition.
 if [[ "$MACHINE" == "imx8mp-var-dart-hmx1" ]]; then
 	rm /boot/*.scr
 fi
 
-# Wait for the background process to finish
-wait $HOST_WD_PID
+# Wait for the watchdog background process to finish
+wait "$HOST_WD_PID"
 
 #start find and execute autoboot.sh
 findautoboottries=0
@@ -81,5 +119,6 @@ findautoboottries=0
 fi
 
 wait $HOST_WD_PID
+wait "$HOSTNAME_PID" || true
 
 exit 0

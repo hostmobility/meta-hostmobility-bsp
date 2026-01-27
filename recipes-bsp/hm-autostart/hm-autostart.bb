@@ -21,6 +21,8 @@ do_install() {
 
     # Legacy file and method to indicate that it is first-time boot
     touch ${D}/${sysconfdir}/first_boot_after_update.txt
+    # Indicate that the hostname file is not yet fully written
+    touch ${D}/${sysconfdir}/hostname_from_eeprom_pending.txt
 
     install -m 0644 ${WORKDIR}/autostart.service ${D}${systemd_unitdir}/system/autostart.service
     install -m 0755 ${WORKDIR}/autostart.sh ${D}/opt/hm/autostart.sh
@@ -29,4 +31,5 @@ FILES:${PN} = "\
     /opt/hm/autostart.sh \
     ${systemd_unitdir}/system/autostart.service \
     ${sysconfdir}/first_boot_after_update.txt \
+    ${sysconfdir}/hostname_from_eeprom_pending.txt \
 "

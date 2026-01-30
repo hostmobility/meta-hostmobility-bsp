@@ -393,7 +393,7 @@ index 0000000000..6b21db0a4b
 +	};
 +
 +    spidev@1 { //SPI to STM32
-+        compatible = "hostmobility, mx5-driver";
++        compatible = "hostmobility, mxv-cocpu-driver";
 +        reg = <1>;
 +        spi-max-frequency = <4000000>;
 +        status = "okay";

@@ -550,7 +550,7 @@ index 000000000000..74b820aa8149
 +		interrupt-parent = <&gpio1>;
 +		interrupts = <9 IRQ_TYPE_LEVEL_LOW>;
 +		interrupt-names = "RTC-INT";
-+		wakeup-source;
++		//wakeup-source; disabled default.
 +		status = "okay";
 +	};
 +

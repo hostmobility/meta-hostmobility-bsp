@@ -26,6 +26,7 @@ MACHINE_PATCHES:tegra3 = " \
     file://0001-Add-device-tree-files-for-t30.patch \
     file://0005-To-get-the-SD-MMC-host-device-ID-read-the-alias-from.patch \
     file://0009-Change-asix-driver-to-version-4.23.patch \
+    file://0002-temp-mx4-suspend-gpio-hack-driver.patch \
 "
 
 MACHINE_PATCHES:vfcv61 = " \

@@ -1,18 +1,18 @@
-From 462a4f0d6b8c10f95217ff9bfc139dfa156e8f7a Mon Sep 17 00:00:00 2001
-From: rikardo <rikard.olander@hostmobility.com>
-Date: Tue, 6 Dec 2022 08:57:24 +0000
-Subject: [PATCH 1/1] add imx6qdl mx-v hdmi display dtsi file for fsl-imx-linux
+From 052d8fcb6e2f59d02c869fdf735c237e1869ea19 Mon Sep 17 00:00:00 2001
+From: Rikardo-hm <rikard.olander@hostmobility.com>
+Date: Mon, 28 Apr 2025 08:42:21 +0000
+Subject: [PATCH 2/2] display-fix
 
 ---
- .../boot/dts/imx6qdl-mx-v-hdmi-display.dtsi   | 122 ++++++++++++++++++
+ .../dts/nxp/imx/imx6qp-mx-v-hdmi-display.dtsi | 122 ++++++++++++++++++
  1 file changed, 122 insertions(+)
- create mode 100644 arch/arm/boot/dts/imx6qdl-mx-v-hdmi-display.dtsi
+ create mode 100644 arch/arm/boot/dts/nxp/imx/imx6qp-mx-v-hdmi-display.dtsi
 
-diff --git a/arch/arm/boot/dts/imx6qdl-mx-v-hdmi-display.dtsi b/arch/arm/boot/dts/imx6qdl-mx-v-hdmi-display.dtsi
+diff --git a/arch/arm/boot/dts/nxp/imx/imx6qp-mx-v-hdmi-display.dtsi b/arch/arm/boot/dts/nxp/imx/imx6qp-mx-v-hdmi-display.dtsi
 new file mode 100644
 index 000000000000..44ea31322c20
 --- /dev/null
-+++ b/arch/arm/boot/dts/imx6qdl-mx-v-hdmi-display.dtsi
++++ b/arch/arm/boot/dts/nxp/imx/imx6qp-mx-v-hdmi-display.dtsi
 @@ -0,0 +1,122 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +//
@@ -138,5 +138,5 @@ index 000000000000..44ea31322c20
 +};
 \ No newline at end of file
 -- 
-2.17.1
+2.25.1
 

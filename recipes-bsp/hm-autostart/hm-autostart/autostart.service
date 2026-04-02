@@ -1,11 +1,7 @@
 [Unit]
-Description=Run autostart scripts
-After=network-pre.target
+Description=Run autostart script
 
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-ExecStart = /opt/hm/autostart.sh
-
-[Install]
-WantedBy=multi-user.target
+ExecStart=/opt/hm/autostart.sh

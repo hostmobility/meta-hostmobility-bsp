@@ -1,0 +1,9 @@
+[Unit]
+Description=Run autostart 30 seconds after boot
+
+[Timer]
+OnBootSec=30s
+Unit=autostart.service
+
+[Install]
+WantedBy=timers.target

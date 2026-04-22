@@ -1,6 +1,6 @@
-From 5d7a513d3932da1a8663e2de9423213c6f6c1ee4 Mon Sep 17 00:00:00 2001
+From 02dacd44a0302a98e4ce625a594381efb29d0c23 Mon Sep 17 00:00:00 2001
 From: Rikardo-hm <rikard.olander@hostmobility.com>
-Date: Mon, 3 Feb 2025 13:59:23 +0000
+Date: Tue, 21 Apr 2026 12:06:52 +0200
 Subject: [PATCH 1/1] power reset gpio poweroff add force mode adapt to kernel 6.6
 
 Property "force-mode" tells the driver to replace previously
@@ -81,5 +81,5 @@ index b28f24da1b3c..fffbc9f5cdbb 100644
  	return 0;
  }
 -- 
-2.25.1
+2.47.3
 

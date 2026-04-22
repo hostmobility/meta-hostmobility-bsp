@@ -1,6 +1,6 @@
-From f005c8eac676948d9b49c7003ba69927630d037e Mon Sep 17 00:00:00 2001
-From: OpenEmbedded <oe.patch@oe>
-Date: Fri, 7 Feb 2025 09:04:48 +0000
+From 607e9ade653199031db9a961d97817eeb281915e Mon Sep 17 00:00:00 2001
+From: rikardo <rikard.olander@hostmobility.com>
+Date: Tue, 21 Apr 2026 12:04:36 +0200
 Subject: [PATCH 1/1] misc: add tcan114x CAN transceiver driver
 
 Add driver for Texas Instruments TCAN114x series CAN transceivers
@@ -382,5 +382,5 @@ index 000000000000..88f683e80f20
 +MODULE_DESCRIPTION("ti tcan114x CAN transceiver SPI driver");
 +MODULE_LICENSE("GPL");
 -- 
-2.25.1
+2.47.3
 

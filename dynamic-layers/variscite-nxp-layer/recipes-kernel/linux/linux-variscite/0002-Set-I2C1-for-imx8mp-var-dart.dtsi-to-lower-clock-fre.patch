@@ -1,6 +1,6 @@
-From 04d5964bb4caef4a9d131828ebaf6967e1e29b73 Mon Sep 17 00:00:00 2001
+From f4b284b2b655c3df2bed377055f89f34e2073600 Mon Sep 17 00:00:00 2001
 From: rikardo <rikard.olander@hostmobility.com>
-Date: Thu, 2 Mar 2023 16:14:20 +0000
+Date: Tue, 21 Apr 2026 12:02:06 +0200
 Subject: [PATCH 1/1] imx8mp-var-dart: reduce I2C1 clock frequency per errata
 
 Lower I2C1 clock-frequency from 400 kHz to 384 kHz to comply with
@@ -18,7 +18,7 @@ Signed-off-by: Andreas Ternstedt <a.ternstedt@setek.com>
  1 file changed, 2 insertions(+), 5 deletions(-)
 
 diff --git a/arch/arm64/boot/dts/freescale/imx8mp-var-dart.dtsi b/arch/arm64/boot/dts/freescale/imx8mp-var-dart.dtsi
-index c64cbe80e620..31ecea223945 100644
+index 5631265d1ec9..058cd563bdea 100644
 --- a/arch/arm64/boot/dts/freescale/imx8mp-var-dart.dtsi
 +++ b/arch/arm64/boot/dts/freescale/imx8mp-var-dart.dtsi
 @@ -147,12 +147,9 @@ &gpu_reserved {
@@ -37,5 +37,5 @@ index c64cbe80e620..31ecea223945 100644
  
  	pca9450@25 {
 -- 
-2.34.1
+2.47.3
 

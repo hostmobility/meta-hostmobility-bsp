@@ -14,7 +14,7 @@ LIC_FILES_CHKSUM = " \
     file://${COMMON_LICENSE_DIR}/MPL-2.0;md5=815ca599c9df247a0c7f619bab123dad \
 "
 
-SRCREV = "bbd4ff8703464deeaaa9929951bf4054a3da5705"
+SRCREV = "05e8c9036aca7cdc76455eef30225217efb4051d"
 SRCBRANCH = "main"
 
 DEPENDS += "cmake-native"

@@ -1,6 +1,6 @@
-From c09bdfb628392d915e3b2bf5aa4c37cd7128f3a7 Mon Sep 17 00:00:00 2001
+From 140a81a7ce72f426a316171775207536030c6be6 Mon Sep 17 00:00:00 2001
 From: rikardo <rikard.olander@hostmobility.com>
-Date: Tue, 3 Oct 2023 14:51:19 +0000
+Date: Tue, 21 Apr 2026 12:01:29 +0200
 Subject: [PATCH 1/1] Add Kinetic KTD2026/2027 LED driver
  Changes in v3:
     - Add max-brightness from device tree
@@ -261,7 +261,7 @@ index c11cc56384e7..819ca84220da 100644
 +obj-$(CONFIG_LEDS_KTD202X)		+= leds-ktd202x.o
 diff --git a/drivers/leds/rgb/leds-ktd202x.c b/drivers/leds/rgb/leds-ktd202x.c
 new file mode 100644
-index 000000000000..c34a0239f6fa
+index 000000000000..8e2067339efe
 --- /dev/null
 +++ b/drivers/leds/rgb/leds-ktd202x.c
 @@ -0,0 +1,703 @@
@@ -969,5 +969,5 @@ index 000000000000..c34a0239f6fa
 +MODULE_DESCRIPTION("Kinetic KTD2026/7 LED driver");
 +MODULE_LICENSE("GPL");
 -- 
-2.34.1
+2.47.3
 

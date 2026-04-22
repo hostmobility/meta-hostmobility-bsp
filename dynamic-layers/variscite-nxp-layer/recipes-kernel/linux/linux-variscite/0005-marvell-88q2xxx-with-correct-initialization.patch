@@ -1,7 +1,7 @@
-From 1ff97c8063c8f749c989ac9dbce7311a9861b8f2 Mon Sep 17 00:00:00 2001
+From fd74ee9903f2f8d012cec39840f82a6120dd2be6 Mon Sep 17 00:00:00 2001
 From: Andreas Ternstedt <a.ternstedt@setek.se>
-Date: Thu, 18 Dec 2025 15:50:22 +0100
-Subject: [PATCH] net: phy: marvell-88q2xxx: Add 88Q2110 A2 initialization support
+Date: Tue, 21 Apr 2026 12:05:08 +0200
+Subject: [PATCH 1/1] net: phy: marvell-88q2xxx: Add 88Q2110 A2 initialization support
 
 Add complete support for Marvell 88Q2110 A2 Automotive Ethernet PHYs
 with enhanced driver initialization.
@@ -577,5 +577,5 @@ index 1c3ff77de56b..b1c1d0341891 100644
  };
  
 -- 
-2.34.1
+2.47.3
 

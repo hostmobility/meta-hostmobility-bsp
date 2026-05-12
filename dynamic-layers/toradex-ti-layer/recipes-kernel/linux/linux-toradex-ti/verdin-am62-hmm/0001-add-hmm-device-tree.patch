@@ -1,7 +1,7 @@
-From 0d6b354efd5d5e4bfe98029d78dce6916d702571 Mon Sep 17 00:00:00 2001
+From c3a76f05e69e41852d2ffaa6857ec10b0fa322de Mon Sep 17 00:00:00 2001
 From: OpenEmbedded <oe.patch@oe>
-Date: Tue, 8 Apr 2025 14:21:49 +0000
-Subject: [PATCH] Device tree for V10 kernel 6.6
+Date: Tue, 12 May 2026 17:00:54 +0200
+Subject: [PATCH 1/1] Device tree for V11 kernel 6.6
 
 v1. Add our customization based on k3-am62-verdin-dev.
 We have removed or disabled interfaces that we will not use( like sound, gpio-keys and eth2)
@@ -36,11 +36,15 @@ V9. - Set mcu_m4fss node enable (6.6 disables by default). This starts /dev/rpms
     - Set Accelerometer INT1 IO and VDDIO regulator as well as a dummy regulator for VDD.
 
 V10. Fix accelerometer node interrupt line
+
+v11. - Fix USB Type-C port controller support
+     - Fix wake-up handling for CAN0 and CAN1, removing unwanted interrupts
+     - Add missing R5F mailboxes
 ---
  arch/arm64/boot/dts/ti/Makefile               |   1 +
- .../arm64/boot/dts/ti/k3-am62-verdin-hmm.dtsi | 639 ++++++++++++++++++
- .../boot/dts/ti/k3-am625-verdin-wifi-hmm.dts  |  62 ++
- 3 files changed, 702 insertions(+)
+ .../arm64/boot/dts/ti/k3-am62-verdin-hmm.dtsi | 676 ++++++++++++++++++
+ .../boot/dts/ti/k3-am625-verdin-wifi-hmm.dts  |  75 ++
+ 3 files changed, 752 insertions(+)
  create mode 100644 arch/arm64/boot/dts/ti/k3-am62-verdin-hmm.dtsi
  create mode 100644 arch/arm64/boot/dts/ti/k3-am625-verdin-wifi-hmm.dts
 
@@ -58,10 +62,10 @@ index 19eb67888ae5..b706ff597f4f 100644
  dtb-$(CONFIG_ARCH_K3) += k3-am625-verdin-wifi-yavia.dtb
 diff --git a/arch/arm64/boot/dts/ti/k3-am62-verdin-hmm.dtsi b/arch/arm64/boot/dts/ti/k3-am62-verdin-hmm.dtsi
 new file mode 100644
-index 000000000000..99898b8a7dc2
+index 000000000000..f4b3e61fdc76
 --- /dev/null
 +++ b/arch/arm64/boot/dts/ti/k3-am62-verdin-hmm.dtsi
-@@ -0,0 +1,639 @@
+@@ -0,0 +1,676 @@
 +// SPDX-License-Identifier: GPL-2.0-or-later OR MIT
 +/*
 + * Copyright 2023 Toradex
@@ -188,9 +192,18 @@ index 000000000000..99898b8a7dc2
 +	};
 +
 +	/* Enable Verdin CTRL_WAKE1_MICO# (SODIMM 252) */
-+	/* wakeup-source for CAN 0, CAN 1 and RS-485 (RX) */
++	/* wakeup-source for CAN 0, CAN 1 , disable interrupt since it is connected to RX on CAN. */
 +	verdin_gpio_keys: gpio-keys {
 +		status = "okay";
++
++		verdin_key_wakeup: key-wakeup {
++			debounce-interval = <10>;
++			/* Verdin CTRL_WAKE1_MICO# (SODIMM 252) */
++			gpios = <&main_gpio0 32 GPIO_ACTIVE_LOW>;
++			label = "Wake-Up";
++			linux,code = <KEY_WAKEUP>;
++			wakeup-source;
++		};
 +	};
 +};
 +
@@ -239,6 +252,28 @@ index 000000000000..99898b8a7dc2
 +		interrupts = <38 IRQ_TYPE_LEVEL_HIGH>;
 +		reg = <0x1d>;
 +		status ="okay";
++		ports {
++			#address-cells = <1>;
++			#size-cells = <0>;
++
++			port@0 {
++				reg = <0>;
++
++				typec_con_ep: endpoint {
++					remote-endpoint = <&usb0_role_switch_ep>;
++				};
++			};
++		};
++		connector {
++			compatible = "usb-c-connector";
++			pinctrl-names = "default";
++			pinctrl-0 = <&pinctrl_usb0_id>;
++			id-gpios = <&main_gpio1 19 GPIO_ACTIVE_HIGH>;
++			label = "USB-C";
++			data-role = "dual";
++			power-role = "dual";
++			try-power-role = "sink";
++		};
 +	};
 +
 +	eeprom@54 {
@@ -338,6 +373,12 @@ index 000000000000..99898b8a7dc2
 +&usb0 {
 +	status = "okay";
 +	dr_mode = "otg";
++	usb-role-switch;
++	port {
++		usb0_role_switch_ep: endpoint {
++			remote-endpoint = <&typec_con_ep>;
++		};
++	};
 +};
 +
 +/* Verdin USB_2 */
@@ -703,10 +744,10 @@ index 000000000000..99898b8a7dc2
 +};
 diff --git a/arch/arm64/boot/dts/ti/k3-am625-verdin-wifi-hmm.dts b/arch/arm64/boot/dts/ti/k3-am625-verdin-wifi-hmm.dts
 new file mode 100644
-index 000000000000..fd736f35c70c
+index 000000000000..931323ffa3ab
 --- /dev/null
 +++ b/arch/arm64/boot/dts/ti/k3-am625-verdin-wifi-hmm.dts
-@@ -0,0 +1,62 @@
+@@ -0,0 +1,75 @@
 +/*
 + * SPDX-License-Identifier: GPL-2.0-or-later OR MIT
 + *
@@ -747,6 +788,8 @@ index 000000000000..fd736f35c70c
 +			no-map;
 +		};
 +	};
++	/* Delete the USB-B connector node for usb0(k3-am62-verdin.dtsi), replaced by USB-C controller(k3-am62-verdin-hmm.dtsi) */
++	/delete-node/ connector;
 +};
 +
 +&mailbox0_cluster0 {
@@ -756,13 +799,24 @@ index 000000000000..fd736f35c70c
 +		ti,mbox-rx = <0 0 0>;
 +		ti,mbox-tx = <1 0 0>;
 +	};
++	mbox_r5_0: mbox-r5-0 {
++		ti,mbox-rx = <2 0 0>;
++		ti,mbox-tx = <3 0 0>;
++	};
 +};
 +
 +&mcu_m4fss {
-+       mboxes = <&mailbox0_cluster0 &mbox_m4_0>;
-+       memory-region = <&mcu_m4fss_dma_memory_region>,
-+                       <&mcu_m4fss_memory_region>;
-+       status = "okay";
++	mboxes = <&mailbox0_cluster0 &mbox_m4_0>;
++	memory-region = <&mcu_m4fss_dma_memory_region>,
++			<&mcu_m4fss_memory_region>;
++	status = "okay";
++};
++
++&wkup_r5fss0_core0 {
++	mboxes = <&mailbox0_cluster0 &mbox_r5_0>;
++	memory-region = <&wkup_r5fss0_core0_dma_memory_region>,
++			<&wkup_r5fss0_core0_memory_region>;
++	status = "okay";
 +};
 +
 +/* Verdin UART_4 (m4 or TBD not connected)*/

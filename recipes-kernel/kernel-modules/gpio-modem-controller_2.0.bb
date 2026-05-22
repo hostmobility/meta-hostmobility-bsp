@@ -2,7 +2,7 @@ SUMMARY = "Modem gpio controller"
 DESCRIPTION = "${SUMMARY} for Host Monitor Platforms which use EG modems from Quectel"
 LICENSE = "GPL-2.0-or-later"
 LIC_FILES_CHKSUM = "file://COPYING;md5=65dd37ccb3e888dc57e47d925b80b38a"
-SRCREV = "f9f7e53950ccc3176efdde3b3c66356730d3cadb"
+SRCREV = "5a48691860217850f51a59953cb42671cf545243"
 SRCBRANCH = "main"
 
 inherit module

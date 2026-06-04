@@ -8,6 +8,6 @@ SRC_URI += "\
 	file://0004-adjust-imx8mp_var_dart_defconfig-to-hmx.patch \
 "
 SRCBRANCH = "lf_v2024.04_6.6.52-2.2.0_var01"
-SRCREV = "83eb3ac3f4b6140108171128c55f2bd9234f4b2a"
+SRCREV = "16e046f1dbf65360deb1fff230b76a752aff3f22"
 
 COMPATIBLE_MACHINE = "(imx8mp-var-dart-hmx1)"

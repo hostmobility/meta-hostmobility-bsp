@@ -17,9 +17,9 @@ file://0030-gpio-pca953x-driver-minimize-error-print-out.patch \
 
 SRCBRANCH = "6.6-2.2.x-imx_var01"
 SRC_URI = "${KERNEL_SRC};branch=${SRCBRANCH}"
-SRCREV = "a242d114c51c61a84b84ce03cb00dd6573c879b4"
+SRCREV = "9a25f25a4e106bbf9ca91b32fa52d059cec4d27e"
 
-LINUX_VERSION = "6.6.119"
+LINUX_VERSION = "6.6.138"
 LINUX_VERSION_EXTENSION = "-var-lts-next"
 
 COMPATIBLE_MACHINE = "(imx8mp-var-dart-hmx1)"

@@ -3,6 +3,7 @@ Description=Run autostart 30 seconds after boot
 
 [Timer]
 OnBootSec=30s
+AccuracySec=1
 Unit=autostart.service
 
 [Install]

@@ -15,11 +15,11 @@ file://0022-gpio-keys-make-disabled-keys-not-wake-system.patch  \
 file://0030-gpio-pca953x-driver-minimize-error-print-out.patch \
 "
 
-SRCBRANCH = "6.6-2.2.x-imx_var01"
+SRCBRANCH = "lf-6.18.y_6.18.20-2.0.0_var01"
 SRC_URI = "${KERNEL_SRC};branch=${SRCBRANCH}"
-SRCREV = "a242d114c51c61a84b84ce03cb00dd6573c879b4"
+SRCREV = "e56b4e4a25bb2fb3252f469ab879139e8351eddb"
 
-LINUX_VERSION = "6.6.119"
+LINUX_VERSION = "6.18.20"
 LINUX_VERSION_EXTENSION = "-var-lts-next"
 
 COMPATIBLE_MACHINE = "(imx8mp-var-dart-hmx1)"

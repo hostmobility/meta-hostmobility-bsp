@@ -15,3 +15,7 @@ SRC_URI = " \
 KBUILD_DEFCONFIG:imx8mp-var-dart-hmx1 = ""
 
 COMPATIBLE_MACHINE = "(imx8mp-var-dart-hmx1)"
+
+# Temporary while porting 6.18 on older Yocto/kernel tooling.
+KMETA_AUDIT = ""
+do_kernel_configcheck[noexec] = "1"

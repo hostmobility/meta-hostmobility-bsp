@@ -7,7 +7,7 @@ Implement HMX-specific U-Boot customizations for imx8mp-var-dart:
 
 Hardware Configuration:
 - Change console from UART1 to UART3
-- Add RGB LED controller support with boot indication 
+- Add RGB LED controller support with boot indication
 -    (blue on boot, white blinking during flash)
 - Add USB upgrade button (USB_BOOT) detection
 - Add watchdog initialization
@@ -53,13 +53,13 @@ index 4a550e802fc..7d2f1efcc05 100644
  #include "../common/imx8_eeprom.h"
  #include "imx8mp_var_dart.h"
 +#include "../common/hmx_eeprom.h"
- 
+
  int var_setup_mac(struct var_eeprom *eeprom);
- 
+
 @@ -52,6 +53,11 @@ static iomux_v3_cfg_t const board_detect_pads[] = {
  };
  #endif
- 
+
 +#define USB_UPGRADE_BUTTON_GPIO IMX_GPIO_NR(3, 0)
 +static iomux_v3_cfg_t const usb_upgrade_button_pad[] = {
 +	MX8MP_PAD_NAND_ALE__GPIO3_IO00 | MUX_PAD_CTRL(GPIO_PAD_CTRL),
@@ -70,11 +70,11 @@ index 4a550e802fc..7d2f1efcc05 100644
  	static int board_id = BOARD_ID_UNDEF;
 @@ -171,8 +177,105 @@ int board_early_init_f(void)
  }
- 
+
  #ifdef CONFIG_OF_BOARD_SETUP
 +/* Set serial number and part number from environment to device tree blob chosen.
 +		serial-number = "23078888";
-+		part-number = "hmp00xx"; 
++		part-number = "hmp00xx";
 +		product-number = hmxxx;
 +	Set RGB controller register id (0x30,0x31 or 0x32) to device tree blob.
 +*/
@@ -180,13 +180,13 @@ index 4a550e802fc..7d2f1efcc05 100644
  	char som_rev[CARRIER_REV_LEN] = {0};
 +	uchar eeprom_data [0xffff];
 +	int err = 1;
- 
+
  #ifdef CONFIG_ENV_IS_IN_MMC
  	board_late_mmc_env_init();
 @@ -468,6 +573,26 @@ int board_late_init(void)
  	var_setup_mac(ep);
  	var_eeprom_print_prod_info(ep);
- 
+
 +	/*HMX detect usb boot button for upgrade mmc from usb memory*/
 +	imx_iomux_v3_setup_multiple_pads(usb_upgrade_button_pad,
 +				ARRAY_SIZE(usb_upgrade_button_pad));
@@ -209,21 +209,21 @@ index 4a550e802fc..7d2f1efcc05 100644
 +
  	return 0;
  }
- 
+
 diff --git a/board/variscite/imx8mp_var_dart/spl.c b/board/variscite/imx8mp_var_dart/spl.c
 index 17fadec5cfb..c8df98576bc 100644
 --- a/board/variscite/imx8mp_var_dart/spl.c
 +++ b/board/variscite/imx8mp_var_dart/spl.c
 @@ -41,8 +41,8 @@ DECLARE_GLOBAL_DATA_PTR;
  #define UART_PAD_CTRL	(PAD_CTL_DSE6 | PAD_CTL_FSEL1)
- 
+
  static iomux_v3_cfg_t const uart_pads_dart[] = {
 -	MX8MP_PAD_UART1_RXD__UART1_DCE_RX | MUX_PAD_CTRL(UART_PAD_CTRL),
 -	MX8MP_PAD_UART1_TXD__UART1_DCE_TX | MUX_PAD_CTRL(UART_PAD_CTRL),
 +	MX8MP_PAD_UART3_RXD__UART3_DCE_RX | MUX_PAD_CTRL(UART_PAD_CTRL),
 +	MX8MP_PAD_UART3_TXD__UART3_DCE_TX | MUX_PAD_CTRL(UART_PAD_CTRL),
  };
- 
+
  static iomux_v3_cfg_t const uart_pads_som[] = {
 @@ -96,7 +96,8 @@ static void spl_uart_init(void)
  	if (board_id == BOARD_ID_DART) {
@@ -297,7 +297,7 @@ index 848d74852ff..9add715caed 100644
 +	"set_red_led=i2c mw ${RGB_I2C_ID} 7.1 0x50 1;i2c mw ${RGB_I2C_ID} 4.1 0x4 1\0" \
 +	"white_blink_fast=i2c mw ${RGB_I2C_ID} 1.1 1 1\0" \
 +	"try_usb_flash=sleep 2; usb reset; if load usb 0 ${loadaddr} ${bsp_script} ; then source ${loadaddr}; else echo UPDATE ERROR: no ${bsp_script} on first USB device. ;fi\0" \
-+	"set_RGB_ID=i2c dev 1; i2c probe 0x30 && setenv RGB_I2C_ID 0x30 || i2c probe 0x31 && setenv RGB_I2C_ID 0x31 || i2c probe 0x32 && setenv RGB_I2C_ID 0x32; if test -n \"${RGB_I2C_ID}\" ; then setenv set_RGB_ID 'i2c dev 1; echo RGB ID:$RGB_I2C_ID;'; saveenv;fi\0" \
++	"set_RGB_ID=i2c dev 1; if i2c probe 0x30; then setenv RGB_I2C_ID 0x30; fi; if i2c probe 0x31; then setenv RGB_I2C_ID 0x31; fi; if i2c probe 0x32; then setenv RGB_I2C_ID 0x32; fi; if test -n \"${RGB_I2C_ID}\" ; then setenv set_RGB_ID 'i2c dev 1; echo RGB ID:$RGB_I2C_ID;'; saveenv; else echo WARNING: no RGB LED controller found on i2c bus 1; fi\0" \
 +	"bsp_bootcmd=echo Running BSP bootcmd ...; run set_RGB_ID; run set_blue_led; " \
  		"run ramsize_check; " \
  		"mmc dev ${mmcdev}; " \
@@ -329,12 +329,12 @@ index 848d74852ff..9add715caed 100644
 @@ -205,7 +216,7 @@
  #define PHYS_SDRAM			0x40000000
  #define DEFAULT_SDRAM_SIZE		(512 * SZ_1M)
- 
+
 -#define CFG_MXC_UART_BASE		UART1_BASE_ADDR
 +#define CFG_MXC_UART_BASE		UART3_BASE_ADDR
- 
+
  #define CFG_SYS_FSL_USDHC_NUM	2
  #define CFG_SYS_FSL_ESDHC_ADDR	0
--- 
+--
 2.34.1
 

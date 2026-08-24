@@ -1,0 +1,33 @@
+From cc6670a869fbe1a39ed1b0fa206dc87f0afc79d0 Mon Sep 17 00:00:00 2001
+From: Wilhelm von Hacht <wilhelm.hacht@setek.se>
+Date: Mon, 24 Aug 2026 09:40:04 +0000
+Subject: [PATCH] hmx: m7: regress back to safe memory address for watchdog
+
+At some point in time variscite changed the reserved memory address
+for the m7 co-processor to 0x7B000000 instead of 0x80000000 we're we load
+our firmware for the watchdog. This change made the kernel think
+that the 0x80000000 reserved memory space was free to use, but our
+watchdog firmware acted upon it causing memory checksum mismatch.
+---
+ arch/arm64/boot/dts/freescale/imx8mp-var-common-m7.dtsi | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/freescale/imx8mp-var-common-m7.dtsi b/arch/arm64/boot/dts/freescale/imx8mp-var-common-m7.dtsi
+index cec3f86aa4a5..478f0679f800 100644
+--- a/arch/arm64/boot/dts/freescale/imx8mp-var-common-m7.dtsi
++++ b/arch/arm64/boot/dts/freescale/imx8mp-var-common-m7.dtsi
+@@ -26,9 +26,9 @@ reserved-memory {
+ 		 * 0x7C000000 - 0x40000000 =  0x3C000000 // Desired End - DDR Base
+ 		 * 0x3C000000 / 2 = 0x1E000000           // Right-shift 1 bit
+ 		 */
+-		m7_reserved: m7@7b000000 {
++		m7_reserved: m7@80000000 {
+ 			no-map;
+-			reg = <0 0x7b000000 0 0x1000000>;
++			reg = <0 0x80000000 0 0x1000000>;
+ 		};
+ 
+ 		vdev0vring0: vdev0vring0@40000000 {
+-- 
+2.44.4
+

@@ -1,4 +1,4 @@
-From 569d99de2bd98cdba21b30825568053db1c43c64 Mon Sep 17 00:00:00 2001
+From e67b59a80f04cf5a802d350ca67cde2d889b0123 Mon Sep 17 00:00:00 2001
 From: rikardo <rikard.olander@hostmobility.com>
 Date: Tue, 4 Feb 2025 15:28:49 +0000
 Subject: [PATCH 1/1] adjust verdin-am62_a53_defconfig
@@ -10,11 +10,11 @@ V.2 add gpio expander driver for leds
 V.3 add command for hash files
 
 ---
- configs/verdin-am62_a53_defconfig | 5 ++++-
- 1 file changed, 4 insertions(+), 1 deletion(-)
+ configs/verdin-am62_a53_defconfig | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
 
 diff --git a/configs/verdin-am62_a53_defconfig b/configs/verdin-am62_a53_defconfig
-index 9a9b233f013..d7337b95b31 100644
+index 9a9b233f013..4fc54215481 100644
 --- a/configs/verdin-am62_a53_defconfig
 +++ b/configs/verdin-am62_a53_defconfig
 @@ -36,7 +36,7 @@ CONFIG_SPL_LOAD_FIT_ADDRESS=0x81000000
@@ -26,8 +26,15 @@ index 9a9b233f013..d7337b95b31 100644
  CONFIG_BOOTCOMMAND="run distro_bootcmd"
  CONFIG_USE_PREBOOT=y
  CONFIG_PREBOOT="test -n ${fdtfile} || setenv fdtfile k3-am625-verdin-${variant}-${fdt_board}.dtb"
- CONFIG_LOG=y
-@@ -94,6 +94,8 @@ CONFIG_CMD_TIME=y
+@@ -75,7 +75,6 @@ CONFIG_CMD_MEMTEST=y
+ CONFIG_CMD_BCB=y
+ CONFIG_CMD_CLK=y
+ CONFIG_CMD_DFU=y
+-CONFIG_CMD_DM=y
+ CONFIG_CMD_GPIO=y
+ CONFIG_CMD_I2C=y
+ CONFIG_CMD_MMC=y
+@@ -89,6 +88,8 @@ CONFIG_CMD_TIME=y
  CONFIG_CMD_UUID=y
  CONFIG_CMD_PMIC=y
  CONFIG_CMD_REGULATOR=y
@@ -36,7 +43,7 @@ index 9a9b233f013..d7337b95b31 100644
  CONFIG_CMD_EXT4_WRITE=y
  # CONFIG_ISO_PARTITION is not set
  # CONFIG_SPL_EFI_PARTITION is not set
-@@ -139,6 +141,7 @@ CONFIG_GPIO_HOG=y
+@@ -133,6 +134,7 @@ CONFIG_GPIO_HOG=y
  CONFIG_SPL_GPIO_HOG=y
  CONFIG_SPL_DM_GPIO_LOOKUP_LABEL=y
  CONFIG_DA8XX_GPIO=y
@@ -45,5 +52,5 @@ index 9a9b233f013..d7337b95b31 100644
  CONFIG_DM_I2C_GPIO=y
  CONFIG_SYS_I2C_OMAP24XX=y
 -- 
-2.34.1
+2.44.4
 

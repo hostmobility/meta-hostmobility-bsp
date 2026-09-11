@@ -1,0 +1,96 @@
+From 691d39e20c40fe087dba549c32dd7106d7ccfc14 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Albin=20S=C3=B6derqvist?= <albin@albinutils.se>
+Date: Fri, 11 Sep 2026 13:29:50 +0200
+Subject: [PATCH 2/2] rtc: pcf85063: reset on invalid Control_1 readback
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The PCF85063A has a documented power-on reset issue that may corrupt
+registers when the device is powered up with a residual VDD level. The
+driver already issues a software reset when the oscillator-stop flag
+is set.
+
+Control_1 bits 6 and 3 are unused and specified as zero, while the SR
+bit at bit 4 always reads as zero. These are also the bits set by the
+0x58 software reset command. A non-zero readback of any of these bits
+therefore provides direct evidence that the register contents are
+invalid.
+
+Read Control_1 during probe and issue the existing software reset when
+any of its read-zero bits are set. Keep legal operating states such as
+STOP and 12-hour mode out of the corruption check.
+
+Assisted-by: ChatGPT:GPT-5.6-Sol
+Signed-off-by: Albin Söderqvist <albin@albinutils.se>
+---
+ drivers/rtc/rtc-pcf85063.c | 25 +++++++++++++++++++------
+ 1 file changed, 19 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/rtc/rtc-pcf85063.c b/drivers/rtc/rtc-pcf85063.c
+index 01002f2a4c4b..e9bf6ff859bf 100644
+--- a/drivers/rtc/rtc-pcf85063.c
++++ b/drivers/rtc/rtc-pcf85063.c
+@@ -36,6 +36,7 @@
+ #define PCF85063_REG_CTRL1_12_24	BIT(1)
+ #define PCF85063_REG_CTRL1_STOP		BIT(5)
+ #define PCF85063_REG_CTRL1_EXT_TEST	BIT(7)
++#define PCF85063_REG_CTRL1_READ_ZERO_MASK	(BIT(6) | BIT(4) | BIT(3))
+ #define PCF85063_REG_CTRL1_SWR		0x58
+ 
+ #define PCF85063_REG_CTRL2		0x01
+@@ -564,7 +565,7 @@ static const struct pcf85063_config config_rv8263 = {
+ static int pcf85063_probe(struct i2c_client *client)
+ {
+ 	struct pcf85063 *pcf85063;
+-	unsigned int tmp;
++	unsigned int ctrl1, seconds;
+ 	int err;
+ 	const struct pcf85063_config *config;
+ 	struct nvmem_config nvmem_cfg = {
+@@ -592,25 +593,37 @@ static int pcf85063_probe(struct i2c_client *client)
+ 
+ 	i2c_set_clientdata(client, pcf85063);
+ 
+-	err = regmap_read(pcf85063->regmap, PCF85063_REG_SC, &tmp);
++	err = regmap_read(pcf85063->regmap, PCF85063_REG_SC, &seconds);
+ 	if (err) {
+ 		dev_err(&client->dev, "RTC chip is not present\n");
+ 		return err;
+ 	}
+ 
++	err = regmap_read(pcf85063->regmap, PCF85063_REG_CTRL1, &ctrl1);
++	if (err) {
++		dev_err(&client->dev, "failed to read Control_1\n");
++		return err;
++	}
++
+ 	pcf85063->rtc = devm_rtc_allocate_device(&client->dev);
+ 	if (IS_ERR(pcf85063->rtc))
+ 		return PTR_ERR(pcf85063->rtc);
+ 
+ 	/*
+-	 * If a Power loss is detected, SW reset the device.
++	 * If power loss or register corruption is detected, SW reset the device.
+ 	 * From PCF85063A datasheet:
+ 	 * There is a low probability that some devices will have corruption
+ 	 * of the registers after the automatic power-on reset...
+ 	 */
+-	if (tmp & PCF85063_REG_SC_OS) {
+-		dev_warn(&client->dev,
+-			 "POR issue detected, sending a SW reset\n");
++	if ((seconds & PCF85063_REG_SC_OS) ||
++	    (ctrl1 & PCF85063_REG_CTRL1_READ_ZERO_MASK)) {
++		if (ctrl1 & PCF85063_REG_CTRL1_READ_ZERO_MASK)
++			dev_warn(&client->dev,
++				 "invalid Control_1 value 0x%02x, sending a SW reset\n",
++				 ctrl1);
++		else
++			dev_warn(&client->dev,
++				 "POR issue detected, sending a SW reset\n");
+ 		err = regmap_write(pcf85063->regmap, PCF85063_REG_CTRL1,
+ 				   PCF85063_REG_CTRL1_SWR);
+ 		if (err < 0)
+-- 
+2.47.3
+

@@ -1,4 +1,4 @@
-From 691d39e20c40fe087dba549c32dd7106d7ccfc14 Mon Sep 17 00:00:00 2001
+From 2f627da1ef3bbff16ea3455bf22edc19ddaf23fa Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Albin=20S=C3=B6derqvist?= <albin@albinutils.se>
 Date: Fri, 11 Sep 2026 13:29:50 +0200
 Subject: [PATCH 2/2] rtc: pcf85063: reset on invalid Control_1 readback

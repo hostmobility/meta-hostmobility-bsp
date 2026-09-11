@@ -1,4 +1,4 @@
-From 670f5f94314c8502047821a2402f85b0e7b12426 Mon Sep 17 00:00:00 2001
+From c3bfe325f85535c93b27efb3a7be23acce48bd81 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Albin=20S=C3=B6derqvist?= <albin@albinutils.se>
 Date: Fri, 11 Sep 2026 13:09:02 +0200
 Subject: [PATCH 1/2] rtc: pcf85063: force 24-hour mode when setting time
@@ -6,19 +6,21 @@ MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 
-The driver encodes tm_hour directly as BCD in the range 0 to 23 and
-also decodes the Hours register as a 24-hour value. However, set_time()
-preserves the 12_24 bit in Control_1.
+The driver writes tm_hour as BCD using the Linux 0 to 23 hour range and
+reads the Hours register as a 24-hour value. However, set_time() leaves
+the 12_24 bit in Control_1 unchanged.
 
-If the RTC is in 12-hour mode, set_time() therefore writes a 24-hour
-encoded hour while leaving the device configured to interpret the
-register in 12-hour mode.
+If the RTC is configured for 12-hour mode, set_time() can therefore
+write a 24-hour encoded value while the hardware interprets the Hours
+register using 12-hour format.
 
-Clear 12_24 together with EXT_TEST while stopping the clock so the
-hardware mode matches the encoding used by the driver.
+While stopping the RTC for the time update, also clear 12_24 and
+EXT_TEST. This selects 24-hour mode and ensures that the hardware
+interprets the hour value in the same format used by the driver.
 
-Assisted-by: ChatGPT:GPT-5.6-Sol
-Signed-off-by: Albin Söderqvist <albin@albinutils.se>
+Fixes: 31d4d33ef431 ("rtc: pcf85063: fix time/date setting")
+Assisted-by: ChatGPT.6-Sol
+Signed-off-by: Albin Söderqvist albin@albinutils.se
 ---
  drivers/rtc/rtc-pcf85063.c | 4 +++-
  1 file changed, 3 insertions(+), 1 deletion(-)

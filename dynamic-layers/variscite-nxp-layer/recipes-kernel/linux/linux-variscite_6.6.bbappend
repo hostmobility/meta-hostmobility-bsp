@@ -14,6 +14,9 @@ file://0018-power-reset-gpio-poweroff-add-force-mode.patch  \
 file://0022-gpio-keys-make-disabled-keys-not-wake-system.patch  \
 file://0030-gpio-pca953x-driver-minimize-error-print-out.patch \
 file://0031-hmx-m7-regress-back-to-safe-memory-address-for-watchdog.patch \
+file://0032-rtc-pcf85063-warn-about-invalid-Control_1-state.patch \
+file://0033-rtc-pcf85063-force-24-hour-mode-when-setting-time.patch \
+file://0034-rtc-pcf85063-recover-invalid-Control_1-when-setting-time.patch \
 "
 
 SRCBRANCH = "6.6-2.2.x-imx_var01"

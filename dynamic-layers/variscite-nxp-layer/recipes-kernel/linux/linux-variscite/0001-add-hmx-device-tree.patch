@@ -544,7 +544,7 @@ index 000000000000..7dfa45928998
 +	rtc_extern: rtc@51 {
 +		compatible = "nxp,pcf85063a";
 +		reg = <0x51>;
-+		quartz-load-femtofarads = <12500>;
++		quartz-load-femtofarads = <7000>;
 +		pinctrl-names = "default";
 +		pinctrl-0 = <&pinctrl_rtc>;
 +		interrupt-parent = <&gpio1>;

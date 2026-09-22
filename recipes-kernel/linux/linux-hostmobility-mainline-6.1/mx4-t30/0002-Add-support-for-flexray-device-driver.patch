@@ -1,7 +1,9 @@
-From 56645592cc0d7a5cfa768862016d4ad077bb9fb7 Mon Sep 17 00:00:00 2001
+From f5c7b6b6f37ada9220824bc51e31e2e77a6346f5 Mon Sep 17 00:00:00 2001
 From: rikardo <rikard.olander@hostmobility.com>
-Date: Tue, 9 May 2023 13:02:54 +0000
-Subject: [PATCH 2/4] Add support for flexray device driver
+Date: Tue, 11 Feb 2025 14:31:26 +0000
+Subject: [PATCH 1/1] Add support for flexray device driver
+
+V.2 AF_FLEXRAY	46 instead of 45 and ARPHRD_FLEXRAY	300 instead of 290.
 
 ---
  Documentation/networking/flexray.rst |   24 +
@@ -17,10 +19,10 @@ Subject: [PATCH 2/4] Add support for flexray device driver
  include/linux/flexray/dev.h          |   64 +
  include/linux/flexray/netlink.h      |  213 +++
  include/linux/flexray/raw.h          |   20 +
- include/linux/socket.h               |    6 +-
+ include/linux/socket.h               |    4 +-
  include/net/net_namespace.h          |    4 +
  include/net/netns/flexray.h          |   39 +
- include/uapi/linux/if_arp.h          |    3 +-
+ include/uapi/linux/if_arp.h          |    1 +
  include/uapi/linux/if_ether.h        |    1 +
  net/Kconfig                          |    1 +
  net/Makefile                         |    1 +
@@ -31,7 +33,7 @@ Subject: [PATCH 2/4] Add support for flexray device driver
  net/flexray/af_flexray.h             |   54 +
  net/flexray/proc.c                   |  163 ++
  net/flexray/raw.c                    |  675 +++++++
- 27 files changed, 5494 insertions(+), 4 deletions(-)
+ 27 files changed, 5492 insertions(+), 2 deletions(-)
  create mode 100644 Documentation/networking/flexray.rst
  create mode 100644 drivers/net/flexray/Kconfig
  create mode 100644 drivers/net/flexray/Makefile
@@ -3956,18 +3958,14 @@ index 000000000000..22dd5ab51b68
 +
 +#endif
 diff --git a/include/linux/socket.h b/include/linux/socket.h
-index de3701a2a212..d8aa7fb7dee3 100644
+index de3701a2a212..c124974a7df5 100644
 --- a/include/linux/socket.h
 +++ b/include/linux/socket.h
-@@ -232,11 +232,12 @@ struct ucred {
- 				 * reuses AF_INET address family
- 				 */
- #define AF_XDP		44	/* XDP sockets			*/
--#define AF_MCTP		45	/* Management component
-+#define AF_MCTP		46	/* Management component
+@@ -235,8 +235,9 @@ struct ucred {
+ #define AF_MCTP		45	/* Management component
  				 * transport protocol
  				 */
-+#define AF_FLEXRAY	45	/*Flexray			*/
++#define AF_FLEXRAY	46	/*Flexray			*/
  
 -#define AF_MAX		46	/* For now.. */
 +#define AF_MAX		47	/* For now.. */
@@ -4050,16 +4048,14 @@ index 000000000000..650c8fb4c703
 +
 +#endif /* __NETNS_FLEXRAY_H__ */
 diff --git a/include/uapi/linux/if_arp.h b/include/uapi/linux/if_arp.h
-index 4783af9fe520..4becc6bb8bab 100644
+index 4783af9fe520..4f02e04cc90e 100644
 --- a/include/uapi/linux/if_arp.h
 +++ b/include/uapi/linux/if_arp.h
-@@ -54,7 +54,8 @@
- #define ARPHRD_X25	271		/* CCITT X.25			*/
+@@ -55,6 +55,7 @@
  #define ARPHRD_HWX25	272		/* Boards with X.25 in firmware	*/
  #define ARPHRD_CAN	280		/* Controller Area Network      */
--#define ARPHRD_MCTP	290
-+#define ARPHRD_MCTP	300
-+#define ARPHRD_FLEXRAY	290		/* Flexray			*/
+ #define ARPHRD_MCTP	290
++#define ARPHRD_FLEXRAY	300		/* Flexray			*/
  #define ARPHRD_PPP	512
  #define ARPHRD_CISCO	513		/* Cisco HDLC	 		*/
  #define ARPHRD_HDLC	ARPHRD_CISCO
@@ -4100,7 +4096,7 @@ index 6a62e5b27378..8eeb51221913 100644
  obj-$(CONFIG_SUNRPC)		+= sunrpc/
  obj-$(CONFIG_AF_RXRPC)		+= rxrpc/
 diff --git a/net/core/sock.c b/net/core/sock.c
-index eb0b76acd9df..0d775450b492 100644
+index eb0b76acd9df..0892025ea79b 100644
 --- a/net/core/sock.c
 +++ b/net/core/sock.c
 @@ -229,7 +229,7 @@ static struct lock_class_key af_family_kern_slock_keys[AF_MAX];
@@ -4108,7 +4104,7 @@ index eb0b76acd9df..0d775450b492 100644
    x "AF_NFC"   ,	x "AF_VSOCK"    ,	x "AF_KCM"      , \
    x "AF_QIPCRTR",	x "AF_SMC"	,	x "AF_XDP"	, \
 -  x "AF_MCTP"  , \
-+  x "AF_FLEXRAY",	x "AF_MCTP" \
++  x "AF_MCTP"  ,    x "AF_FLEXRAY"	, \
    x "AF_MAX"
  
  static const char *const af_family_key_strings[AF_MAX+1] = {

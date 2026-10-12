@@ -2,7 +2,10 @@ FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 
 unset KBUILD_DEFCONFIG
 
+RT_PATCH = "patch-6.6.144-rt76.patch.xz"
+
 SRC_URI:append = " \
+https://cdn.kernel.org/pub/linux/kernel/projects/rt/6.6/older/${RT_PATCH};name=rt \
 file://defconfig \
 file://0001-add-hmx-device-tree.patch \
 file://0001-Add-Kinetic-KTD2026-2027-LED-driver.patch \
@@ -15,6 +18,7 @@ file://0022-gpio-keys-make-disabled-keys-not-wake-system.patch  \
 file://0030-gpio-pca953x-driver-minimize-error-print-out.patch \
 file://0031-hmx-m7-regress-back-to-safe-memory-address-for-watchdog.patch \
 "
+SRC_URI[rt.sha256sum] = "efc4ca86858a3d7b74b8501a26281cca687a71819abcea38f54ecda7440bf5b2"
 
 SRCBRANCH = "6.6-2.2.x-imx_var01"
 SRC_URI = "${KERNEL_SRC};branch=${SRCBRANCH}"

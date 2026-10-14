@@ -217,8 +217,8 @@ index e8bc22d4c35..b24e8f6c8f7 100644
 +	"m4addr=0x82000000\0" \
 +	"m4_firmware=lib/firmware/am62-mcu-m4f0_0-fw\0" \
 +	"m4boot=if ext4size mmc ${root_devnum}:${root_part} ${m4_firmware}; then " \
-+		"load mmc ${root_devnum}:${root_part} ${m4addr} ${m4_firmware}; " \
-+			"if rproc init && rproc load 0 ${m4addr} ${filesize} && rproc start 0; then " \
++		"if load mmc ${root_devnum}:${root_part} ${m4addr} ${m4_firmware} && " \
++			"rproc init && rproc load 0 ${m4addr} ${filesize} && rproc start 0; then " \
 +				"echo INFO: M4 firmware ${m4_firmware} successfully started; " \
 +			"else " \
 +				"echo ERROR: Failed to initialize or start M4 firmware; " \

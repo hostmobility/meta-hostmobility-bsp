@@ -51,7 +51,7 @@ index 9f09788137d..a9846ade4a5 100644
  static int settings_r(void)
  {
  	unsigned char ethaddr[6];
-+	uchar eeprom_data [0xffff];
++	static uchar eeprom_data [0xffff];
 +	int err = 1;
  
  	if (read_tdx_cfg_block()) {

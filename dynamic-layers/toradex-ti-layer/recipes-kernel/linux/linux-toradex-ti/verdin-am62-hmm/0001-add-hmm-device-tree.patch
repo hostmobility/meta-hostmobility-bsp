@@ -1,7 +1,7 @@
 From c3a76f05e69e41852d2ffaa6857ec10b0fa322de Mon Sep 17 00:00:00 2001
 From: OpenEmbedded <oe.patch@oe>
 Date: Tue, 12 May 2026 17:00:54 +0200
-Subject: [PATCH 1/1] Device tree for V11 kernel 6.6
+Subject: [PATCH 1/1] Device tree for V12 kernel 6.6
 
 v1. Add our customization based on k3-am62-verdin-dev.
 We have removed or disabled interfaces that we will not use( like sound, gpio-keys and eth2)
@@ -40,11 +40,15 @@ V10. Fix accelerometer node interrupt line
 v11. - Fix USB Type-C port controller support
      - Fix wake-up handling for CAN0 and CAN1, removing unwanted interrupts
      - Add missing R5F mailboxes
+
+v12. - Fix USB-C device detection and mounting by moving VBUS control
+       from the USB0 regulator to the PTN5150 controller.
+
 ---
  arch/arm64/boot/dts/ti/Makefile               |   1 +
- .../arm64/boot/dts/ti/k3-am62-verdin-hmm.dtsi | 676 ++++++++++++++++++
+ .../arm64/boot/dts/ti/k3-am62-verdin-hmm.dtsi | 678 ++++++++++++++++++
  .../boot/dts/ti/k3-am625-verdin-wifi-hmm.dts  |  75 ++
- 3 files changed, 752 insertions(+)
+ 3 files changed, 754 insertions(+)
  create mode 100644 arch/arm64/boot/dts/ti/k3-am62-verdin-hmm.dtsi
  create mode 100644 arch/arm64/boot/dts/ti/k3-am625-verdin-wifi-hmm.dts
 
@@ -65,7 +69,7 @@ new file mode 100644
 index 000000000000..f4b3e61fdc76
 --- /dev/null
 +++ b/arch/arm64/boot/dts/ti/k3-am62-verdin-hmm.dtsi
-@@ -0,0 +1,676 @@
+@@ -0,0 +1,678 @@
 +// SPDX-License-Identifier: GPL-2.0-or-later OR MIT
 +/*
 + * Copyright 2023 Toradex
@@ -247,10 +251,11 @@ index 000000000000..f4b3e61fdc76
 +	typec@1d {
 +		compatible = "nxp,ptn5150";
 +		pinctrl-names = "default";
-+		pinctrl-0 = <&pinctrl_usb1_irq>;
++		pinctrl-0 = <&pinctrl_usb1_irq>, <&pinctrl_usb0_en>;
 +		interrupt-parent = <&main_gpio0>;
 +		interrupts = <38 IRQ_TYPE_LEVEL_HIGH>;
 +		reg = <0x1d>;
++		vbus-gpios = <&main_gpio1 50 GPIO_ACTIVE_HIGH>;
 +		status ="okay";
 +		ports {
 +			#address-cells = <1>;
@@ -365,7 +370,8 @@ index 000000000000..f4b3e61fdc76
 +	status = "okay";
 +};
 +
-+/* Verdin USB_1 */
++/* Verdin USB_1: VBUS managed by PTN5150 */
++&reg_usb0_vbus { status = "disabled"; };
 +&usbss0 {
 +	status = "okay";
 +};

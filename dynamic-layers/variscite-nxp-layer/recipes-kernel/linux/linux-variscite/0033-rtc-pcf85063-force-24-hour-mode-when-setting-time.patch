@@ -1,0 +1,44 @@
+From 1210be33eb41103b76950cc6936ec19b591f539b Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Albin=20S=C3=B6derqvist?= <albin@albinutils.se>
+Date: Mon, 14 Sep 2026 11:40:19 +0200
+Subject: [PATCH 2/3] rtc: pcf85063: force 24-hour mode when setting time
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The driver writes tm_hour as BCD using the Linux 0 to 23 hour range
+and reads the Hours register as a 24-hour value. However, set_time()
+leaves the 12_24 bit in Control_1 unchanged.
+
+If the RTC is configured for 12-hour mode, set_time() can therefore
+write a 24-hour encoded value while the hardware interprets the Hours
+register using 12-hour format.
+
+While stopping the RTC for the time update, also clear 12_24. This
+selects 24-hour mode and ensures that the hardware interprets the hour
+value in the same format used by the driver.
+
+Fixes: 31d4d33ef431 ("rtc: pcf85063: fix time/date setting")
+Assisted-by: ChatGPT:GPT-5.6-Sol
+Signed-off-by: Albin Söderqvist <albin@albinutils.se>
+---
+ drivers/rtc/rtc-pcf85063.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/rtc/rtc-pcf85063.c b/drivers/rtc/rtc-pcf85063.c
+index 95b73b757463..1a4ca3d066ba 100644
+--- a/drivers/rtc/rtc-pcf85063.c
++++ b/drivers/rtc/rtc-pcf85063.c
+@@ -122,7 +122,8 @@ static int pcf85063_rtc_set_time(struct device *dev, struct rtc_time *tm)
+ 	 */
+ 	rc = regmap_update_bits(pcf85063->regmap, PCF85063_REG_CTRL1,
+ 				PCF85063_REG_CTRL1_EXT_TEST |
+-				PCF85063_REG_CTRL1_STOP,
++				PCF85063_REG_CTRL1_STOP |
++				PCF85063_REG_CTRL1_12_24,
+ 				PCF85063_REG_CTRL1_STOP);
+ 	if (rc)
+ 		return rc;
+-- 
+2.47.3
+

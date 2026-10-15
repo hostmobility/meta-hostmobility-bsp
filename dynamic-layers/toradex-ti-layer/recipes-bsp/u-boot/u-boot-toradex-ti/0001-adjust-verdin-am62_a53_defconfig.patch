@@ -9,6 +9,9 @@ V.2 add gpio expander driver for leds
 
 V.3 add command for hash files
 
+V.3.1 Fix incorrect patch hunk header so that the changes from
+      V.2 and V.3 are applied correctly.
+
 ---
  configs/verdin-am62_a53_defconfig | 5 ++++-
  1 file changed, 4 insertions(+), 1 deletion(-)
@@ -17,7 +20,7 @@ diff --git a/configs/verdin-am62_a53_defconfig b/configs/verdin-am62_a53_defconf
 index 9a9b233f013..d7337b95b31 100644
 --- a/configs/verdin-am62_a53_defconfig
 +++ b/configs/verdin-am62_a53_defconfig
-@@ -36,7 +36,7 @@ CONFIG_SPL_LOAD_FIT_ADDRESS=0x81000000
+@@ -36,8 +36,8 @@ CONFIG_SPL_LOAD_FIT_ADDRESS=0x81000000
  CONFIG_LEGACY_IMAGE_FORMAT=y
  CONFIG_SYS_BOOTM_LEN=0x40000000
  CONFIG_DISTRO_DEFAULTS=y

@@ -34,7 +34,7 @@ if test ${devtype} = "ubi"; then
     exit
 fi
 
-test -n ${m4boot} || echo "no m4boot, set default for testing..." && env set m4boot 'if ext4size mmc ${root_devnum}:${root_part} ${m4_firmware}; then load mmc ${root_devnum}:${root_part} ${m4addr} ${m4_firmware}; if rproc init && rproc load 0 ${m4addr} ${filesize} && rproc start 0; then echo INFO: M4 firmware ${m4_firmware} successfully started; else echo ERROR: Failed to initialize or start M4 firmware; env set script_warning 'M4 firmware ${m4_firmware} initialization/start failed'; fi; else echo WARNING: File ${m4_firmware} not found on mmc ${root_devnum}:${root_part}, continue booting; env set script_warning 'File ${m4_firmware} not found on mmc ${root_devnum}:${root_part}, continue booting'; fi;'
+if test -z "${m4boot}"; then echo "no m4boot, set default for testing..."; env set m4boot 'if ext4size mmc ${root_devnum}:${root_part} ${m4_firmware}; then if load mmc ${root_devnum}:${root_part} ${m4addr} ${m4_firmware} && rproc init && rproc load 0 ${m4addr} ${filesize} && rproc start 0; then echo INFO: M4 firmware ${m4_firmware} successfully started; else echo ERROR: Failed to initialize or start M4 firmware; env set script_warning 'M4 firmware ${m4_firmware} initialization/start failed'; fi; else echo WARNING: File ${m4_firmware} not found on mmc ${root_devnum}:${root_part}, continue booting; env set script_warning 'File ${m4_firmware} not found on mmc ${root_devnum}:${root_part}, continue booting'; fi;'; fi
 test -n ${fdtfile} || env set fdtfile ${fdt_file}
 test -n ${boot_part} || env set boot_part ${distro_bootpart}
 test -n ${root_part} || env set root_part 2

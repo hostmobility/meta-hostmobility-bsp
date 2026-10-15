@@ -1,6 +1,6 @@
 FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 
-SRCREV = "ffbbc1dd68f41724f3a885ed18cffe3e064e9134"
+SRCREV = "3eafd228d8e0c958a7aa166bb171b57db5fe43cd"
 SRCREV:use-head-next = "${AUTOREV}"
 SRCBRANCH = "toradex_ti-u-boot-2024.04"
 

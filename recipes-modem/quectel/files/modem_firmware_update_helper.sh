@@ -80,7 +80,7 @@ modem_wait()
 
 #################main#################
 #Does startup the modem direct
-if [[ "$system_type" == "imx8mp-var-dart-hmx1" ]]; then
+if [[ "$system_type" == "imx8mp-var-dart-hmx1"* ]]; then
 	update_modem $1 || start_recovery_state_v2 $1
 fi
 #mxv way

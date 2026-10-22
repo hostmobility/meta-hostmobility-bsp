@@ -16,6 +16,12 @@ file://0030-gpio-pca953x-driver-minimize-error-print-out.patch \
 file://0031-hmx-m7-regress-back-to-safe-memory-address-for-watchdog.patch \
 "
 
+# Optional radio support, enabled by the imx8mp-var-dart-hmx1-wifi machine
+SRC_URI:append = " \
+${@bb.utils.contains('MACHINE_FEATURES', 'wifi', 'file://extra/wifi.cfg', '', d)} \
+${@bb.utils.contains('MACHINE_FEATURES', 'bluetooth', 'file://extra/bluetooth.cfg', '', d)} \
+"
+
 SRCBRANCH = "6.6-2.2.x-imx_var01"
 SRC_URI = "${KERNEL_SRC};branch=${SRCBRANCH}"
 SRCREV = "d5ae748b1c9683c61d04dd20deb36787d46dc184"

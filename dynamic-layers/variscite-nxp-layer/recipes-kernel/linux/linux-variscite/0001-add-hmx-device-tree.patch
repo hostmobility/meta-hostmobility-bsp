@@ -88,7 +88,7 @@ new file mode 100644
 index 000000000000..bb89e061a948
 --- /dev/null
 +++ b/arch/arm64/boot/dts/freescale/imx8mp-var-dart-hmx1-base.dts
-@@ -0,0 +1,1328 @@
+@@ -0,0 +1,1327 @@
 +// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 +/*
 + * Copyright 2022-2024 Host Mobility AB
@@ -530,7 +530,6 @@ index 000000000000..bb89e061a948
 +		interrupt-parent = <&gpio1>;
 +		interrupts = <9 IRQ_TYPE_LEVEL_LOW>;
 +		interrupt-names = "RTC-INT";
-+		//wakeup-source; disabled default.
 +		status = "okay";
 +	};
 +

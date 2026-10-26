@@ -637,14 +637,14 @@ index 000000000000..bb89e061a948
 +	assigned-clock-parents = <&clk IMX8MP_SYS_PLL2_500M>,
 +				 <&clk IMX8MP_SYS_PLL2_50M>;
 +	l1ss-disabled;
-+	status = "okay";
++	status = "disabled";
 +};
 +
 +&pcie_phy {
 +	fsl,refclk-pad-mode = <IMX8_PCIE_REFCLK_PAD_INPUT>;
 +	clocks = <&pcie0_refclk>;
 +	clock-names = "ref";
-+	status = "okay";
++	status = "disabled";
 +};
 +
 +/* UART -> FTDI Header */

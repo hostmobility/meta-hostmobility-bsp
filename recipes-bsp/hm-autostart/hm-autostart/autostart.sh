@@ -27,7 +27,7 @@ is_valid_serial_number() {
 # Set hostname to MACHINE-SERIAL (or HMX-SERIAL)
 set_hostname_if_needed() {
   local newhost current i serial=""
-  [[ "$MACHINE" == "imx8mp-var-dart-hmx1" || "$MACHINE" == "verdin-am62-hmm" ]] || return 0
+  [[ "$MACHINE" == "imx8mp-var-dart-hmx1"* || "$MACHINE" == "verdin-am62-hmm" ]] || return 0
   [[ -f "$HOSTNAME_PENDING_FILE" ]] || return 0
 
   echo "Hostname provisioning pending; waiting up to ${HOSTNAME_WAIT_SECONDS}s for a valid serial number..."
@@ -41,7 +41,7 @@ set_hostname_if_needed() {
   done
 
   if is_valid_serial_number "$serial"; then
-    if [[ "$MACHINE" == "imx8mp-var-dart-hmx1" ]]; then
+    if [[ "$MACHINE" == "imx8mp-var-dart-hmx1"* ]]; then
       newhost="HMX-${serial}"
     else
       newhost="${MACHINE}-${serial}"
@@ -67,7 +67,7 @@ start_watchdog() {
 
   start_time="$(date +%s)"
 
-  if [[ "$MACHINE" == "imx8mp-var-dart-hmx1" || "$MACHINE" == "verdin-am62-hmm" ]]; then
+  if [[ "$MACHINE" == "imx8mp-var-dart-hmx1"* || "$MACHINE" == "verdin-am62-hmm" ]]; then
     # On hmm this script can start too early; wait for rpmsg handler.
     while [[ ! -e /dev/rpmsg_ctrl0 ]]; do
       echo "Waiting on RPMSG handler..."
@@ -114,7 +114,7 @@ HOSTNAME_PID=$!
 waited_for_wd=0
 
 if [[ -f "$FIRST_TIME_BOOT_FILE" ]]; then
-  if [[ "$MACHINE" == "imx8mp-var-dart-hmx1" ]]; then
+  if [[ "$MACHINE" == "imx8mp-var-dart-hmx1"* ]]; then
     # Remove /boot/*.scr from so next reboot will not start a new
     # upgrade. Not used on hmm.
     rm -f /boot/*.scr

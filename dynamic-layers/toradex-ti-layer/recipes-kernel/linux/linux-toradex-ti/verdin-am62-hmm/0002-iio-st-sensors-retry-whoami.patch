@@ -1,0 +1,66 @@
+From f97c22010375ebbe8256c2fdf048349f3de4b528 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Albin=20S=C3=B6derqvist?= <albin@albinutils.se>
+Date: Tue, 20 Oct 2026 15:02:20 +0200
+Subject: [PATCH] iio: st_sensors: Retry transient WHO_AM_I read failures
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The LIS2HH12 accelerometer occasionally fails to initialize during
+cold boot because the initial WHO_AM_I register read returns
+-EREMOTEIO.
+
+Allow up to three read attempts with a 20 ms delay between attempts
+when transient I2C communication errors occur.
+
+Log successful recovery to help diagnose initialization problems
+without preventing the sensor from registering.
+
+Assisted-by: ChatGPT (OpenAI GPT-6)
+Signed-off-by: Albin Söderqvist <albin@albinutils.se>
+---
+ .../iio/common/st_sensors/st_sensors_core.c   | 21 ++++++++++++++++---
+ 1 file changed, 18 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/iio/common/st_sensors/st_sensors_core.c b/drivers/iio/common/st_sensors/st_sensors_core.c
+index 6fd725b3c068..27fe492527b8 100644
+--- a/drivers/iio/common/st_sensors/st_sensors_core.c
++++ b/drivers/iio/common/st_sensors/st_sensors_core.c
+@@ -605,16 +605,31 @@ int st_sensors_verify_id(struct iio_dev *indio_dev)
+ {
+ 	struct st_sensor_data *sdata = iio_priv(indio_dev);
+ 	struct device *parent = indio_dev->dev.parent;
+-	int wai, err;
++	int wai, err, attempt;
+ 
+ 	if (sdata->sensor_settings->wai_addr) {
+-		err = regmap_read(sdata->regmap,
+-				  sdata->sensor_settings->wai_addr, &wai);
++		for (attempt = 0; attempt < 3; attempt++) {
++			err = regmap_read(sdata->regmap,
++					  sdata->sensor_settings->wai_addr, &wai);
++			if (!err)
++				break;
++
++			/* Retry only transient I2C communication failures. */
++			if (err != -EREMOTEIO && err != -ENXIO)
++				break;
++			if (attempt < 2)
++				msleep(20);
++		}
++
+ 		if (err < 0) {
+ 			return dev_err_probe(parent, err,
+ 					     "failed to read Who-Am-I register.\n");
+ 		}
+ 
++		if (attempt)
++			dev_warn(parent, "Who-Am-I read recovered after %d retries\n",
++				 attempt);
++
+ 		if (sdata->sensor_settings->wai != wai) {
+ 			dev_warn(parent, "%s: WhoAmI mismatch (0x%x).\n",
+ 				 indio_dev->name, wai);
+-- 
+2.47.3
+
